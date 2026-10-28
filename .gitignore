@@ -1,0 +1,33 @@
+# deps and builds
+node_modules/
+.pnpm-store/
+.next/
+.turbo/
+dist/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Rust / Anchor
+target/
+.anchor/
+test-ledger/
+
+# env and keys: never commit
+.env
+.env.*
+!.env.example
+*.pem
+**/keys/
+*-keypair.json
+id.json
+
+# tooling output
+playwright-report/
+test-results/
+.lighthouseci/
+artifacts/
+
+# OS
+.DS_Store
