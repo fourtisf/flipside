@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  checks:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm turbo run lint typecheck test build
+
+  e2e:
+    name: E2E (1440 and 390) and Lighthouse accessibility
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter=@flipside/web
+      - run: pnpm --filter @flipside/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @flipside/web e2e
+        env:
+          CI: true
+      - name: Lighthouse accessibility (95 or higher on every route)
+        run: |
+          pnpm --filter @flipside/web start &
+          npx -y wait-on@8.0.3 http://localhost:3000
+          pnpm a11y
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            apps/web/test-results
+            artifacts/lighthouse
+
+  vault:
+    name: Vault program (cargo check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ hashFiles('Cargo.lock') }}
+      - run: cargo fmt --all -- --check
+      - run: cargo check -p flipside_vault --locked

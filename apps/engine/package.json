@@ -1,0 +1,22 @@
+{
+  "name": "@flipside/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@flipside/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "vitest": "^3.2.7"
+  }
+}

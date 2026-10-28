@@ -1,0 +1,32 @@
+{
+  "name": "@flipside/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@flipside/core": "workspace:*",
+    "d3-hierarchy": "^3.1.2",
+    "geist": "^1.8.2",
+    "lightweight-charts": "^5.2.1",
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/d3-hierarchy": "^3.1.7",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "eslint-config-next": "14.2.35",
+    "vitest": "^3.2.7"
+  }
+}

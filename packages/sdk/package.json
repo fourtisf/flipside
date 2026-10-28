@@ -1,0 +1,22 @@
+{
+  "name": "@flipside/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@flipside/core": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
+  }
+}

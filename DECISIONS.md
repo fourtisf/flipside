@@ -1,0 +1,134 @@
+# Decisions
+
+Choices made while building that CLAUDE.md does not cover, or where it had to be interpreted. Newest phase
+first. Anything in CLAUDE.md section 16 is not decided here; it is asked.
+
+## P0. Scaffold and design system
+
+### Stack and versions
+
+| Piece | Choice | Why |
+|---|---|---|
+| Next.js | 14.2.35 (latest 14.x), React 18.3.1 | The brief pins Next.js 14. |
+| TypeScript | 5.9 | TypeScript 7 exists but Next 14 and typescript-eslint need 5.x. |
+| ESLint | 8.57 + typescript-eslint 8 | `eslint-config-next@14` only supports ESLint 8. |
+| Prisma | 6.19 | Stable `prisma-client-js` generator and engines; Prisma 7 changes the client and datasource model. Revisit before P2. |
+| zod | 4 | Current major; schemas live in `packages/core/src/schemas.ts`. |
+| Fastify | 5 + `@fastify/websocket` 11 | Current majors. |
+| Charts | `lightweight-charts` 5.2 | The brief asks for TradingView lightweight-charts. |
+| Treemap | `d3-hierarchy` 3, `treemapSquarify.ratio(1)` | Ratio 1 is the classic squarify the prototype implements by hand. |
+| Tests | vitest 3 (unit), Playwright 1.63 (e2e) | Playwright is pinned to the version whose Chromium is preinstalled on our build machines; CI installs its own. |
+| Node services | TypeScript run with `tsx` in dev, bundled with `tsup` for PM2 | Workspace packages ship TypeScript source, so services bundle them and Next transpiles them (`transpilePackages`). No per-package build step. |
+
+### Styling: one global stylesheet, not CSS modules or Tailwind
+
+The brief allows "plain CSS modules or Tailwind configured with the exact tokens". I ported the prototype's
+`<style>` block rule for rule into `apps/web/src/app/globals.css`, kept in its compact one-rule-per-line form
+and excluded from Prettier, so it can be diffed directly against `prototype.html`. That is the cheapest way to
+match the prototype exactly and to keep matching it as the prototype changes. The only edits are listed in
+the file's header comment (font variables, `a` instead of `button` for nav links, heading-level classes, a
+valid `<dl>` sub-line, `aria-sort` placement, chart overlay classes). Splitting it into CSS modules later is
+mechanical if we want component scoping.
+
+### Fonts
+
+Inter comes from `next/font/google`. Geist Mono comes from Vercel's `geist` package (`next/font/local`)
+because Next 14's Google font list predates Geist Mono. Both are self-hosted at build time, so pages make no
+runtime requests to Google. Same families as the prototype's Google Fonts link.
+
+### Money in P0
+
+The P0 UI runs on a mock engine (`apps/web/src/mock/sim.ts`, a port of the prototype's simulation). To keep
+the "no floats in balances, fees or P&L" rule even in the mock, I wrote `packages/core/src/money.ts` and
+`packages/core/src/rules.ts` now instead of in P2: all balances, stakes, margins, fees and P&L in the mock are
+lamport `bigint`s and go through those helpers. Prices, percentages and the random walk stay floats because
+they are display data. P2 extends `money.ts` (ledger entries, fixed-point prices from the indexer) rather
+than starting it. `rules.ts` already resolves every env override and the engine logs its sha256 at boot.
+
+Where the prototype's simulation and the brief's money rules disagree, the brief wins (CLAUDE.md preamble):
+
+- Liquidation price shown in the order summary is `entry * (1 ∓ 1/lev)`. The prototype used `0.99/lev` there.
+- Liquidation triggers at exactly `pnl <= -margin` and max win at exactly the cap. The prototype used 99.9%.
+- Order summary "Position size" and "Max win" are rounded down, so the preview never overstates. This also
+  matches what the prototype shows (its float math truncated 0.495 to 0.49).
+- The 80/20 fee split rounds the pool's 80% up; the protocol gets the remainder.
+
+### Behavior fixes to the prototype (no visual change)
+
+- The wallet dialog clears its `returnValue` when it opens. In the prototype, pressing Escape after an
+  earlier pick reconnected the previous wallet.
+- The withdraw dialog pre-fills the balance without thousands separators. The prototype's `1,234.00`
+  would parse as 1.
+- Leaderboard, wins and the connected mock wallet use distinct fixture addresses, so a trader never appears
+  twice on the leaderboard.
+
+### Accessibility changes (no visual change)
+
+Lighthouse accessibility is 96 to 97 on every route at mobile and desktop (`pnpm a11y`). To get there:
+
+- Panel headings on Portfolio, Pool and Emergency are `h2` elements that wear the prototype's `h3` style,
+  and footer headings are `h2` with the `h4` style. The prototype skipped levels (h1 to h3, h2 to h4).
+- Metric sub-lines are a second `<dd>` instead of a `<p>` inside `<dl>`.
+- `aria-sort` sits on the column header, not on the sort button; table cells have `role="columnheader"`.
+- Market map tiles that show text get their accessible name from that text ("Trade $KELP +4.1%"). Tiles
+  narrower or shorter than 24 px are color only and not clickable (WCAG target size); those coins are still
+  one tap away in search and the markets table.
+- The tape is `role="marquee"` and its duplicated loop copy is `aria-hidden`.
+- Search comboboxes set `aria-activedescendant`; the order panel is a labelled `role="group"`.
+
+### Charts
+
+`lightweight-charts` is styled to the prototype (grid #151515, mono axis labels, dashed 60s average, dashed
+entry lines with "Your long 2x" labels as HTML overlays, last-price chip in the candle color with dark text,
+crosshair with an OHLC readout, inverted price axis and swapped colors in Short view, no pan or zoom).
+Known differences from the hand-drawn canvas: the library picks "nice" price steps (5 lines on desktop like
+the prototype, 3 on a 390 px phone), candle bodies are slightly wider, and line widths are whole pixels.
+
+The TradingView attribution logo is turned off to match the prototype. The library's license requires
+attribution with a link to tradingview.com somewhere users can see it. This needs a home before the site
+is public (see the P0 report).
+
+### Routes
+
+- `/trade` redirects to the default coin, like the prototype's Trade button. `/leaders` redirects to
+  `/leaderboard` (the prototype's view name).
+- `/trade/[mint]` for a mint that is not in the fixtures is a 404 in P0. P1 resolves any pasted mint
+  through the indexer.
+- `/r/[code]` accepts `[a-z0-9_-]{2,32}`, lowercases it, sets an httpOnly `flipside_ref` cookie for 30 days
+  and redirects to `/`.
+- `/emergency` is new: same design system, shows the last balance proof, the time until emergency
+  withdrawals would open, the user's claimable balance and proof, and a withdraw button that stays disabled
+  until 72 hours pass without a root. It is wired to the API and program in P3.
+
+### Wallets
+
+P0 keeps the prototype's own "Connect a wallet" dialog with a mock connection. `@solana/wallet-adapter-react`
+(Phantom, Solflare, Backpack) is wired in with Sign-In With Solana in P3, behind the same dialog, so the
+design does not change.
+
+### State and rendering
+
+The mock engine lives in a React provider in the root layout, so it survives client-side navigation the way
+the prototype's single page did. It is seeded, so the server render and the browser's first render are
+identical; the e2e suite fails on any console error, which includes hydration mismatches. Lists the
+prototype re-rendered only occasionally (Hot / Most shorted / Big caps every 4 seconds, table order on sort
+or filter, watchlist order per coin, map layout on resize) keep that cadence, so rows never jump under the
+pointer.
+
+### Config
+
+`.env.example` gained overrides for four rules the brief states but the template lacked:
+`INSIDER_FUNDING_WINDOW_DAYS=7`, `COIN_LOSS_PAUSE_MINUTES=60`, `DEVIATION_GUARD_SECONDS=30` and
+`PRICE_MIN_POOL_LIQ_SOL=25`, plus service ports and `LOG_LEVEL`.
+
+### Vault program
+
+`programs/vault` is an Anchor 0.32.1 scaffold with a placeholder program ID and a no-op `initialize`, checked
+with `cargo check` in CI. This machine has Rust but not the Solana or Anchor CLIs, so `anchor build` and the
+bankrun tests start in P3, with the real program keypair.
+
+### Copy
+
+No prototype copy changed. New copy is limited to `/emergency` and the 404 page, in the same voice. The
+footer still says "Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.",
+which is true in P0 and must change when real data arrives.

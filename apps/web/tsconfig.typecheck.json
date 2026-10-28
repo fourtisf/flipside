@@ -1,0 +1,6 @@
+{
+  // Standalone typecheck that does not read .next/ (which `next build` rewrites in parallel under turbo).
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["next-env.d.ts", "src", "e2e", "playwright.config.ts", "vitest.config.ts"]
+}

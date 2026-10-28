@@ -1,0 +1,25 @@
+{
+  "name": "@flipside/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "prisma generate",
+    "generate": "prisma generate",
+    "format": "prisma format",
+    "validate": "prisma validate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "prisma generate && tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@prisma/client": "~6.19.3"
+  },
+  "devDependencies": {
+    "prisma": "~6.19.3"
+  }
+}
