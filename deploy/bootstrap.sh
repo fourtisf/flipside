@@ -92,6 +92,12 @@ port_taken() {
   return 1
 }
 
+# The apt source files that use NodeSource's repository.
+nodesource_sources() {
+  { find /etc/apt/sources.list.d -maxdepth 1 -type f \( -name '*.list' -o -name '*.sources' \); echo /etc/apt/sources.list; } |
+    xargs -r grep -lsE '^[^#]*deb\.nodesource\.com' || true
+}
+
 env_get() {
   awk -v k="$1" 'index($0, k "=") == 1 { v = substr($0, length(k) + 2); sub(/[ \t]+#.*$/, "", v); print v; exit }' "$ENV_FILE"
 }
@@ -141,6 +147,15 @@ done
 
 # ---------------------------------------------------------------------------------------------------
 step "System updates"
+# The first version of this script added its own NodeSource entry even when the server already had one,
+# and apt refuses two entries for one repository with different keys. Take only ours out (it is the one
+# whose key is in /etc/apt/keyrings); the server's own entry stays.
+ours=/etc/apt/sources.list.d/nodesource.list
+if [[ -f $ours ]] && grep -q 'signed-by=/etc/apt/keyrings/nodesource.gpg' "$ours" &&
+  nodesource_sources | grep -vxF "$ours" | grep -q .; then
+  rm -f "$ours" /etc/apt/keyrings/nodesource.gpg
+  note "removed the duplicate NodeSource entry an earlier run added; the server's own NodeSource setup stays"
+fi
 apt-get update -q
 "${APT[@]}" full-upgrade
 "${APT[@]}" install ca-certificates curl gnupg git openssl nginx certbot ufw fail2ban python3-systemd \
@@ -219,12 +234,16 @@ if command -v node >/dev/null; then
     die "this server already has Node.js $have at $(command -v node), and other apps may depend on it. Coinside needs Node $NODE_MAJOR; nothing was changed. Tell the Coinside developers which apps use Node here."
   note "using the installed Node.js $have"
 else
-  install -d -m 0755 /etc/apt/keyrings
-  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key |
-    gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
-  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
-    >/etc/apt/sources.list.d/nodesource.list
-  printf 'Package: nodejs\nPin: origin deb.nodesource.com\nPin-Priority: 600\n' >/etc/apt/preferences.d/nodejs
+  if nodesource_sources | grep -q .; then
+    note "using the NodeSource repository already set up on this server"
+  else
+    install -d -m 0755 /etc/apt/keyrings
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key |
+      gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
+      >/etc/apt/sources.list.d/nodesource.list
+    printf 'Package: nodejs\nPin: origin deb.nodesource.com\nPin-Priority: 600\n' >/etc/apt/preferences.d/nodejs
+  fi
   apt-get update -q
   "${APT[@]}" install nodejs
   note "installed Node.js $(node --version)"

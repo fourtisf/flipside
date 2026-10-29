@@ -83,6 +83,12 @@ possibly shared:
 - The firewall is never switched on over ports other programs serve publicly; those ports are listed instead.
 - An existing Node 22 and an existing PM2 are reused; a different system-wide Node stops the script. The
   PM2 unit finds `pm2` through `env`, wherever npm put it.
+- NodeSource is only added when the server has no NodeSource entry. The first run had added a second entry
+  for the same repository with a different key path next to the server's own, and apt then refused to
+  read its sources at all. The script now removes that duplicate (only the one whose key is in
+  `/etc/apt/keyrings`) before its first `apt-get update`.
+- On Nginx 1.24, `http2` is a property of the port, so enabling it for coinside.fun also offers HTTP/2 to the
+  other sites on 443 (Nginx warns "protocol options redefined"). Browsers negotiate it; nothing to do.
 - The time zone is no longer changed.
 
 The rehearsal covered the shared case: another site as the default server, the broken config from the
