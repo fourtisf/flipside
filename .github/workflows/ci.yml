@@ -71,6 +71,8 @@ jobs:
           sudo install -m 0644 deploy/nginx/snippets/*.conf /etc/nginx/snippets/
           sudo install -m 0644 deploy/nginx/coinside.fun.conf /etc/nginx/sites-available/coinside.fun
           sudo ln -sfn ../sites-available/coinside.fun /etc/nginx/sites-enabled/coinside.fun
+          sudo install -m 0644 deploy/nginx/catch-all.conf /etc/nginx/sites-available/000-coinside-catch-all
+          sudo ln -sfn ../sites-available/000-coinside-catch-all /etc/nginx/sites-enabled/000-coinside-catch-all
           sudo rm -f /etc/nginx/sites-enabled/default
           sudo install -d /etc/letsencrypt/live/coinside.fun
           sudo openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 1 \

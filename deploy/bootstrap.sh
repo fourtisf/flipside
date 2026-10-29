@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-# Prepare a fresh Ubuntu 22.04 or 24.04 server to run Coinside at coinside.fun. Safe to re-run: every
-# step checks before it changes anything, and existing secrets are never overwritten or printed.
+# Prepare an Ubuntu 22.04 or 24.04 server to run Coinside at coinside.fun. Safe to re-run: every step
+# checks before it changes anything, and existing secrets are never overwritten or printed.
 #
 #   sudo bash deploy/bootstrap.sh [--email you@example.com] [--harden-ssh] [--skip-dns-check]
 #
-# In order: removes the stale ~/.cargo/env line from root's shell profile; installs updates and turns on
-# daily security updates; sets the clock to UTC; adds swap if there is none; turns on the firewall (SSH,
-# HTTP and HTTPS only) and fail2ban; installs Node 22, corepack and PM2; creates the `coinside` user,
-# /srv/coinside and /etc/coinside/coinside.env; clones the repository; sets up Nginx with a Let's Encrypt
-# certificate for coinside.fun and www.coinside.fun; starts PM2 at boot; rotates logs; and installs the
-# coinside-deploy command. Output is also written to /var/log/coinside-bootstrap.log.
+# Installs updates and daily security updates, swap if there is none, the firewall (SSH, HTTP and HTTPS)
+# and fail2ban, Node 22 with corepack and PM2, the `coinside` user, /srv/coinside and
+# /etc/coinside/coinside.env, a clone of the repository, Nginx with a Let's Encrypt certificate for
+# coinside.fun and www.coinside.fun, PM2 at boot, log rotation, and the coinside-deploy command. Output is
+# also written to /var/log/coinside-bootstrap.log.
+#
+# On a server that already hosts other apps it only adds to them. It never takes another site's default
+# server or another program's ports, never turns the firewall on over ports other programs serve, and
+# never replaces a different Node.js or an existing PM2.
 #
 #   --email ADDRESS   contact address for the Let's Encrypt account (optional; renewal is automatic)
 #   --harden-ssh      allow SSH logins with a key only (needs a key in /root/.ssh/authorized_keys)
@@ -32,19 +35,12 @@ CHECK_DNS=1
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "$HERE/.." && pwd)
 SELF=$HERE/$(basename "${BASH_SOURCE[0]}")
-cd /  # the coinside user must be able to stat the working directory
+cd / # the coinside user must be able to stat the working directory
 # GitHub's published SSH host key (SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU), pinned so a
 # private-repository clone over SSH never trusts a key on first sight.
 GITHUB_HOST_KEY='github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl'
-
-# Install an Nginx config, leaving out the IPv6 listeners on a server without IPv6 (Nginx won't start).
-install_nginx_conf() {
-  if [[ -e /proc/net/if_inet6 ]]; then
-    install -m 0644 "$1" "$2"
-  else
-    grep -v 'listen \[::\]' "$1" | install -m 0644 /dev/stdin "$2"
-  fi
-}
+# Every port Coinside listens on (all on 127.0.0.1), with its default.
+PORT_KEYS=(WEB_PORT:3000 API_PORT:4000 ENGINE_HEALTH_PORT:4101 INDEXER_HEALTH_PORT:4102 WORKER_HEALTH_PORT:4103)
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 note() { printf '    %s\n' "$*"; }
@@ -62,13 +58,57 @@ on_error() {
 }
 trap 'on_error $LINENO "$BASH_COMMAND"' ERR
 
+# Install an Nginx config, leaving out the IPv6 listeners on a server without IPv6 (Nginx won't start).
+install_nginx_conf() {
+  if [[ -e /proc/net/if_inet6 ]]; then
+    install -m 0644 "$1" "$2"
+  else
+    grep -v 'listen \[::\]' "$1" | install -m 0644 /dev/stdin "$2"
+  fi
+}
+
+# Install and enable an Nginx site. If Nginx rejects the result, disable the site again, so the sites
+# already running are unaffected and Nginx can still restart, then stop.
+enable_site() {
+  local name=$1 src=$2 out
+  install_nginx_conf "$src" "/etc/nginx/sites-available/$name"
+  ln -sfn "../sites-available/$name" "/etc/nginx/sites-enabled/$name"
+  if ! out=$(nginx -t 2>&1); then
+    rm -f "/etc/nginx/sites-enabled/$name"
+    die "Nginx rejected the $name site, so it was disabled again and the other sites are unaffected. Nginx said: $out"
+  fi
+}
+
+# True if a program other than the coinside user's listens on TCP port $1, on any address.
+port_taken() {
+  local lines pids pid
+  lines=$(ss -ltnpH "sport = :$1") || true
+  [[ -n $lines ]] || return 1
+  pids=$(grep -oE 'pid=[0-9]+' <<<"$lines" | cut -d= -f2 | sort -u) || true
+  [[ -n $pids ]] || return 0
+  for pid in $pids; do
+    [[ $(ps -o user= -p "$pid" 2>/dev/null | tr -d ' ') == "$APP_USER" ]] || return 0
+  done
+  return 1
+}
+
+env_get() {
+  awk -v k="$1" 'index($0, k "=") == 1 { v = substr($0, length(k) + 2); sub(/[ \t]+#.*$/, "", v); print v; exit }' "$ENV_FILE"
+}
+
+env_set() {
+  if grep -q "^$1=" "$ENV_FILE"; then sed -i "s|^$1=.*|$1=$2|" "$ENV_FILE"; else echo "$1=$2" >>"$ENV_FILE"; fi
+  chown root:"$APP_USER" "$ENV_FILE"
+  chmod 0640 "$ENV_FILE"
+}
+
 while (($#)); do
   case $1 in
     --email) EMAIL=${2:?--email needs an address}; shift 2 ;;
     --harden-ssh) HARDEN_SSH=1; shift ;;
     --skip-dns-check) CHECK_DNS=0; shift ;;
     --repo) REPO_URL=${2:?--repo needs a URL}; shift 2 ;;
-    -h | --help) sed -n '2,17p' "$SELF" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h | --help) awk 'NR > 1 { if (!/^#/) exit; if (/^# shellcheck/) next; sub(/^# ?/, ""); print }' "$SELF"; exit 0 ;;
     *) die "unknown option $1 (see --help)" ;;
   esac
 done
@@ -104,14 +144,13 @@ step "System updates"
 apt-get update -q
 "${APT[@]}" full-upgrade
 "${APT[@]}" install ca-certificates curl gnupg git openssl nginx certbot ufw fail2ban python3-systemd \
-  unattended-upgrades ssl-cert logrotate sudo
+  unattended-upgrades ssl-cert logrotate sudo iproute2
 install -m 0644 "$HERE/system/20auto-upgrades" /etc/apt/apt.conf.d/20auto-upgrades
 note "daily security updates are on; the server never reboots by itself"
 
 step "Clock"
-timedatectl set-timezone Etc/UTC
 timedatectl set-ntp true || warn "could not turn on time sync; check: timedatectl"
-note "$(timedatectl show -p Timezone --value), NTP $(timedatectl show -p NTP --value)"
+note "time zone $(timedatectl show -p Timezone --value) (left as it is), NTP $(timedatectl show -p NTP --value)"
 
 step "Swap"
 if swapon --show --noheadings | grep -q .; then
@@ -127,19 +166,31 @@ fi
 
 # ---------------------------------------------------------------------------------------------------
 step "Firewall"
-# Every port sshd listens on, plus the one this session came in on, so enabling ufw can't lock you out.
+# Every port sshd listens on, plus the one this session came in on, so the firewall can't lock you out.
 ports=$(sshd -T 2>/dev/null | awk '$1 == "port" { print $2 }') || true
 if [[ -n ${SSH_CONNECTION:-} ]]; then ports+=$'\n'$(awk '{ print $4 }' <<<"$SSH_CONNECTION"); fi
 mapfile -t ssh_ports < <(awk '/^[0-9]+$/' <<<"$ports" | sort -un)
 ((${#ssh_ports[@]})) || ssh_ports=(22)
-ufw default deny incoming >/dev/null
-ufw default allow outgoing >/dev/null
 for p in "${ssh_ports[@]}"; do ufw limit "$p/tcp" comment 'SSH' >/dev/null; done
 ufw allow 80/tcp comment 'HTTP' >/dev/null
 ufw allow 443/tcp comment 'HTTPS' >/dev/null
-ufw --force enable >/dev/null
-note "open: SSH (port ${ssh_ports[*]}, rate limited), 80, 443. Everything else is closed."
-note "The apps listen on 127.0.0.1 only; Nginx is the only way in."
+# Ports that programs serve on public addresses and no firewall rule allows.
+mapfile -t exposed < <(comm -23 \
+  <(ss -ltnH | awk '{ print $4 }' | awk '!/^(127\.|\[::1\]|\[::ffff:127\.)/' | sed -E 's/.*:([0-9]+)$/\1/' | sort -u) \
+  <(ufw show added | grep -oE '\b[0-9]{1,5}\b' | sort -u))
+if ufw status | grep -q '^Status: active'; then
+  note "the firewall is on; SSH (port ${ssh_ports[*]}, rate limited), 80 and 443 are allowed"
+  ((${#exposed[@]} == 0)) ||
+    warn "ports ${exposed[*]} listen on public addresses but no firewall rule allows them, so they can't be reached from outside. If another app needs one, run: ufw allow PORT/tcp"
+elif ((${#exposed[@]})); then
+  warn "left the firewall off: other programs serve ports ${exposed[*]} on public addresses, and turning it on would cut them off. Allow the ones that must stay reachable (ufw allow PORT/tcp), then run this script again."
+else
+  ufw default deny incoming >/dev/null
+  ufw default allow outgoing >/dev/null
+  ufw --force enable >/dev/null
+  note "on: SSH (port ${ssh_ports[*]}, rate limited), 80 and 443 are open, everything else is closed"
+fi
+note "Coinside's processes listen on 127.0.0.1 only; Nginx is the only way in."
 
 step "fail2ban"
 install -m 0644 "$HERE/system/fail2ban-coinside.local" /etc/fail2ban/jail.d/coinside.local
@@ -162,24 +213,31 @@ fi
 
 # ---------------------------------------------------------------------------------------------------
 step "Node.js $NODE_MAJOR, corepack and PM2"
-install -d -m 0755 /etc/apt/keyrings
-if [[ ! -s /etc/apt/keyrings/nodesource.gpg ]]; then
+if command -v node >/dev/null; then
+  have=$(node --version)
+  [[ $have == "v$NODE_MAJOR."* ]] ||
+    die "this server already has Node.js $have at $(command -v node), and other apps may depend on it. Coinside needs Node $NODE_MAJOR; nothing was changed. Tell the Coinside developers which apps use Node here."
+  note "using the installed Node.js $have"
+else
+  install -d -m 0755 /etc/apt/keyrings
   curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key |
     gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
-fi
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
-  >/etc/apt/sources.list.d/nodesource.list
-printf 'Package: nodejs\nPin: origin deb.nodesource.com\nPin-Priority: 600\n' >/etc/apt/preferences.d/nodejs
-if ! node --version 2>/dev/null | grep -q "^v$NODE_MAJOR\."; then
+  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
+    >/etc/apt/sources.list.d/nodesource.list
+  printf 'Package: nodejs\nPin: origin deb.nodesource.com\nPin-Priority: 600\n' >/etc/apt/preferences.d/nodejs
   apt-get update -q
   "${APT[@]}" install nodejs
+  note "installed Node.js $(node --version)"
 fi
-corepack enable
-# Read the installed version from disk: running `pm2 --version` would start a PM2 daemon for root.
-if [[ $(node -p "require('$(npm root -g)/pm2/package.json').version" 2>/dev/null) != "$PM2_VERSION" ]]; then
+command -v pnpm >/dev/null || corepack enable
+# An existing PM2 is left alone (other apps may run on it). Never run `pm2 --version` here: it would
+# start a PM2 daemon for root.
+if command -v pm2 >/dev/null; then
+  note "using the installed PM2 at $(command -v pm2)"
+else
   npm install -g --no-fund --no-audit --loglevel=error "pm2@$PM2_VERSION"
+  note "installed PM2 $PM2_VERSION"
 fi
-note "node $(node --version), pnpm via corepack (version pinned in package.json), pm2 $PM2_VERSION"
 
 # ---------------------------------------------------------------------------------------------------
 step "User, directories and environment file"
@@ -208,6 +266,21 @@ else
   } | install -o root -g "$APP_USER" -m 0640 /dev/stdin "$ENV_FILE"
   note "wrote $ENV_FILE (readable by root and $APP_USER only) with fresh random secrets"
 fi
+
+step "Ports"
+declare -A PORT=()
+for spec in "${PORT_KEYS[@]}"; do
+  key=${spec%%:*}
+  port=$(env_get "$key")
+  port=${port:-${spec#*:}}
+  [[ $port =~ ^[0-9]+$ ]] || die "$key in $ENV_FILE is not a port number: $port"
+  start=$port
+  while port_taken "$port" || [[ " ${PORT[*]:-} " == *" $port "* ]]; do port=$((port + 1)); done
+  [[ $port == "$start" ]] || note "port $start is used by another program, so $key moves to $port"
+  [[ $(env_get "$key") == "$port" ]] || env_set "$key" "$port"
+  PORT[$key]=$port
+done
+note "web ${PORT[WEB_PORT]}, api ${PORT[API_PORT]}, health checks ${PORT[ENGINE_HEALTH_PORT]}, ${PORT[INDEXER_HEALTH_PORT]}, ${PORT[WORKER_HEALTH_PORT]} (all on 127.0.0.1)"
 
 step "Repository"
 as_app() { sudo -u "$APP_USER" -H "$@"; }
@@ -241,8 +314,18 @@ if busy=$(ss -ltnpH '( sport = :80 or sport = :443 )' | grep -v '"nginx"'); then
   die "something other than Nginx is listening on port 80 or 443; stop and disable it first: $busy"
 fi
 install -m 0644 "$HERE"/nginx/snippets/*.conf /etc/nginx/snippets/
-rm -f /etc/nginx/sites-enabled/default
-[[ -f /etc/ssl/certs/ssl-cert-snakeoil.pem ]] || make-ssl-cert generate-default-snakeoil
+sed -e "s/127\.0\.0\.1:3000;/127.0.0.1:${PORT[WEB_PORT]};/" -e "s/127\.0\.0\.1:4000;/127.0.0.1:${PORT[API_PORT]};/" \
+  "$HERE/nginx/snippets/coinside-upstreams.conf" | install -m 0644 /dev/stdin /etc/nginx/snippets/coinside-upstreams.conf
+# Ubuntu's own welcome page goes, but only if nobody has changed it.
+stock=$(dpkg-query -W -f='${Conffiles}\n' nginx-common 2>/dev/null | awk '$1 == "/etc/nginx/sites-available/default" { print $2 }') || true
+if [[ -L /etc/nginx/sites-enabled/default && -n $stock ]] &&
+  [[ $(md5sum </etc/nginx/sites-available/default | cut -d' ' -f1) == "$stock" ]]; then
+  rm -f /etc/nginx/sites-enabled/default
+  note "disabled Ubuntu's default welcome page"
+fi
+mapfile -t others < <(find /etc/nginx/sites-enabled -mindepth 1 -maxdepth 1 -printf '%f\n' |
+  grep -vE "^($DOMAIN|coinside-acme|000-coinside-catch-all)$" | sort || true)
+((${#others[@]} == 0)) || note "this Nginx also serves: ${others[*]} (left untouched)"
 cert=/etc/letsencrypt/live/$DOMAIN/fullchain.pem
 
 if [[ ! -f $cert ]]; then
@@ -260,7 +343,8 @@ if [[ ! -f $cert ]]; then
   fi
 
   # A plain HTTP site, just long enough to answer the first Let's Encrypt challenge.
-  install_nginx_conf /dev/stdin /etc/nginx/sites-available/coinside-acme <<CONF
+  rm -f "/etc/nginx/sites-enabled/$DOMAIN"
+  enable_site coinside-acme /dev/stdin <<CONF
 server {
     listen 80;
     listen [::]:80;
@@ -269,16 +353,17 @@ server {
     location / { return 503; }
 }
 CONF
-  ln -sfn ../sites-available/coinside-acme /etc/nginx/sites-enabled/coinside-acme
-  rm -f "/etc/nginx/sites-enabled/$DOMAIN"
-  nginx -t -q
   systemctl reload-or-restart nginx
 
   probe=coinside-probe-$RANDOM$RANDOM
   echo ok >"$WEBROOT/.well-known/acme-challenge/$probe"
-  if [[ $(curl -fsS --max-time 10 "http://$DOMAIN/.well-known/acme-challenge/$probe" 2>/dev/null) != ok ]]; then
+  for _ in 1 2 3 4 5; do # a reload takes a moment to reach the workers
+    answer=$(curl -fsS --max-time 5 "http://$DOMAIN/.well-known/acme-challenge/$probe" 2>/dev/null) || true
+    [[ $answer == ok ]] && break
+    sleep 1
+  done
+  [[ $answer == ok ]] ||
     warn "could not fetch http://$DOMAIN/.well-known/acme-challenge/ from this server; if the next step fails, check that port 80 is open in Hostinger's VPS firewall (hPanel)"
-  fi
   rm -f "$WEBROOT/.well-known/acme-challenge/$probe"
 
   if [[ -n $EMAIL ]]; then email_args=(--email "$EMAIL" --no-eff-email); else email_args=(--register-unsafely-without-email); fi
@@ -293,9 +378,18 @@ printf '#!/bin/sh\n# Installed by deploy/bootstrap.sh: load renewed certificates
 chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/coinside-reload-nginx
 systemctl enable --now certbot.timer >/dev/null 2>&1 || warn "certbot.timer is not enabled; check: systemctl list-timers"
 
-install_nginx_conf "$HERE/nginx/coinside.fun.conf" "/etc/nginx/sites-available/$DOMAIN"
-ln -sfn "../sites-available/$DOMAIN" "/etc/nginx/sites-enabled/$DOMAIN"
-nginx -t -q
+# Nginx allows one default server per port. Take that role only if no other site has it.
+rm -f /etc/nginx/sites-enabled/000-coinside-catch-all
+mapfile -t defaults < <(grep -lE '^[^#]*\blisten\b[^;]*\bdefault_server\b' /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf 2>/dev/null |
+  grep -vE "/$DOMAIN\$" || true)
+if ((${#defaults[@]} == 0)); then
+  enable_site 000-coinside-catch-all "$HERE/nginx/catch-all.conf"
+  note "requests for other host names, or for the bare IP address, are dropped"
+else
+  note "$(basename -a "${defaults[@]}" | paste -sd ' ') is the default server for unknown host names; left as it is"
+fi
+
+enable_site "$DOMAIN" "$HERE/nginx/coinside.fun.conf"
 systemctl reload-or-restart nginx
 note "certificate valid until $(openssl x509 -enddate -noout -in "$cert" | cut -d= -f2); renews automatically"
 

@@ -73,7 +73,7 @@ load_env() {
 
 health_urls() {
   printf '%s\n' \
-    "web http://127.0.0.1:3000/" \
+    "web http://127.0.0.1:${WEB_PORT:-3000}/" \
     "api http://127.0.0.1:${API_PORT:-4000}/api/health" \
     "engine http://127.0.0.1:${ENGINE_HEALTH_PORT:-4101}/health" \
     "indexer http://127.0.0.1:${INDEXER_HEALTH_PORT:-4102}/health" \
@@ -129,6 +129,16 @@ verify() {
   [[ $state == *' ' ]] || { warn "${state#* }"; return 1; }
   ((after == before)) || { warn "a process restarted $((after - before)) time(s) in 10 seconds"; return 1; }
   note "all processes are online on $release and stayed up for 10 seconds"
+}
+
+# True if a program other than ours listens on TCP port $1. Without root, ss only names our own processes,
+# so a listener with no process shown belongs to someone else.
+port_taken() {
+  local lines
+  lines=$(ss -ltnpH "sport = :$1") || true
+  [[ -n $lines ]] || return 1
+  grep -q 'pid=' <<<"$lines" || return 0
+  return 1
 }
 
 switch_to() {
@@ -209,6 +219,13 @@ deploy() {
   load_env
   avail=$(df --output=avail -k "$APP_HOME" | tail -n1)
   ((avail > 3 * 1024 * 1024)) || die "less than 3 GB free under $APP_HOME; remove old files first"
+  local port
+  for port in "${WEB_PORT:-3000}" "${API_PORT:-4000}" "${ENGINE_HEALTH_PORT:-4101}" \
+    "${INDEXER_HEALTH_PORT:-4102}" "${WORKER_HEALTH_PORT:-4103}"; do
+    if port_taken "$port"; then
+      die "port $port is used by another program. Run deploy/bootstrap.sh again as root: it moves Coinside to free ports."
+    fi
+  done
 
   step "Fetching"
   git -C "$REPO" fetch --quiet --prune --tags origin
@@ -317,7 +334,7 @@ args=()
 for a in "$@"; do
   case $a in
     --skip-checks) CHECKS=0 ;;
-    -h | --help) sed -n '2,16p' "$SELF" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h | --help) awk 'NR > 1 { if (!/^#/) exit; if (/^# shellcheck/) next; sub(/^# ?/, ""); print }' "$SELF"; exit 0 ;;
     -*) die "unknown option $a (see --help)" ;;
     *) args+=("$a") ;;
   esac

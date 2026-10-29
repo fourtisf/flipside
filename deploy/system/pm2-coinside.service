@@ -15,8 +15,9 @@ Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=PM2_HOME=/home/coinside/.pm2
 PIDFile=/home/coinside/.pm2/pm2.pid
 LimitNOFILE=65536
-ExecStart=/usr/bin/pm2 resurrect
-ExecStop=/usr/bin/pm2 kill
+# Through env, so this works wherever PM2 is installed (npm puts it in /usr/bin or /usr/local/bin).
+ExecStart=/usr/bin/env pm2 resurrect
+ExecStop=/usr/bin/env pm2 kill
 Restart=on-failure
 RestartSec=5
 

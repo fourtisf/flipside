@@ -63,10 +63,31 @@ Certbot); these are the choices around it. Runbook: `deploy/README.md`.
 - **Cloudflare later.** DNS stays at Hostinger for now. The brief puts Cloudflare in front; the real-IP
   snippet is ready (`deploy/nginx/snippets/coinside-cloudflare.conf`) and the runbook lists the steps.
 - **Server hardening.** ufw (SSH rate-limited, 80, 443), fail2ban for SSH, daily unattended security updates
-  without automatic reboots, UTC clock, swap. Key-only SSH is opt-in (`--harden-ssh`), because forcing it
+  without automatic reboots, swap. Key-only SSH is opt-in (`--harden-ssh`), because forcing it
   could lock out a password login.
-- **Pinned versions.** Node 22 from NodeSource's signed apt repository, PM2 7.0.4 (7.1.x is under two weeks
-  old), and pnpm from `packageManager` via corepack.
+- **Pinned versions.** When they are missing: Node 22 from NodeSource's signed apt repository and PM2 7.0.4
+  (7.1.x is under two weeks old). pnpm always comes from `packageManager`, via corepack.
+
+**The server is shared.** The VPS already serves another site (uspad), whose Nginx config is the default
+server on port 80. The first setup run failed its Nginx test because Coinside's config claimed the default
+server too. Nginx was never reloaded, so uspad kept running. The setup script now treats every server as
+possibly shared:
+
+- `coinside.fun.conf` never claims the default server. A separate catch-all site is enabled only when no
+  other site has that role.
+- Each Nginx site is tested as it goes in and disabled again if Nginx rejects it, so a bad Coinside config
+  can never stop Nginx from restarting for everyone else.
+- Coinside's ports come from the environment file (`WEB_PORT` is new). The setup script moves any port
+  another program holds to the next free one and writes the Nginx upstreams from them.
+  `coinside-deploy` checks the ports before switching.
+- The firewall is never switched on over ports other programs serve publicly; those ports are listed instead.
+- An existing Node 22 and an existing PM2 are reused; a different system-wide Node stops the script. The
+  PM2 unit finds `pm2` through `env`, wherever npm put it.
+- The time zone is no longer changed.
+
+The rehearsal covered the shared case: another site as the default server, the broken config from the
+first run already on disk, another program on port 3000, another app serving a public port, and the firewall
+already on. The setup completed, uspad kept answering on HTTP and HTTPS, and Coinside deployed on port 3001.
 
 Two bugs the rehearsal found in the P0 app, now fixed:
 

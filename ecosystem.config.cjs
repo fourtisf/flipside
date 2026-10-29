@@ -37,7 +37,7 @@ module.exports = {
       name: 'web',
       cwd: join(root, 'apps/web'),
       script: 'node_modules/next/dist/bin/next',
-      args: 'start -H 127.0.0.1 -p 3000',
+      args: `start -H 127.0.0.1 -p ${env.WEB_PORT ?? process.env.WEB_PORT ?? 3000}`,
       // Two workers behind one port, so `pm2 reload web` replaces them one at a time with no downtime.
       exec_mode: 'cluster',
       instances: Number(process.env.WEB_INSTANCES ?? 2),

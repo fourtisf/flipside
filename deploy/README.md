@@ -5,7 +5,7 @@ PM2 runs the five processes behind it. Everything the server needs is in this fo
 by hand on the server except the environment file.
 
 ```
-Internet ──▶ Nginx :443 ──▶ web      127.0.0.1:3000   Next.js, 2 workers
+Internet ──▶ Nginx :443 ──▶ web      127.0.0.1:3000   Next.js, 2 workers   (default ports; see below)
               (TLS, headers,  └▶ api   127.0.0.1:4000   /api and /ws, 2 workers
                rate limit)       engine  127.0.0.1:4101   health only; exactly 1 process, never clustered
                                  indexer 127.0.0.1:4102   health only
@@ -18,6 +18,26 @@ Internet ──▶ Nginx :443 ──▶ web      127.0.0.1:3000   Next.js, 2 wor
 | `coinside-deploy.sh` | Installed as `coinside-deploy`. Builds a release, switches to it with no downtime, and switches back by itself if it isn't healthy. Also `rollback`, `status` and `logs`. |
 | `nginx/` | The coinside.fun site and its snippets (TLS, security headers, proxy, Cloudflare). |
 | `system/` | systemd unit for PM2, fail2ban jail, log rotation, automatic security updates, optional SSH hardening. |
+
+## Sharing the server with other apps
+
+The server can host other sites; this one already serves uspad next to Coinside. The setup script only
+adds to what's there:
+
+- **Nginx.** Every name in Coinside's config starts with `coinside`, and it never claims the default server
+  (the site Nginx uses for unknown host names, one per port). If no other site has that role, the script
+  adds `000-coinside-catch-all`, which drops such requests. If Nginx rejects a Coinside site, the script
+  disables it again before stopping, so the other sites keep working and Nginx can still restart.
+- **Ports.** If another program already uses one of Coinside's ports (web 3000, api 4000, health checks
+  4101 to 4103), the script moves Coinside to the next free port and writes it to the environment file
+  (`WEB_PORT`, `API_PORT`, ...). `coinside-deploy` refuses to switch if a port is taken.
+- **Firewall.** If the firewall is off and other programs serve public ports, the script leaves it off and
+  lists those ports. If it's already on, it adds SSH, HTTP and HTTPS, and lists the public ports that no
+  rule allows.
+- **Node.js and PM2.** An existing Node 22 and an existing PM2 are used as they are. If a different Node
+  version is installed system-wide, the script stops rather than replace it. Coinside's PM2 runs as the
+  `coinside` user, separately from any PM2 that root or another user runs.
+- **Time zone.** Left as it is.
 
 ## On the server
 
@@ -194,6 +214,7 @@ ports 80 and 443.
 
 | Symptom | What to check |
 |---|---|
+| Setup says Nginx rejected a site | The message includes Nginx's own error. The Coinside site was disabled again, so the other sites are unaffected. |
 | Setup says a name "resolves to …, which is not this server" | The DNS record, or it hasn't spread yet. `getent hosts coinside.fun www.coinside.fun` shows what the server sees. |
 | certbot times out | Port 80 blocked outside the server: hPanel → VPS → Firewall. `ufw status` for the server's own firewall. |
 | certbot mentions CAA | A CAA record at Hostinger must allow `letsencrypt.org`, or there must be no CAA records. |
