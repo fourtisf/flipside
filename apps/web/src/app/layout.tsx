@@ -12,10 +12,10 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? 'http://localhost:3000'),
-  title: { default: 'Flipside: long or short any Solana coin', template: '%s · Flipside' },
+  title: { default: 'Coinside: long or short any Solana coin', template: '%s · Coinside' },
   description: 'Paste a Solana contract address and go long or short at up to 10x, filled against the pool.',
   openGraph: {
-    title: 'Flipside: long or short any Solana coin',
+    title: 'Coinside: long or short any Solana coin',
     description: 'Paste a contract address, pick a side, up to 10x. Filled against an on-chain pool.',
   },
 };

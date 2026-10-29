@@ -17,7 +17,7 @@ export function Footer() {
           <div>
             <span className="logo">
               <LogoMark />
-              Flipside
+              Coinside
             </span>
             <p>Long or short any Solana coin by its contract address, filled against an on-chain pool.</p>
           </div>
@@ -69,7 +69,7 @@ export function Footer() {
           </div>
         </div>
         <div className="fb">
-          <span>Flipside on Solana</span>
+          <span>Coinside on Solana</span>
           <span>Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.</span>
         </div>
       </div>

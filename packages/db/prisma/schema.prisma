@@ -1,4 +1,4 @@
-// Flipside database schema. Starting point copied verbatim from CLAUDE.md section 12.
+// Coinside database schema. Starting point copied verbatim from CLAUDE.md section 12.
 // All lamport amounts are BigInt. Prices are Decimal(38, 18).
 
 generator client {

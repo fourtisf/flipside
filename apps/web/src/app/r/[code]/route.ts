@@ -7,7 +7,7 @@ const THIRTY_DAYS = 60 * 60 * 24 * 30;
 export function GET(req: NextRequest, { params }: { params: { code: string } }) {
   const res = NextResponse.redirect(new URL('/', req.url), 307);
   if (CODE.test(params.code)) {
-    res.cookies.set('flipside_ref', params.code.toLowerCase(), {
+    res.cookies.set('coinside_ref', params.code.toLowerCase(), {
       path: '/',
       maxAge: THIRTY_DAYS,
       sameSite: 'lax',

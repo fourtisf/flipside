@@ -1,5 +1,5 @@
 {
-  "name": "@flipside/api",
+  "name": "@coinside/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@flipside/core": "workspace:*",
+    "@coinside/core": "workspace:*",
     "@fastify/websocket": "^11.3.4",
     "fastify": "^5.12.7"
   },

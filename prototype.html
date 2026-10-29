@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Flipside: long or short any Solana coin</title>
+<title>Coinside: long or short any Solana coin</title>
 <meta name="description" content="Paste a Solana contract address and go long or short at up to 10x, filled against the pool.">
 <meta name="theme-color" content="#000000">
-<meta property="og:title" content="Flipside: long or short any Solana coin">
+<meta property="og:title" content="Coinside: long or short any Solana coin">
 <meta property="og:description" content="Paste a contract address, pick a side, up to 10x. Filled against an on-chain pool.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect width='20' height='20' rx='5' fill='%23000'/%3E%3Ccircle cx='10' cy='10' r='6.6' fill='none' stroke='%23EDEDED' stroke-width='1.4'/%3E%3Cpath d='M10 3.4a6.6 6.6 0 0 1 0 13.2z' fill='%23EDEDED'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -503,9 +503,9 @@ dialog .amt{margin-top:16px}
 
 <header class="hdr">
   <div class="hdr-in">
-    <button class="logo" data-go="markets" aria-label="Flipside, go to markets">
+    <button class="logo" data-go="markets" aria-label="Coinside, go to markets">
       <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="none" stroke="#EDEDED" stroke-width="1.4"/><path d="M10 1.4a8.6 8.6 0 0 1 0 17.2z" fill="#EDEDED"/></svg>
-      <span>Flipside</span>
+      <span>Coinside</span>
     </button>
     <nav class="nav" aria-label="Main">
       <button data-go="markets" aria-current="page">Markets</button>
@@ -721,7 +721,7 @@ dialog .amt{margin-top:16px}
 
 <!-- ================= DOCS ================= -->
 <section id="v-docs" class="wrap page" hidden aria-labelledby="h-docs">
-  <div class="ph"><div><h1 id="h-docs">How Flipside works</h1><p>Everything you need to trade, and everything we do to keep the pool from being drained.</p></div></div>
+  <div class="ph"><div><h1 id="h-docs">How Coinside works</h1><p>Everything you need to trade, and everything we do to keep the pool from being drained.</p></div></div>
   <div class="docs">
     <nav class="toc" aria-label="On this page"><a href="#d-start">Getting started</a><a href="#d-rules">The rules</a><a href="#d-guards">Pool protection</a><a href="#d-risks">Risks</a></nav>
     <div>
@@ -760,12 +760,12 @@ dialog .amt{margin-top:16px}
 <footer>
   <div class="wrap">
     <div class="ft">
-      <div><span class="logo"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="none" stroke="#EDEDED" stroke-width="1.4"/><path d="M10 1.4a8.6 8.6 0 0 1 0 17.2z" fill="#EDEDED"/></svg>Flipside</span><p>Long or short any Solana coin by its contract address, filled against an on-chain pool.</p></div>
+      <div><span class="logo"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="none" stroke="#EDEDED" stroke-width="1.4"/><path d="M10 1.4a8.6 8.6 0 0 1 0 17.2z" fill="#EDEDED"/></svg>Coinside</span><p>Long or short any Solana coin by its contract address, filled against an on-chain pool.</p></div>
       <div><h4>Product</h4><ul><li><button data-go="markets">Markets</button></li><li><button data-go="trade">Trade</button></li><li><button data-go="pool">Pool</button></li><li><button data-go="leaders">Leaderboard</button></li></ul></div>
       <div><h4>Resources</h4><ul><li><button data-go="docs">How it works</button></li><li><button data-go="docs">Fees and rules</button></li><li><button data-go="docs">Risks</button></li></ul></div>
       <div><h4>Community</h4><ul><li><a href="#" onclick="return false">X</a></li><li><a href="#" onclick="return false">Telegram</a></li></ul></div>
     </div>
-    <div class="fb"><span>Flipside on Solana</span><span>Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.</span></div>
+    <div class="fb"><span>Coinside on Solana</span><span>Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.</span></div>
   </div>
 </footer>
 
@@ -1265,7 +1265,7 @@ function renderPortfolio(){
   $('#pf-note').textContent=m==='practice'?'Practice uses paper SOL against live prices. Nothing you do here touches real money.':S.wallet?`Wallet ${shortA(S.wallet)}. Deposits sit in the vault program and only this wallet can withdraw them.`:'Connect a wallet to deposit SOL and trade for real.';
   $('#pf-acts').innerHTML=m==='practice'?`<button class="btn w" data-act="claim">Claim 10 paper SOL</button>`:S.wallet?`<button class="btn w" data-fund="deposit">Deposit</button><button class="btn o" data-fund="withdraw">Withdraw</button>`:`<button class="btn w" data-act="connect">Connect wallet</button>`;
   $('#pf-metrics').innerHTML=[['Balance',`${sol(bal())}<small>${u}</small>`,'Ready to trade or withdraw'],['Open P&amp;L',`<span class="${upnl>=0?'up':'dn'}">${sgn(upnl)}</span><small>SOL</small>`,`${open.length} open position${open.length===1?'':'s'}`],['Realized P&amp;L',`<span class="${real>=0?'up':'dn'}">${sgn(real)}</span><small>SOL</small>`,`${hist.length} closed trade${hist.length===1?'':'s'}`],['Win rate',hist.length?`${Math.round(wins/hist.length*100)}<small>%</small>`:'<span class="t3">None yet</span>',hist.length?`${wins} of ${hist.length} trades won`:'Close a trade to see it']].map(([k,v,s])=>`<div><dt>${k}</dt><dd>${v}</dd><p class="s2">${s}</p></div>`).join('');
-  $('#refLink').textContent=`flipside.xyz/r/${S.wallet?shortA(S.wallet).replace('…','').toLowerCase():'yourname'}`;
+  $('#refLink').textContent=`coinside.fun/r/${S.wallet?shortA(S.wallet).replace('…','').toLowerCase():'yourname'}`;
   $('#pf-oc').textContent=open.length;$('#pf-open').innerHTML=posTable(open);$('#pf-hist').innerHTML=histTable(hist);
 }
 $('#refCopy').addEventListener('click',()=>{navigator.clipboard?.writeText('https://'+$('#refLink').textContent).catch(()=>{});toast('Referral link copied.','good')});

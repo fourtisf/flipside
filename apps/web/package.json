@@ -1,5 +1,5 @@
 {
-  "name": "@flipside/web",
+  "name": "@coinside/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@flipside/core": "workspace:*",
+    "@coinside/core": "workspace:*",
     "d3-hierarchy": "^3.1.2",
     "geist": "^1.8.2",
     "lightweight-charts": "^5.2.1",

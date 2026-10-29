@@ -111,9 +111,9 @@ export function Header() {
   return (
     <header className="hdr">
       <div className="hdr-in">
-        <Link className="logo" href="/" aria-label="Flipside, go to markets">
+        <Link className="logo" href="/" aria-label="Coinside, go to markets">
           <LogoMark />
-          <span>Flipside</span>
+          <span>Coinside</span>
         </Link>
         <nav className="nav" aria-label="Main">
           {NAV.map(([k, label]) => (

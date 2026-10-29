@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  transpilePackages: ['@flipside/core'],
+  transpilePackages: ['@coinside/core'],
   async redirects() {
     // The prototype calls the leaderboard view "leaders"; keep that path working.
     return [{ source: '/leaders', destination: '/leaderboard', permanent: false }];

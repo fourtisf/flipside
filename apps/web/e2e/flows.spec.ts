@@ -224,7 +224,7 @@ test('routes: redirects, referral cookie, not found, emergency, docs', async ({ 
   await expect(page).toHaveURL(/\/leaderboard$/);
   await page.goto('/r/Alfa_01');
   await expect(page).toHaveURL(/\/$/);
-  const ref = (await context.cookies()).find((c) => c.name === 'flipside_ref');
+  const ref = (await context.cookies()).find((c) => c.name === 'coinside_ref');
   expect(ref?.value).toBe('alfa_01');
   expect(ref?.httpOnly).toBe(true);
 

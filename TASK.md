@@ -17,7 +17,7 @@ prototype.html   approved UI, the source of truth for every screen
 Read CLAUDE.md fully, then open prototype.html and study every view
 (Markets, Trade, Portfolio, Pool, Leaderboard, Docs) and every interaction.
 
-Build Flipside exactly as CLAUDE.md describes, phase by phase (P0 to P6).
+Build Coinside exactly as CLAUDE.md describes, phase by phase (P0 to P6).
 Rules:
 - Start with P0 only. Do not start the next phase until the current phase
   meets its definition of done in CLAUDE.md section 15.
@@ -91,4 +91,4 @@ Tick these off as Claude Code reports each phase. Each later phase gets a short 
 
 ## Step 4. Decisions only ALFA can make
 
-Claude Code should stop and ask about these (CLAUDE.md section 16): final name and domain, token or no token, who seeds the pool, fee split and max win tiers, legal review and geo-blocking, and the audit budget.
+Claude Code should stop and ask about these (CLAUDE.md section 16): ~~final name and domain~~ (decided: Coinside, coinside.fun), token or no token, who seeds the pool, fee split and max win tiers, legal review and geo-blocking, and the audit budget.

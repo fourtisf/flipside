@@ -1,5 +1,5 @@
 {
-  "name": "@flipside/indexer",
+  "name": "@coinside/indexer",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@flipside/core": "workspace:*"
+    "@coinside/core": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

@@ -1,4 +1,4 @@
-import { DEFAULT_RULES, RulesResponse, HealthResponse, loadRules } from '@flipside/core';
+import { DEFAULT_RULES, RulesResponse, HealthResponse, loadRules } from '@coinside/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import { buildApp } from './app';
 

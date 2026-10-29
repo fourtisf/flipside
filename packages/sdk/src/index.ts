@@ -1,8 +1,8 @@
 /**
- * Typed client for the Flipside API. Every response is validated against the shared zod schema from
- * @flipside/core. The vault program client joins this package in P3.
+ * Typed client for the Coinside API. Every response is validated against the shared zod schema from
+ * @coinside/core. The vault program client joins this package in P3.
  */
-import { HealthResponse, RulesResponse } from '@flipside/core/schemas';
+import { HealthResponse, RulesResponse } from '@coinside/core/schemas';
 import type { z } from 'zod';
 
 export class ApiError extends Error {
@@ -34,4 +34,4 @@ export function createClient({ baseUrl, fetch: f = globalThis.fetch }: ClientOpt
   };
 }
 
-export type FlipsideClient = ReturnType<typeof createClient>;
+export type CoinsideClient = ReturnType<typeof createClient>;

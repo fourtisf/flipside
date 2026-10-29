@@ -3,7 +3,7 @@
  * pool, rug guard demo). It stands in for the API and WebSocket until P1/P2 and is deleted then.
  *
  * Money follows the production rules even here: every SOL amount is a lamport bigint and position
- * math goes through @flipside/core (fees rounded up, P&L floored toward the pool). Prices,
+ * math goes through @coinside/core (fees rounded up, P&L floored toward the pool). Prices,
  * percentages and the random walk are floats because they are display data.
  *
  * Determinism: all randomness at construction comes from a seeded PRNG, so the server render and
@@ -21,7 +21,7 @@ import {
   sideCap,
   toPriceScaled,
   type Side,
-} from '@flipside/core';
+} from '@coinside/core';
 import { fixed, plain, sgn, shortA, sol } from '@/lib/format';
 import {
   COINS,

@@ -1,4 +1,4 @@
-import { LAMPORTS_PER_SOL as SOL } from '@flipside/core';
+import { LAMPORTS_PER_SOL as SOL } from '@coinside/core';
 import { describe, expect, it } from 'vitest';
 import { Sim, type Position } from './sim';
 

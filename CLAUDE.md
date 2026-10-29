@@ -1,4 +1,4 @@
-# Flipside: build brief for Claude Code
+# Coinside: build brief for Claude Code
 
 Read this whole file before writing code. `prototype.html` in this folder is the approved UI and the single source of truth for layout, copy, colors, typography, spacing and behavior. When this brief and the prototype disagree on anything visual, the prototype wins. When they disagree on rules or money logic, this brief wins.
 
@@ -6,7 +6,7 @@ Read this whole file before writing code. `prototype.html` in this folder is the
 
 ## 1. What we are building
 
-Flipside lets anyone go **long or short on any Solana coin by its contract address**, at 2x, 5x or 10x. Positions are filled instantly against a shared **pool** (the house), priced from the coin's own on-chain pool, and settled in SOL. It is a direct competitor to useinverse.xyz, built to fix the problems that product showed in its first day (section 2).
+Coinside lets anyone go **long or short on any Solana coin by its contract address**, at 2x, 5x or 10x. Positions are filled instantly against a shared **pool** (the house), priced from the coin's own on-chain pool, and settled in SOL. It is a direct competitor to useinverse.xyz, built to fix the problems that product showed in its first day (section 2).
 
 Core loop:
 
@@ -22,7 +22,7 @@ Also in scope: Practice mode (paper SOL), pool LP deposits, leaderboard and week
 
 These are real observations from useinverse.xyz's public API and on-chain data during its first day. Every one of them maps to a requirement below.
 
-| What happened at Inverse | What Flipside does instead |
+| What happened at Inverse | What Coinside does instead |
 |---|---|
 | Three wallets shorted three coins within seconds of each other at $17K–$29K market cap. The coins went to roughly $0 (liquidity pulled) and each wallet hit max win (~1.35 SOL each). The LP share price fell from 1.00 to about 0.54 in under a day. | Rug guard, insider filter, self-trade detection, per-coin caps and a $30K market cap floor checked on every trade (section 8). |
 | The engine refused to boot: "book holds 122.775 SOL, expected 122.825 SOL". Trading was halted with balances frozen. | All money is integer lamports in a double-entry ledger. In-flight deposits and withdrawals have their own ledger accounts. The audit runs on boot and every 5 seconds, and the halt policy keeps closes and withdrawals working (section 6). |
@@ -82,7 +82,7 @@ All numeric rules live in one config object in `packages/core/rules.ts` with the
 
 ## 5. Vault program (Anchor)
 
-Program name `flipside_vault`. Holds all user and pool SOL. It never knows about positions. It knows deposits, authorized withdrawals and balance roots.
+Program name `coinside_vault`. Holds all user and pool SOL. It never knows about positions. It knows deposits, authorized withdrawals and balance roots.
 
 ### Accounts
 
@@ -95,9 +95,9 @@ Program name `flipside_vault`. Holds all user and pool SOL. It never knows about
 
 1. `initialize(admin, engine_signer, root_poster)`.
 2. `deposit(amount)`: user signs; transfers lamports user → vault; updates `deposited_total`; emits `Deposited { wallet, amount, slot }`. Rejects when `paused`.
-3. `withdraw(amount, nonce, expiry, engine_sig)`: user signs. The transaction must include an ed25519 program instruction verifying `engine_sig` over the message `"flipside:withdraw" || program_id || wallet || amount || nonce || expiry`. The program reads it through the instructions sysvar, checks `nonce == next_nonce`, `now <= expiry`, then transfers vault → wallet (only ever to the signer's own wallet), increments `next_nonce` and `withdrawn_total`, emits `Withdrawn`. Works even when `paused` (pausing only blocks deposits).
+3. `withdraw(amount, nonce, expiry, engine_sig)`: user signs. The transaction must include an ed25519 program instruction verifying `engine_sig` over the message `"coinside:withdraw" || program_id || wallet || amount || nonce || expiry`. The program reads it through the instructions sysvar, checks `nonce == next_nonce`, `now <= expiry`, then transfers vault → wallet (only ever to the signer's own wallet), increments `next_nonce` and `withdrawn_total`, emits `Withdrawn`. Works even when `paused` (pausing only blocks deposits).
 4. `post_root(epoch, root, total_liabilities)`: `root_poster` signs; `epoch` must increase by exactly 1; stores and emits.
-5. `emergency_withdraw(amount, proof: Vec<[u8;32]>)`: allowed only when `now - root.posted_at > 72 hours`. Leaf = `sha256("flipside:leaf" || wallet || amount || epoch)`. Verifies the proof against `root.root`, requires `emergency_claimed_epoch < epoch`, pays `amount` (the user's full claimable balance: free cash + margin of open positions valued at last mark + pool LP value) and records the epoch.
+5. `emergency_withdraw(amount, proof: Vec<[u8;32]>)`: allowed only when `now - root.posted_at > 72 hours`. Leaf = `sha256("coinside:leaf" || wallet || amount || epoch)`. Verifies the proof against `root.root`, requires `emergency_claimed_epoch < epoch`, pays `amount` (the user's full claimable balance: free cash + margin of open positions valued at last mark + pool LP value) and records the epoch.
 6. `queue_change(change)` / `execute_change()`: admin-only changes to `engine_signer`, `root_poster` or `paused` go through a 72-hour queue. `pause` alone can be immediate; `unpause` and key rotations are timelocked.
 
 ### Requirements
@@ -397,7 +397,7 @@ model Competition {
 ## 13. Deployment
 
 - PM2 processes: `web`, `api`, `engine` (exactly one instance, never clustered), `indexer`, `worker`. Ecosystem file in the repo root.
-- Nginx: `flipside.<domain>` → web, `/api` and `/ws` → api (WebSocket upgrade headers). TLS via Certbot. Cloudflare in front with WebSocket enabled.
+- Nginx: `coinside.fun` → web, `/api` and `/ws` → api (WebSocket upgrade headers). TLS via Certbot. Cloudflare in front with WebSocket enabled.
 - Postgres and Redis on the VPS with daily encrypted backups to object storage; point-in-time recovery for Postgres.
 - Keys: `engine_signer` and `root_poster` keypairs live only on the server, readable only by the engine and worker users, never in the repo or env files committed to git. Admin is the Squads multisig.
 - Monitoring: health endpoints for every process, Telegram alerts for audit mismatch, breaker triggers, indexer lag over 5 seconds, engine restarts, and balance root failures.
@@ -433,7 +433,7 @@ External audit of the vault program, Squads multisig and timelock in place, veri
 
 ## 16. Open decisions for ALFA (do not guess these, ask)
 
-1. Final name and domain (Flipside is a working name).
+1. ~~Final name and domain~~ Decided 29 Oct 2026: **Coinside**, at **coinside.fun** (Flipside was the working name; its domains were taken).
 2. Whether to launch a token. If yes, how its creator fees flow into the pool.
 3. Who seeds the pool at launch and how much.
 4. Fee split and max win tiers if they should differ from this brief.

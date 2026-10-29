@@ -1,6 +1,6 @@
 'use client';
 
-import { DEFAULT_RULES } from '@flipside/core/rules';
+import { DEFAULT_RULES } from '@coinside/core/rules';
 import { ago, fixed, pct, sgn } from '@/lib/format';
 import { REASON, liqPrice, type Closed, type Position } from '@/mock/sim';
 import { useSim } from '@/mock/provider';

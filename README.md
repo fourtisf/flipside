@@ -1,6 +1,6 @@
-# Flipside
+# Coinside
 
-Long or short any Solana coin by its contract address, filled against an on-chain pool. Working name.
+Long or short any Solana coin by its contract address, filled against an on-chain pool. Domain: coinside.fun.
 
 **Status: P0 (scaffold and design system).** Every screen of the approved prototype runs in Next.js on mock
 data. Prices, trades and wallets are simulated; nothing moves real SOL yet.
@@ -21,7 +21,7 @@ apps/api          Fastify REST + WebSocket          (P0: /api/health, /api/rules
 apps/engine       order book, ledger, risk           (P0: boots, logs the rules hash, /health)
 apps/indexer      prices, liquidity, chain events    (P0: /health)
 apps/worker       scheduled jobs                     (P0: /health)
-programs/vault    Anchor program flipside_vault      (P0: scaffold)
+programs/vault    Anchor program coinside_vault      (P0: scaffold)
 packages/core     money.ts (bigint lamports), rules.ts (every rule + env overrides), zod schemas
 packages/db       Prisma schema (CLAUDE.md section 12) and client
 packages/sdk      typed API client
@@ -36,10 +36,10 @@ pnpm install
 ```
 
 ```bash
-pnpm --filter @flipside/web dev
+pnpm --filter @coinside/web dev
 ```
 
-Open http://localhost:3000. The services run the same way (`pnpm --filter @flipside/api dev`, and so on), or
+Open http://localhost:3000. The services run the same way (`pnpm --filter @coinside/api dev`, and so on), or
 all at once with `pnpm dev`.
 
 ## Checks
@@ -55,18 +55,18 @@ pnpm format:check
 End-to-end flows at 1440 px and 390 px (starts its own server on port 3100 after a build):
 
 ```bash
-pnpm --filter @flipside/web exec playwright install chromium
+pnpm --filter @coinside/web exec playwright install chromium
 ```
 
 ```bash
-pnpm --filter @flipside/web e2e
+pnpm --filter @coinside/web e2e
 ```
 
 Side-by-side screenshots of the prototype and the port, and Lighthouse accessibility on every route, both
 against a running production build on port 3000:
 
 ```bash
-pnpm --filter @flipside/web build && pnpm --filter @flipside/web start
+pnpm --filter @coinside/web build && pnpm --filter @coinside/web start
 ```
 
 ```bash
@@ -83,7 +83,7 @@ fails below 95.
 The vault program:
 
 ```bash
-cargo check -p flipside_vault
+cargo check -p coinside_vault
 ```
 
 ## Deploying

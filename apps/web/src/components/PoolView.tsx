@@ -1,6 +1,6 @@
 'use client';
 
-import { DEFAULT_RULES } from '@flipside/core/rules';
+import { DEFAULT_RULES } from '@coinside/core/rules';
 import { useEffect, useRef } from 'react';
 import { C, fixed, pct, ratio, sol } from '@/lib/format';
 import { solF } from '@/mock/sim';

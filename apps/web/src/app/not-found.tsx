@@ -7,7 +7,7 @@ export default function NotFound() {
         <div>
           <h1 id="h-nf">Nothing here</h1>
           <p>
-            That page or coin isn&apos;t on Flipside. Coins open once they reach a $30K market cap, 100
+            That page or coin isn&apos;t on Coinside. Coins open once they reach a $30K market cap, 100
             holders and 7 SOL in trading fees.
           </p>
         </div>

@@ -35,12 +35,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@coinside/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@fastify/websocket':
         specifier: ^11.3.4
         version: 11.3.4
-      '@flipside/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       fastify:
         specifier: ^5.12.7
         version: 5.12.7
@@ -57,7 +57,7 @@ importers:
 
   apps/engine:
     dependencies:
-      '@flipside/core':
+      '@coinside/core':
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
@@ -73,7 +73,7 @@ importers:
 
   apps/indexer:
     dependencies:
-      '@flipside/core':
+      '@coinside/core':
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
@@ -89,7 +89,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@flipside/core':
+      '@coinside/core':
         specifier: workspace:*
         version: link:../../packages/core
       d3-hierarchy:
@@ -132,7 +132,7 @@ importers:
 
   apps/worker:
     dependencies:
-      '@flipside/core':
+      '@coinside/core':
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
@@ -168,7 +168,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@flipside/core':
+      '@coinside/core':
         specifier: workspace:*
         version: link:../core
       zod:

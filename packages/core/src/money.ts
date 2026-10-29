@@ -1,5 +1,5 @@
 /**
- * All money math for Flipside. Every SOL amount is a bigint in lamports; no floats touch a balance,
+ * All money math for Coinside. Every SOL amount is a bigint in lamports; no floats touch a balance,
  * fee or P&L. Rounding always favors the pool: user credits round down, user debits round up.
  *
  * Prices are fixed-point bigints scaled by PRICE_SCALE. Only the ratio exit/entry enters P&L, so the

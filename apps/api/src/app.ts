@@ -1,6 +1,6 @@
 import websocket from '@fastify/websocket';
-import { loadRules, rulesToJSON, type Rules } from '@flipside/core';
-import { rulesHash } from '@flipside/core/node';
+import { loadRules, rulesToJSON, type Rules } from '@coinside/core';
+import { rulesHash } from '@coinside/core/node';
 import Fastify, { type FastifyServerOptions } from 'fastify';
 
 export const VERSION = '0.0.0';

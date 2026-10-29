@@ -2,7 +2,7 @@
  * The indexer: prices, liquidity, pools, holders and chain events. P0 only serves /health; pool
  * decoders, Helius streaming, sampling and candles arrive in P1.
  */
-import { startHealthServer } from '@flipside/core/node';
+import { startHealthServer } from '@coinside/core/node';
 
 const server = startHealthServer({
   service: 'indexer',

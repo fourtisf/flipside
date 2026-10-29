@@ -1,5 +1,5 @@
 /*
- * Flipside design system, ported rule for rule from prototype.html (the approved UI) and kept in its
+ * Coinside design system, ported rule for rule from prototype.html (the approved UI) and kept in its
  * compact one-rule-per-line form so it diffs cleanly against the prototype. Edits are limited to:
  * - font families resolve to the self-hosted next/font variables (same Inter and Geist Mono)
  * - nav and tab bar items are links instead of buttons, so their selectors target `a`

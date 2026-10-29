@@ -1,12 +1,12 @@
 [package]
-name = "flipside_vault"
+name = "coinside_vault"
 version = "0.0.0"
-description = "Flipside vault: holds user and pool SOL, co-signed withdrawals, balance roots"
+description = "Coinside vault: holds user and pool SOL, co-signed withdrawals, balance roots"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "flipside_vault"
+name = "coinside_vault"
 
 [features]
 default = []

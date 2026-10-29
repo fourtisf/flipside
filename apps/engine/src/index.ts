@@ -3,8 +3,8 @@
  * never clustered). P0 boots, resolves and hashes the rules and serves /health; the ledger, event log,
  * fills and the audit loop arrive in P2.
  */
-import { canonicalRules, loadRules } from '@flipside/core';
-import { rulesHash, startHealthServer } from '@flipside/core/node';
+import { canonicalRules, loadRules } from '@coinside/core';
+import { rulesHash, startHealthServer } from '@coinside/core/node';
 
 const rules = loadRules(process.env);
 const hash = rulesHash(rules);

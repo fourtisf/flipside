@@ -2,7 +2,7 @@
  * The worker: scheduled jobs (balance roots, skew fees, leaderboard, competition, holders refresh).
  * P0 only serves /health; jobs arrive with the phases that need them.
  */
-import { startHealthServer } from '@flipside/core/node';
+import { startHealthServer } from '@coinside/core/node';
 
 const server = startHealthServer({
   service: 'worker',

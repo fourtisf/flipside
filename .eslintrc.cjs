@@ -15,7 +15,7 @@ module.exports = {
       'error',
       {
         selector: "CallExpression[callee.name='parseFloat'][arguments.0.name=/[Ll]amports?$/]",
-        message: 'Lamport amounts are bigint. Use parseSol / lamports helpers from @flipside/core.',
+        message: 'Lamport amounts are bigint. Use parseSol / lamports helpers from @coinside/core.',
       },
     ],
   },

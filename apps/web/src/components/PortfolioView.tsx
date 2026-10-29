@@ -13,7 +13,7 @@ export function PortfolioView() {
   const real = hist.reduce((s, p) => s + p.net, 0n);
   const wins = hist.filter((p) => p.net > 0n).length;
   const u = m === 'practice' ? 'paper SOL' : 'SOL';
-  const ref = `flipside.xyz/r/${sim.wallet ? shortA(sim.wallet).replace('…', '').toLowerCase() : 'yourname'}`;
+  const ref = `coinside.fun/r/${sim.wallet ? shortA(sim.wallet).replace('…', '').toLowerCase() : 'yourname'}`;
 
   const metrics: Array<[string, JSX.Element, string]> = [
     [

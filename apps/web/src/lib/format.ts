@@ -2,7 +2,7 @@
  * Display formatting, ported from the prototype's helpers. Floats here are prices, percentages and
  * market caps for display only. SOL amounts are lamport bigints and go through formatSol.
  */
-import { formatSol } from '@flipside/core/money';
+import { formatSol } from '@coinside/core/money';
 
 /** True minus sign, as in the prototype. */
 export const M = '−';

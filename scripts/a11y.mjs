@@ -3,7 +3,7 @@
  * Lighthouse accessibility for every route, mobile and desktop (P0 needs 95 or higher everywhere).
  * Expects the web app running at BASE_URL (default http://localhost:3000). Exits 1 below MIN_SCORE.
  *
- *   pnpm --filter @flipside/web build && pnpm --filter @flipside/web start
+ *   pnpm --filter @coinside/web build && pnpm --filter @coinside/web start
  *   pnpm a11y
  *
  * Env: BASE_URL, MIN_SCORE (default 95), CHROME_PATH (any Chromium; Lighthouse finds Chrome if unset).

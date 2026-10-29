@@ -4,7 +4,7 @@
  * For every view at 1440 px and 390 px it screenshots the prototype and the port and writes one
  * combined PNG per view to artifacts/compare/<width>-<view>.png (prototype left, port right).
  *
- *   pnpm --filter @flipside/web build && pnpm --filter @flipside/web start   # in one shell
+ *   pnpm --filter @coinside/web build && pnpm --filter @coinside/web start   # in one shell
  *   pnpm compare                                                            # in another
  *
  * Env: BASE_URL (default http://localhost:3000), VIEWS (comma list), WIDTHS (comma list), WAIT_MS.

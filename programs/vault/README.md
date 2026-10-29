@@ -1,9 +1,9 @@
 # programs/vault
 
-Anchor program `flipside_vault`. Scaffold only in P0; the full program (section 5 of CLAUDE.md) is P3.
+Anchor program `coinside_vault`. Scaffold only in P0; the full program (section 5 of CLAUDE.md) is P3.
 
 ```bash
-cargo check -p flipside_vault     # host check, no Solana toolchain needed
+cargo check -p coinside_vault     # host check, no Solana toolchain needed
 anchor build                      # needs the Solana and Anchor CLIs (P3)
 ```
 

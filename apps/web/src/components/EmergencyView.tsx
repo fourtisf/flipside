@@ -1,6 +1,6 @@
 'use client';
 
-import { DEFAULT_RULES } from '@flipside/core/rules';
+import { DEFAULT_RULES } from '@coinside/core/rules';
 import { PROTOCOL } from '@/mock/fixtures';
 import { fixed, shortA, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';

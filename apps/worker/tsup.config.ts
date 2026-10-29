@@ -8,5 +8,5 @@ export default defineConfig({
   platform: 'node',
   sourcemap: true,
   clean: true,
-  noExternal: [/^@flipside\//],
+  noExternal: [/^@coinside\//],
 });

@@ -3,6 +3,23 @@
 Choices made while building that CLAUDE.md does not cover, or where it had to be interpreted. Newest phase
 first. Anything in CLAUDE.md section 16 is not decided here; it is asked.
 
+## Name: Coinside, at coinside.fun (ALFA, 29 Oct 2026)
+
+Section 16, decision 1. Flipside was the working name; its domains were taken. Coinside reads as the product
+itself (pick a coin, pick a side) and is the hero line "Every coin has two sides. Pick one." ALFA chose
+`coinside.fun` over `coinside.trade`.
+
+- Renamed everywhere before anything ships: UI copy and page titles, `prototype.html` (only the name, so the
+  side-by-side check still compares like with like), workspace packages (`@coinside/*`), the Anchor program
+  (`coinside_vault`), the signing and leaf prefixes in the brief (`coinside:withdraw`, `coinside:leaf`), the
+  referral cookie (`coinside_ref`), env paths and docs. The GitHub repository is still `fourtisf/flipside`;
+  renaming it is ALFA's call in GitHub settings.
+- The example referral link reads `coinside.fun/r/<code>`.
+- Logo concepts p / d and Flipped F depended on the old name and were dropped; the other four carry the new
+  wordmark.
+- Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
+  and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
+
 ## P0. Scaffold and design system
 
 ### Token logos (ALFA's request, 29 Oct: every token must have its logo)
@@ -113,7 +130,7 @@ is public (see the P0 report).
   `/leaderboard` (the prototype's view name).
 - `/trade/[mint]` for a mint that is not in the fixtures is a 404 in P0. P1 resolves any pasted mint
   through the indexer.
-- `/r/[code]` accepts `[a-z0-9_-]{2,32}`, lowercases it, sets an httpOnly `flipside_ref` cookie for 30 days
+- `/r/[code]` accepts `[a-z0-9_-]{2,32}`, lowercases it, sets an httpOnly `coinside_ref` cookie for 30 days
   and redirects to `/`.
 - `/emergency` is new: same design system, shows the last balance proof, the time until emergency
   withdrawals would open, the user's claimable balance and proof, and a withdraw button that stays disabled
@@ -148,6 +165,6 @@ bankrun tests start in P3, with the real program keypair.
 
 ### Copy
 
-No prototype copy changed. New copy is limited to `/emergency` and the 404 page, in the same voice. The
+No prototype copy changed except the product name (see Name, above). New copy is limited to `/emergency` and the 404 page, in the same voice. The
 footer still says "Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.",
 which is true in P0 and must change when real data arrives.

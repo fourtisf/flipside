@@ -58,7 +58,7 @@ export default function DocsPage() {
     <section id="v-docs" className="wrap page" aria-labelledby="h-docs">
       <div className="ph">
         <div>
-          <h1 id="h-docs">How Flipside works</h1>
+          <h1 id="h-docs">How Coinside works</h1>
           <p>Everything you need to trade, and everything we do to keep the pool from being drained.</p>
         </div>
       </div>

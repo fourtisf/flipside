@@ -40,14 +40,14 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run build --filter=@flipside/web
-      - run: pnpm --filter @flipside/web exec playwright install --with-deps chromium
-      - run: pnpm --filter @flipside/web e2e
+      - run: pnpm turbo run build --filter=@coinside/web
+      - run: pnpm --filter @coinside/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @coinside/web e2e
         env:
           CI: true
       - name: Lighthouse accessibility (95 or higher on every route)
         run: |
-          pnpm --filter @flipside/web start &
+          pnpm --filter @coinside/web start &
           npx -y wait-on@8.0.3 http://localhost:3000
           pnpm a11y
       - uses: actions/upload-artifact@v4
@@ -71,4 +71,4 @@ jobs:
             target
           key: cargo-${{ hashFiles('Cargo.lock') }}
       - run: cargo fmt --all -- --check
-      - run: cargo check -p flipside_vault --locked
+      - run: cargo check -p coinside_vault --locked
