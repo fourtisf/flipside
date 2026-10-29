@@ -9,7 +9,7 @@ describe('api', () => {
   it('GET /api/health', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/health' });
     expect(res.statusCode).toBe(200);
-    expect(HealthResponse.parse(res.json())).toMatchObject({ ok: true, service: 'api' });
+    expect(HealthResponse.parse(res.json())).toMatchObject({ ok: true, service: 'api', release: 'dev' });
   });
 
   it('GET /api/rules serves lamport strings and a stable hash', async () => {

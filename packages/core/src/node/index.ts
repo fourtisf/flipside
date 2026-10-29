@@ -32,7 +32,14 @@ export function startHealthServer({
     }
     const extra = check?.() ?? {};
     const ok = extra.ok ?? true;
-    const body = { ...extra, ok, service, version, uptimeSeconds: Math.floor((Date.now() - started) / 1000) };
+    const body = {
+      ...extra,
+      ok,
+      service,
+      version,
+      release: process.env.COINSIDE_RELEASE ?? 'dev',
+      uptimeSeconds: Math.floor((Date.now() - started) / 1000),
+    };
     res.writeHead(ok ? 200 : 503, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   });
   server.listen(port, host);

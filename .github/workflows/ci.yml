@@ -58,6 +58,26 @@ jobs:
             apps/web/test-results
             artifacts/lighthouse
 
+  deploy:
+    name: Deploy scripts (shellcheck) and Nginx config (nginx -t)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck -x deploy/*.sh
+      - name: nginx -t on the real config, with a stand-in certificate
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q nginx ssl-cert
+          sudo install -m 0644 deploy/nginx/snippets/*.conf /etc/nginx/snippets/
+          sudo install -m 0644 deploy/nginx/coinside.fun.conf /etc/nginx/sites-available/coinside.fun
+          sudo ln -sfn ../sites-available/coinside.fun /etc/nginx/sites-enabled/coinside.fun
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo install -d /etc/letsencrypt/live/coinside.fun
+          sudo openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 1 \
+            -subj /CN=coinside.fun -keyout /etc/letsencrypt/live/coinside.fun/privkey.pem \
+            -out /etc/letsencrypt/live/coinside.fun/fullchain.pem
+          sudo nginx -t
+
   vault:
     name: Vault program (cargo check)
     runs-on: ubuntu-latest

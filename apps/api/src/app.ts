@@ -25,6 +25,7 @@ export async function buildApp({ rules = loadRules(process.env), logger = false 
     ok: true,
     service: 'api',
     version: VERSION,
+    release: process.env.COINSIDE_RELEASE ?? 'dev',
     uptimeSeconds: Math.floor((Date.now() - started) / 1000),
   }));
 

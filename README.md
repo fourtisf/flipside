@@ -88,6 +88,10 @@ cargo check -p coinside_vault
 
 ## Deploying
 
-PM2 runs `web`, `api`, `engine` (exactly one instance, never clustered), `indexer` and `worker` from
-`ecosystem.config.cjs`. Nginx, TLS, backups and alerts are set up in P6 (CLAUDE.md section 13). Keypairs live
-only on the server at the paths in `.env`.
+Live preview: https://coinside.fun. The server runbook is [`deploy/README.md`](deploy/README.md): a one-time
+setup script (firewall, Node, PM2, Nginx, Let's Encrypt) and `coinside-deploy`, which builds each release
+beside the live one, switches with no downtime, and rolls back by itself if the new release isn't healthy.
+
+PM2 runs `web` and `api` (two cluster workers each), `engine` (exactly one instance, never clustered),
+`indexer` and `worker` from `ecosystem.config.cjs`. Keypairs live only on the server at the paths in
+`/etc/coinside/coinside.env`.

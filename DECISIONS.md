@@ -20,6 +20,63 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Deployment: P0 preview on coinside.fun (29 Oct 2026)
+
+ALFA asked to put the build on the Hostinger VPS now. CLAUDE.md section 13 sets the stack (PM2, Nginx,
+Certbot); these are the choices around it. Runbook: `deploy/README.md`.
+
+- **Release directories and a `current` symlink.** Each deploy installs and builds in
+  `/srv/coinside/releases/<UTC time>-<commit>` while the live release keeps serving, then switches
+  `current` with one atomic rename and reloads PM2. PM2 starts every process through the `current` path,
+  so a reload or a reboot always runs the live release. Rollback is a symlink switch, with no rebuild.
+- **Health-gated, with automatic rollback.** A deploy only counts if every process is online on the new
+  release, answers its health check, and doesn't restart for 10 seconds. Otherwise the previous release
+  goes back. Health payloads now carry `release` (`COINSIDE_RELEASE`, `dev` outside the server) so the
+  check knows which build answered. Rehearsed in a container: build failure, failed health check, crash
+  loop, broken PM2 config, manual rollback and reboot all left the previous release live.
+- **web and api run as two PM2 cluster workers each.** A reload replaces them one at a time. Rehearsal
+  under steady traffic: zero failed requests during deploys and rollbacks, against about 0.7 s of 502s per
+  deploy with one API process. The engine stays a single fork-mode process (section 6); indexer and worker
+  are single fork-mode processes too.
+- **Build on the server, with checks.** `pnpm install --frozen-lockfile`, then typecheck and unit tests
+  (skippable for urgent fixes), then the build. CI only runs on `main` and on pull requests, and this work
+  is on a branch, so the server checks too.
+- **Environment in `/etc/coinside/coinside.env`**, owned by root and readable by the `coinside` group only.
+  The setup script writes it from `.env.example` with production values and fresh random secrets, and never
+  overwrites it. `ecosystem.config.cjs` parses it with Node's own `.env` parser on every reload; the deploy
+  script uses the same parser for the build. `APP_URL` is now declared in `turbo.json`, because Turborepo's
+  strict environment mode was keeping it from `next build` (`metadataBase` fell back to localhost).
+- **One unprivileged `coinside` user** owns the releases and runs PM2, started by a systemd unit in the repo.
+  The brief wants keypairs readable only by the engine and worker; separate Unix users for those two come
+  with the keys in P3.
+- **Nginx.** Mozilla intermediate TLS (1.2 and 1.3), HSTS for a year without preload, www to the bare domain,
+  and unknown host names dropped. WebSocket upgrade on `/ws`, and 60 requests per second per IP on `/api`
+  (section 10's number) until the API's Redis limits exist. `X-Forwarded-For` is overwritten, not appended,
+  because Nginx is the edge. Headers deny framing, which matters for one-click trading. No script CSP yet:
+  Next 14 needs nonces for that, which come with the wallet adapter in P3.
+- **Certificate from Let's Encrypt over HTTP-01 (webroot)**, ECDSA, renewed by certbot's timer with an Nginx
+  reload hook. The Nginx config stays exactly as committed; certbot never edits it. No OCSP stapling: Let's
+  Encrypt shut OCSP down in 2025. The email address is optional, since Let's Encrypt no longer sends expiry
+  emails.
+- **Preview hygiene.** `X-Robots-Tag: noindex, nofollow` until launch, so search results never show
+  simulated trades on the real domain.
+- **Cloudflare later.** DNS stays at Hostinger for now. The brief puts Cloudflare in front; the real-IP
+  snippet is ready (`deploy/nginx/snippets/coinside-cloudflare.conf`) and the runbook lists the steps.
+- **Server hardening.** ufw (SSH rate-limited, 80, 443), fail2ban for SSH, daily unattended security updates
+  without automatic reboots, UTC clock, swap. Key-only SSH is opt-in (`--harden-ssh`), because forcing it
+  could lock out a password login.
+- **Pinned versions.** Node 22 from NodeSource's signed apt repository, PM2 7.0.4 (7.1.x is under two weeks
+  old), and pnpm from `packageManager` via corepack.
+
+Two bugs the rehearsal found in the P0 app, now fixed:
+
+- `/r/[code]` redirected to `https://localhost:3000/` behind a proxy, because Next builds `req.url` from its
+  own listen address. It now sends a relative `Location: /`.
+- `/trade` was prerendered as a 307 with no `Location` header, which only worked for browsers that ran the
+  page's JavaScript. It now redirects per request (`dynamic = 'force-dynamic'`).
+
+A new e2e test asserts both `Location` headers while sending the headers Nginx forwards.
+
 ## P0. Scaffold and design system
 
 ### Token logos (ALFA's request, 29 Oct: every token must have its logo)

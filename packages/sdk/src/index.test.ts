@@ -11,7 +11,7 @@ describe('sdk', () => {
       baseUrl: 'http://api.test/',
       fetch: async (url) => {
         calls.push(String(url));
-        return json({ ok: true, service: 'api', version: '0.0.0', uptimeSeconds: 1 });
+        return json({ ok: true, service: 'api', version: '0.0.0', release: 'dev', uptimeSeconds: 1 });
       },
     });
     await expect(client.health()).resolves.toMatchObject({ ok: true, service: 'api' });

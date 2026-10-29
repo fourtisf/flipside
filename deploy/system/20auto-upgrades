@@ -1,0 +1,6 @@
+// Installed to /etc/apt/apt.conf.d/20auto-upgrades by deploy/bootstrap.sh. Security updates install
+// daily (Ubuntu's 50unattended-upgrades allows only the security pocket). The server never reboots by
+// itself; bootstrap and `coinside-deploy status` say when a reboot is pending.
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";

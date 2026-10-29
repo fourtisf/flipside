@@ -216,6 +216,17 @@ test('rug guard settles a position at the pre-drop price and pauses the coin', a
   expect(errors).toEqual([]);
 });
 
+test('redirects send a relative Location, so they work behind the proxy', async ({ request }) => {
+  // What Nginx forwards in production; Next must not answer with its own localhost address.
+  const headers = { host: 'coinside.fun', 'x-forwarded-host': 'coinside.fun', 'x-forwarded-proto': 'https' };
+  const trade = await request.get('/trade', { maxRedirects: 0, headers });
+  expect(trade.status()).toBe(307);
+  expect(trade.headers()['location']).toBe(`/trade/${GLOOP}`);
+  const ref = await request.get('/r/Alfa_01', { maxRedirects: 0, headers });
+  expect(ref.status()).toBe(307);
+  expect(ref.headers()['location']).toBe('/');
+});
+
 test('routes: redirects, referral cookie, not found, emergency, docs', async ({ page, context }) => {
   const errors = watchErrors(page);
   await page.goto('/trade');

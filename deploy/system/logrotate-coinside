@@ -1,0 +1,13 @@
+# Installed to /etc/logrotate.d/coinside by deploy/bootstrap.sh. PM2 keeps its log files open, so
+# rotate by copy and truncate.
+/home/coinside/.pm2/logs/*.log /home/coinside/.pm2/pm2.log {
+    su coinside coinside
+    daily
+    rotate 14
+    maxsize 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}

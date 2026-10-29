@@ -11,6 +11,8 @@ export const HealthResponse = z.object({
   ok: z.boolean(),
   service: z.string(),
   version: z.string(),
+  /** The deployed release (`<UTC time>-<commit>`, set by coinside-deploy), or `dev`. */
+  release: z.string(),
   uptimeSeconds: z.number(),
 });
 export type HealthResponse = z.infer<typeof HealthResponse>;
