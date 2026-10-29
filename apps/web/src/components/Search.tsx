@@ -160,7 +160,7 @@ export function SearchBox({
                       choose(c);
                     }}
                   >
-                    <Tok s={c.sym} size={26} />
+                    <Tok s={c.sym} logo={c.logo} size={26} />
                     <span>
                       <b>${c.sym}</b>
                       <small>

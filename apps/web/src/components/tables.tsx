@@ -35,7 +35,7 @@ export function PosTable({ list }: { list: Position[] }) {
         return (
           <div className="tr t-pos" key={p.id}>
             <span className="tk">
-              <Tok s={p.sym} size={24} />
+              <Tok s={p.sym} logo={sim.bySym[p.sym]?.logo} size={24} />
               <b>${p.sym}</b>
             </span>
             <span>
@@ -72,6 +72,7 @@ export function PosTable({ list }: { list: Position[] }) {
 }
 
 export function HistTable({ list }: { list: Closed[] }) {
+  const sim = useSim();
   if (!list.length)
     return (
       <div className="empty">
@@ -93,7 +94,7 @@ export function HistTable({ list }: { list: Closed[] }) {
       {list.slice(0, 30).map((p) => (
         <div className="tr t-hist" key={p.id}>
           <span className="tk">
-            <Tok s={p.sym} size={24} />
+            <Tok s={p.sym} logo={sim.bySym[p.sym]?.logo} size={24} />
             <b>${p.sym}</b>
           </span>
           <span>

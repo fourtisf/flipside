@@ -335,7 +335,7 @@ export function PoolView() {
               return (
                 <div className="exr" key={c.sym}>
                   <span className="tk">
-                    <Tok s={c.sym} size={24} />
+                    <Tok s={c.sym} logo={c.logo} size={24} />
                     <b>${c.sym}</b>
                   </span>
                   <span className={`n ${side === 'long' ? 'up' : 'dn'}`}>

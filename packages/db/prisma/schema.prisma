@@ -11,92 +11,97 @@ datasource db {
 }
 
 model User {
-  wallet        String   @id
-  createdAt     DateTime @default(now())
+  wallet        String    @id
+  createdAt     DateTime  @default(now())
   firstFundedAt DateTime?
-  refCode       String?  @unique
+  refCode       String?   @unique
   referredBy    String?
-  flagged       Boolean  @default(false)
+  flagged       Boolean   @default(false)
 }
 
 model Session {
-  id         String   @id @default(cuid())
-  wallet     String
-  publicKey  String   @unique
-  scope      String   // "trade"
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  wallet    String
+  publicKey String   @unique
+  scope     String // "trade"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
   @@index([wallet])
 }
 
 model Coin {
-  mint          String   @id
-  symbol        String
-  name          String
-  decimals      Int
-  supply        BigInt
-  deployer      String?
-  venue         String   // pumpfun | pumpswap | raydium | meteora | stonkfun
-  pools         Json     // [{ address, type, quote }]
-  status        String   @default("watching") // watching | open | paused | guard
-  pausedReason  String?
-  holders       Int      @default(0)
-  feesPaidLamports BigInt @default(0)
-  firstTradeAt  DateTime?
-  updatedAt     DateTime @updatedAt
+  mint             String    @id
+  symbol           String
+  name             String
+  decimals         Int
+  supply           BigInt
+  deployer         String?
+  venue            String // pumpfun | pumpswap | raydium | meteora | stonkfun
+  logoUri          String? // token image from on-chain metadata (Helius DAS content.links.image); served through our logo proxy
+  pools            Json // [{ address, type, quote }]
+  status           String    @default("watching") // watching | open | paused | guard
+  pausedReason     String?
+  holders          Int       @default(0)
+  feesPaidLamports BigInt    @default(0)
+  firstTradeAt     DateTime?
+  updatedAt        DateTime  @updatedAt
 }
 
 model Candle1m {
-  mint      String
-  ts        DateTime
-  open      Decimal  @db.Decimal(38, 18)
-  high      Decimal  @db.Decimal(38, 18)
-  low       Decimal  @db.Decimal(38, 18)
-  close     Decimal  @db.Decimal(38, 18)
+  mint              String
+  ts                DateTime
+  open              Decimal  @db.Decimal(38, 18)
+  high              Decimal  @db.Decimal(38, 18)
+  low               Decimal  @db.Decimal(38, 18)
+  close             Decimal  @db.Decimal(38, 18)
   volumeLamports    BigInt
   liquidityLamports BigInt
+
   @@id([mint, ts])
 }
 
 model Position {
-  id            String   @id @default(cuid())
-  wallet        String
-  mode          String   // real | paper
-  mint          String
-  side          String   // long | short
-  leverage      Int
-  stakeLamports BigInt
-  marginLamports BigInt
-  openFeeLamports BigInt
-  entryPrice    Decimal  @db.Decimal(38, 18)
-  maxWinBps     Int
-  tpBps         Int?
-  slBps         Int?
-  openedAt      DateTime @default(now())
-  closedAt      DateTime?
-  exitPrice     Decimal? @db.Decimal(38, 18)
-  pnlLamports   BigInt?
+  id               String    @id @default(cuid())
+  wallet           String
+  mode             String // real | paper
+  mint             String
+  side             String // long | short
+  leverage         Int
+  stakeLamports    BigInt
+  marginLamports   BigInt
+  openFeeLamports  BigInt
+  entryPrice       Decimal   @db.Decimal(38, 18)
+  maxWinBps        Int
+  tpBps            Int?
+  slBps            Int?
+  openedAt         DateTime  @default(now())
+  closedAt         DateTime?
+  exitPrice        Decimal?  @db.Decimal(38, 18)
+  pnlLamports      BigInt?
   closeFeeLamports BigInt?
-  closeReason   String?  // manual | liq | max | tp | sl | guard
-  frozenForReview Boolean @default(false)
-  copiedFrom    String?
+  closeReason      String? // manual | liq | max | tp | sl | guard
+  frozenForReview  Boolean   @default(false)
+  copiedFrom       String?
+
   @@index([wallet, mode, closedAt])
   @@index([mint, closedAt])
 }
 
 model LedgerAccount {
-  id       String  @id          // e.g. "user:<wallet>:free"
-  balance  BigInt  @default(0)
+  id      String @id // e.g. "user:<wallet>:free"
+  balance BigInt @default(0)
 }
 
 model LedgerEntry {
   id        BigInt   @id @default(autoincrement())
   txId      String
   accountId String
-  amount    BigInt   // signed; every txId sums to zero
-  kind      String   // deposit | withdraw | open | close | fee | lp | skew | referral | reconciliation
+  amount    BigInt // signed; every txId sums to zero
+  kind      String // deposit | withdraw | open | close | fee | lp | skew | referral | reconciliation
   refId     String?
   createdAt DateTime @default(now())
+
   @@index([txId])
   @@index([accountId, createdAt])
 }
@@ -115,7 +120,7 @@ model Deposit {
   wallet    String
   lamports  BigInt
   slot      BigInt
-  status    String   // confirmed | finalized | credited
+  status    String // confirmed | finalized | credited
   createdAt DateTime @default(now())
 }
 
@@ -126,34 +131,34 @@ model Withdrawal {
   nonce     BigInt
   expiry    DateTime
   engineSig String
-  status    String   // signed | executed | expired
+  status    String // signed | executed | expired
   txSig     String?
   createdAt DateTime @default(now())
 }
 
 model LpPosition {
-  wallet String @id
+  wallet String  @id
   shares Decimal @db.Decimal(38, 18)
 }
 
 model PoolSnapshot {
-  ts         DateTime @id
+  ts          DateTime @id
   navLamports BigInt
-  shares     Decimal @db.Decimal(38, 18)
+  shares      Decimal  @db.Decimal(38, 18)
 }
 
 model BalanceRoot {
-  epoch      BigInt   @id
-  root       String
+  epoch         BigInt   @id
+  root          String
   totalLamports BigInt
-  txSig      String?
-  postedAt   DateTime
-  tree       Bytes
+  txSig         String?
+  postedAt      DateTime
+  tree          Bytes
 }
 
 model RiskEvent {
   id        String   @id @default(cuid())
-  kind      String   // rug_guard | insider_block | self_trade | breaker_hour | breaker_coin | deviation | audit_mismatch
+  kind      String // rug_guard | insider_block | self_trade | breaker_hour | breaker_coin | deviation | audit_mismatch
   mint      String?
   wallet    String?
   detail    Json
@@ -161,16 +166,17 @@ model RiskEvent {
 }
 
 model CopyFollow {
-  follower     String
-  leader       String
+  follower       String
+  leader         String
   amountLamports BigInt
-  active       Boolean @default(true)
+  active         Boolean @default(true)
+
   @@id([follower, leader])
 }
 
 model Competition {
-  weekStart DateTime @id
-  potLamports BigInt @default(0)
-  winners   Json?
-  paidAt    DateTime?
+  weekStart   DateTime  @id
+  potLamports BigInt    @default(0)
+  winners     Json?
+  paidAt      DateTime?
 }

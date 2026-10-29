@@ -45,7 +45,7 @@ function Watchlist({ sel }: { sel: Coin }) {
             return (
               <li key={c.sym}>
                 <Link className="wi" href={tradeHref(c.mint)} scroll={false} aria-current={c.sym === sel.sym}>
-                  <Tok s={c.sym} size={24} />
+                  <Tok s={c.sym} logo={c.logo} size={24} />
                   <span>
                     <b>${c.sym}</b>
                     <small>{usd(mcap(c))}</small>
@@ -259,7 +259,7 @@ export function TradeView({ mint }: { mint: string }) {
       <div className="thd">
         <div className="th-tok">
           <span id="th-tok">
-            <Tok s={c.sym} size={36} />
+            <Tok s={c.sym} logo={c.logo} size={36} />
           </span>
           <div>
             <h1 id="th-title">${c.sym}</h1>

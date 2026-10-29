@@ -2,7 +2,7 @@
 
 import { sgn, shortA, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';
-import { SideChip } from './ui';
+import { SideChip, Tok } from './ui';
 
 export function LeaderboardView() {
   const sim = useSim();
@@ -46,7 +46,8 @@ export function LeaderboardView() {
               <span>{l.trades} trades</span>
               <span>{Math.round(l.win * 100)}% won</span>
               <span>
-                Best {l.best.side} on ${l.best.sym}
+                Best {l.best.side} on{' '}
+                <Tok s={l.best.sym} logo={sim.bySym[l.best.sym]?.logo} size={16} inline />${l.best.sym}
               </span>
             </div>
           </div>
@@ -71,7 +72,8 @@ export function LeaderboardView() {
               <span className="c4 n">{Math.round(l.win * 100)}%</span>
               <span className="n up">{sgn(l.pnl, 2)} SOL</span>
               <span className="c6">
-                <SideChip side={l.best.side} lev={l.best.lev} /> ${l.best.sym}{' '}
+                <SideChip side={l.best.side} lev={l.best.lev} />{' '}
+                <Tok s={l.best.sym} logo={sim.bySym[l.best.sym]?.logo} size={16} inline />${l.best.sym}{' '}
                 <span className="n up">{sgn(l.best.pnl, 2)}</span>
               </span>
               <span className="r">

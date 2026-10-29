@@ -1,14 +1,50 @@
 'use client';
 
-import { useEffect, useRef, type CSSProperties, type ElementType } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ElementType } from 'react';
 import { C, hueOf, priceParts } from '@/lib/format';
 
-/** Token avatar: first letter on a hue derived from the ticker. */
-export function Tok({ s, size }: { s: string; size?: number }) {
+/**
+ * Token avatar: the token's logo in the prototype's round avatar. If the token has no logo, or the
+ * image fails to load, it falls back to the prototype's letter-on-hue avatar so no row is ever blank.
+ * `inline` sizes it to sit in a line of text (leaderboard, feed).
+ */
+export function Tok({
+  s,
+  logo,
+  size,
+  inline,
+}: {
+  s: string;
+  logo?: string | null;
+  size?: number;
+  inline?: boolean;
+}) {
+  const [broken, setBroken] = useState<string | null>(null);
+  const img = useRef<HTMLImageElement>(null);
+  const showImg = !!logo && broken !== logo;
+  // An image that failed before hydration never fires onError in React, so check once mounted.
+  useEffect(() => {
+    const el = img.current;
+    if (logo && el?.complete && el.naturalWidth === 0) setBroken(logo);
+  }, [logo]);
   const style = { '--h': hueOf(s), ...(size ? { '--s': `${size}px` } : {}) } as CSSProperties;
   return (
-    <span className="tok" style={style} aria-hidden="true">
-      {s[0]}
+    <span className={`tok${showImg ? ' img' : ''}${inline ? ' inl' : ''}`} style={style} aria-hidden="true">
+      {showImg ? (
+        // A plain <img>: these are tiny avatars, and in P1 they come from our own logo proxy.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          ref={img}
+          src={logo}
+          alt=""
+          width={size ?? 28}
+          height={size ?? 28}
+          decoding="async"
+          onError={() => setBroken(logo)}
+        />
+      ) : (
+        s[0]
+      )}
     </span>
   );
 }

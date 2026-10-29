@@ -6,6 +6,7 @@ import { pct } from '@/lib/format';
 import { chg1h, solF, type Coin } from '@/mock/sim';
 import { useSim } from '@/mock/provider';
 import { useOpenTrade } from '../nav';
+import { Tok } from '../ui';
 
 const mix = (a: string, b: string, t: number) => {
   const A = parseInt(a.slice(1), 16);
@@ -29,6 +30,30 @@ interface Rect {
   h: number;
 }
 
+let measure: CanvasRenderingContext2D | null = null;
+
+/** Rendered width of a tile's ticker (Inter 600 with -0.02em tracking, as styled by `.tile b`). */
+function tickerWidth(text: string, fs: number): number {
+  measure ??= document.createElement('canvas').getContext('2d');
+  if (!measure) return text.length * fs * 0.62;
+  measure.font = `600 ${fs}px ${getComputedStyle(document.documentElement).getPropertyValue('--sans')}`;
+  return measure.measureText(text).width - 0.02 * fs * text.length;
+}
+
+/**
+ * Where a tile's logo goes: beside the ticker if both fit on one line, above it if the tile is tall
+ * enough, or nowhere on tiles too small for both (the ticker is never clipped to make room).
+ */
+function logoSpot(r: Rect, fs: number): 'inline' | 'above' | null {
+  const logo = Math.round(fs * 1.15);
+  const room = r.w - 22;
+  const text = tickerWidth('$' + r.sym, fs);
+  if (text + logo + fs * 0.35 <= room) return 'inline';
+  const lines = fs * 1.1 + Math.max(10.5, fs * 0.62) * 1.5;
+  if (text <= room && logo + 5 + lines <= r.h - 20) return 'above';
+  return null;
+}
+
 /** Squarified treemap (d3-hierarchy, ratio 1 like the prototype) sized by 24h volume. */
 function layout(coins: Coin[], W: number, H: number): Rect[] {
   const items = [...coins].sort((a, b) => (b.v24 > a.v24 ? 1 : b.v24 < a.v24 ? -1 : 0));
@@ -49,24 +74,37 @@ export function MarketMap() {
   const openTrade = useOpenTrade();
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ W: number; H: number } | null>(null);
+  const [fonts, setFonts] = useState(0);
 
   useEffect(() => {
     const el = box.current;
     if (!el) return;
     const ro = new ResizeObserver(() => setSize({ W: el.clientWidth, H: el.clientHeight }));
     ro.observe(el);
+    // tickers are measured for logo placement, so measure again once Inter has loaded
+    document.fonts?.ready.then(() => setFonts((n) => n + 1));
     return () => ro.disconnect();
   }, []);
 
   // Laid out on mount and resize only, like the prototype; colors and labels update every tick.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const rects = useMemo(() => (size && size.W ? layout(sim.coins, size.W, size.H) : []), [size]);
+  const rects = useMemo(
+    () =>
+      size && size.W
+        ? layout(sim.coins, size.W, size.H).map((r) => {
+            const fs = Math.max(11, Math.min(22, Math.sqrt(r.w * r.h) / 9));
+            return { ...r, fs, spot: logoSpot(r, fs) };
+          })
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [size, fonts],
+  );
 
   return (
     <div className="map" id="map" ref={box}>
       {rects.map((r) => {
         const c = sim.bySym[r.sym]!;
-        const fs = Math.max(11, Math.min(22, Math.sqrt(r.w * r.h) / 9));
+        const fs = r.fs;
+        const logo = r.spot && <Tok s={c.sym} logo={c.logo} size={Math.round(fs * 1.15)} />;
         const show = r.w > 54 && r.h > 40;
         const paused = c.status !== 'open';
         const style = { left: r.x, top: r.y, width: r.w, height: r.h, background: tileColor(c) };
@@ -87,7 +125,10 @@ export function MarketMap() {
             {show && (
               <>
                 <span className="vh">Trade </span>
-                <b style={{ fontSize: `${fs.toFixed(1)}px` }}>${r.sym}</b>
+                {r.spot === 'above' && logo}
+                <b style={{ fontSize: `${fs.toFixed(1)}px` }}>
+                  {r.spot === 'inline' && logo}${r.sym}
+                </b>
                 <span style={{ fontSize: `${Math.max(10.5, fs * 0.62).toFixed(1)}px` }}>
                   {paused ? 'Paused' : pct(chg1h(c))}
                 </span>

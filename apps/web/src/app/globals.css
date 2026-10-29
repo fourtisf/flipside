@@ -5,6 +5,7 @@
  * - nav and tab bar items are links instead of buttons, so their selectors target `a`
  * - .h3/.h4 let a correctly levelled heading (h2) wear the prototype's h3/h4 look
  * - metric sub-lines are a second <dd> (valid <dl>), styled to look like the prototype's <p>
+ * - token avatars show the token's logo (.tok.img), with the letter avatar as the fallback
  * - aria-sort sits on the column header (valid ARIA), not the sort button inside it
  * - the candle chart is lightweight-charts: .tvc/.ohlc/.entry style its root and HTML overlays
  * Do not add glows, gradients, glass or new shadows.
@@ -77,6 +78,10 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 
 /* token avatar */
 .tok{width:var(--s,28px);height:var(--s,28px);border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:calc(var(--s,28px)*.4);color:hsl(var(--h) 70% 82%);background:hsl(var(--h) 45% 16%);box-shadow:inset 0 0 0 1px hsl(var(--h) 50% 30% / .7)}
+.tok.img{position:relative;overflow:hidden;background:var(--s2)}
+.tok.img img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.tok.img::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);pointer-events:none}
+.tok.inl{display:inline-grid;vertical-align:-4px;margin-right:5px}
 
 /* chips */
 .chg{font-family:var(--mono);font-size:12.5px;letter-spacing:-.02em;white-space:nowrap}
@@ -196,6 +201,10 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .tile b{font-weight:600;letter-spacing:-.02em;line-height:1.1;white-space:nowrap}
 .tile span{font-family:var(--mono);letter-spacing:-.02em;opacity:.85;white-space:nowrap}
 .tile.paused{background:#101010!important}
+.tile b{display:flex;align-items:center}
+.tile .tok{opacity:1}
+.tile b .tok{margin-right:.35em}
+.tile>.tok{margin-bottom:5px}
 
 /* 3 cols */
 .cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}

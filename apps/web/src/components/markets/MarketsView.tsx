@@ -25,11 +25,12 @@ import { QuickTicket } from './QuickTicket';
 
 /* ---------- tape ---------- */
 function TapeRun({ items, hidden }: { items: TapeItem[]; hidden?: boolean }) {
+  const sim = useSim();
   return (
     <>
       {items.map((it, i) => (
         <span key={i} aria-hidden={hidden || undefined}>
-          <Tok s={it.sym} size={18} />
+          <Tok s={it.sym} logo={sim.bySym[it.sym]?.logo} size={18} />
           <b>${it.sym}</b>
           <SideChip side={it.side} lev={it.lev} />
           <span className={`n ${it.kind === 'open' ? 't2' : it.pnl >= 0n ? 'up' : 'dn'}`}>
@@ -208,7 +209,7 @@ export function StatsStrip() {
 function Lr({ c, children, onOpen }: { c: Coin; children: React.ReactNode; onOpen: (sym: string) => void }) {
   return (
     <button className="lr" onClick={() => onOpen(c.sym)}>
-      <Tok s={c.sym} size={28} />
+      <Tok s={c.sym} logo={c.logo} size={28} />
       <span style={{ minWidth: 0 }}>
         <b>${c.sym}</b>
         <small>
@@ -441,7 +442,7 @@ function MarketsTable() {
                   }}
                 >
                   <div className="tk" role="cell">
-                    <Tok s={c.sym} size={28} />
+                    <Tok s={c.sym} logo={c.logo} size={28} />
                     <div style={{ minWidth: 0 }}>
                       <b>${c.sym}</b>
                       <small>
@@ -498,6 +499,8 @@ function MarketsTable() {
 
 /* ---------- live trades + wins ---------- */
 function FeedRow({ it, now }: { it: FeedItem; now: number }) {
+  const sim = useSim();
+  const logo = sim.bySym[it.sym]?.logo;
   const fresh = now - it.at < 600;
   if (it.kind === 'guard')
     return (
@@ -506,7 +509,9 @@ function FeedRow({ it, now }: { it: FeedItem; now: number }) {
           <Shield c="#EDEDED" s={13} />
         </span>
         <div>
-          <b>Rug guard settled ${it.sym}</b>
+          <b>
+            Rug guard settled <Tok s={it.sym} logo={logo} size={16} inline />${it.sym}
+          </b>
           <div className="t3" style={{ fontSize: '12.5px' }}>
             Its liquidity fell {it.drop}% in under a minute. {it.n} positions closed at the price from before
             the drop.
@@ -518,7 +523,7 @@ function FeedRow({ it, now }: { it: FeedItem; now: number }) {
   const s = (now - it.at) / 1000;
   return (
     <li className={`fi${fresh ? ' new' : ''}`}>
-      <Tok s={it.sym} size={28} />
+      <Tok s={it.sym} logo={logo} size={28} />
       <div style={{ minWidth: 0 }}>
         <b>${it.sym}</b> <SideChip side={it.side} lev={it.lev} /> <span className="t3">{verb}</span>
         <div className="w">{it.mine ? 'You' : shortA(it.w ?? '')}</div>
@@ -578,7 +583,7 @@ export function TopWins() {
         {all.map((w, i) => (
           <div className="wn" key={i}>
             <span className="rk">{i + 1}</span>
-            <Tok s={w.sym} size={28} />
+            <Tok s={w.sym} logo={sim.bySym[w.sym]?.logo} size={28} />
             <div style={{ minWidth: 0 }}>
               <b>${w.sym}</b> <SideChip side={w.side} lev={w.lev} />
               <span className="w">{'me' in w && w.me ? 'You' : shortA(w.w)}</span>

@@ -155,7 +155,7 @@ export function QuickTicket() {
           }
         />
         <div className="tk-coin" id="tk-coin">
-          <Tok s={c.sym} size={36} />
+          <Tok s={c.sym} logo={c.logo} size={36} />
           <div>
             <b>${c.sym}</b>
             <small>

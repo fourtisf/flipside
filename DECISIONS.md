@@ -5,6 +5,25 @@ first. Anything in CLAUDE.md section 16 is not decided here; it is asked.
 
 ## P0. Scaffold and design system
 
+### Token logos (ALFA's request, 29 Oct: every token must have its logo)
+
+This overrides the prototype's letter-on-hue avatars.
+
+- Every token avatar shows the token's logo: markets table, lists, tape, ticket, search, watchlist,
+  terminal header, positions and history, pool exposure, live trades and top wins. Tokens that were only
+  text now carry a small inline logo too: the leaderboard's best trades and the rug guard line in the feed.
+- Market map tiles show the logo beside the ticker when both fit, above it when the tile is tall enough,
+  and leave it out only on tiles too small for both. The ticker is never clipped to make room.
+- If a token has no logo, or its image fails to load, the avatar falls back to the prototype's letter
+  avatar, so a row is never blank.
+- Toasts, the order panel's pause banner and other sentences keep the ticker as text.
+- P0's coins are fictional, so their logos are 22 placeholder SVGs in `apps/web/public/tokens`.
+- P1: the indexer reads each coin's image from Helius DAS (`content.links.image`, else the metadata
+  JSON's `image`) into `Coin.logoUri` (added to the schema). The API hands the browser
+  `/api/tokens/:mint/logo`, a proxy that fetches the image once, checks its type and size, re-encodes it
+  as a small square raster and caches it. Browsers never load images from third-party hosts, and SVGs are
+  never passed through, since an SVG can carry script.
+
 ### Stack and versions
 
 | Piece | Choice | Why |

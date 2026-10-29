@@ -1,0 +1,3 @@
+# Kept rule-for-rule in the prototype's compact form (see the file header); the root
+# .prettierignore lists it too, but Prettier only reads the ignore file in its working directory.
+src/app/globals.css

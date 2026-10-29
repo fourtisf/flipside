@@ -242,6 +242,43 @@ test('routes: redirects, referral cookie, not found, emergency, docs', async ({ 
   expect(errors.filter((e) => !e.includes('404'))).toEqual([]);
 });
 
+/** Every token avatar on the page is a loaded logo image, none fell back to a letter. */
+async function expectAllLogos(page: Page) {
+  await expect(page.locator('.tok').first()).toBeVisible();
+  await expect(page.locator('.tok:not(.img)')).toHaveCount(0);
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll<HTMLImageElement>('.tok.img img')].every(
+      (i) => i.complete && i.naturalWidth > 0,
+    ),
+  );
+}
+
+test('every token shows its logo, everywhere a token appears', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await expectAllLogos(page);
+  expect(await page.locator('#rows .mk .tok.img').count()).toBe(22);
+  await expect(page.locator('#map .tile b .tok.img').first()).toBeVisible();
+  await page.goto(`/trade/${GLOOP}`);
+  await expectAllLogos(page);
+  await expect(page.locator('#th-tok .tok.img img')).toHaveAttribute('src', '/tokens/gloop.svg');
+  await page.goto('/leaderboard');
+  await expectAllLogos(page);
+  expect(await page.locator('#leaders .tok.inl.img').count()).toBe(9);
+  await page.goto('/pool');
+  await expectAllLogos(page);
+  expect(errors).toEqual([]);
+});
+
+test('a token whose logo fails to load falls back to the letter avatar', async ({ page }) => {
+  await page.route('**/tokens/kelp.svg', (r) => r.fulfill({ status: 404, body: '' }));
+  await page.goto('/');
+  const kelp = page.locator('#rows .mk', { hasText: '$KELP' }).locator('.tok');
+  await expect(kelp).not.toHaveClass(/\bimg\b/);
+  await expect(kelp).toHaveText('K');
+  await expect(page.locator('#rows .mk', { hasText: '$CHAD' }).locator('.tok.img')).toHaveCount(1);
+});
+
 test('mobile layout collapses like the prototype', async ({ page }) => {
   test.skip(!mobile(page), 'mobile only');
   await page.goto('/');

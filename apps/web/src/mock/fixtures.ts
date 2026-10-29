@@ -16,9 +16,11 @@ export interface CoinSeed {
   liquiditySol: number;
   /** Per-second volatility of the simulated random walk. */
   vol: number;
+  /** Token logo URL. Mock logos live in public/tokens; P1 serves real ones from token metadata. */
+  logo: string | null;
 }
 
-export const COINS: readonly CoinSeed[] = [
+const SEEDS: ReadonlyArray<Omit<CoinSeed, 'logo'>> = [
   {
     sym: 'GLOOP',
     name: 'Gloop',
@@ -218,6 +220,11 @@ export const COINS: readonly CoinSeed[] = [
     vol: 0.004,
   },
 ];
+
+export const COINS: readonly CoinSeed[] = SEEDS.map((c) => ({
+  ...c,
+  logo: `/tokens/${c.sym.toLowerCase()}.svg`,
+}));
 
 /** The coin the rug guard demo pulls at t = 40 s, exactly like the prototype. */
 export const RUG_DEMO_SYM = 'FERN';

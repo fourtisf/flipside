@@ -68,6 +68,7 @@ export interface Coin {
   name: string;
   venue: Venue;
   mint: string;
+  logo: string | null;
   supply: number;
   vol: number;
   liq: bigint;
@@ -300,6 +301,7 @@ export class Sim {
         name: s.name,
         venue: s.venue,
         mint: s.mint,
+        logo: s.logo,
         supply,
         vol: s.vol,
         liq,
