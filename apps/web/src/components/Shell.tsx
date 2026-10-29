@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import { fixed, shortA, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';
 import { navKey, useNavHrefs, type NavKey } from './Header';
@@ -69,7 +69,13 @@ export function Footer() {
           </div>
         </div>
         <div className="fb">
-          <span>Coinside on Solana</span>
+          <span>
+            Coinside on Solana. Charts by{' '}
+            <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">
+              TradingView
+            </a>
+            .
+          </span>
           <span>Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.</span>
         </div>
       </div>

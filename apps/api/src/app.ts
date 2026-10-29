@@ -1,6 +1,6 @@
 import websocket from '@fastify/websocket';
 import { loadRules, rulesToJSON, type Rules } from '@coinside/core';
-import { rulesHash } from '@coinside/core/node';
+import { healthBody, rulesHash } from '@coinside/core/node';
 import Fastify, { type FastifyServerOptions } from 'fastify';
 
 export const VERSION = '0.0.0';
@@ -15,19 +15,15 @@ export interface AppOptions {
  * in P1, orders and positions in P2.
  */
 export async function buildApp({ rules = loadRules(process.env), logger = false }: AppOptions = {}) {
-  const app = Fastify({ logger });
+  // Nginx, the only client (the API listens on 127.0.0.1), sets X-Forwarded-For to the visitor's address,
+  // so request.ip is the visitor rather than 127.0.0.1. Rate limits per IP depend on it (P2).
+  const app = Fastify({ logger, trustProxy: 'loopback' });
   const started = Date.now();
   const rulesBody = { ...rulesToJSON(rules), hash: rulesHash(rules) };
 
   await app.register(websocket);
 
-  app.get('/api/health', async () => ({
-    ok: true,
-    service: 'api',
-    version: VERSION,
-    release: process.env.COINSIDE_RELEASE ?? 'dev',
-    uptimeSeconds: Math.floor((Date.now() - started) / 1000),
-  }));
+  app.get('/api/health', async () => healthBody('api', VERSION, started));
 
   app.get('/api/rules', async (_req, reply) => {
     reply.header('cache-control', 'public, max-age=60');

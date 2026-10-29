@@ -1,7 +1,8 @@
 # Logo concepts
 
-Four directions for the Coinside mark, for ALFA to choose from. None is applied to the app yet; the header and
-favicon still use the prototype's mark (concept 1 is that mark, redrawn heavier).
+Four directions for the Coinside mark. ALFA chose **4, Two sides** on 30 Oct 2026. It is the header and footer
+mark (`LogoMark` in `apps/web/src/components/ui.tsx`), `icon.svg`, `favicon.ico` and `apple-icon.png` in
+`apps/web/src/app`.
 
 `overview.png` shows every concept on dark and light, as an app icon, at 16, 24 and 32 px, and as a lockup.
 

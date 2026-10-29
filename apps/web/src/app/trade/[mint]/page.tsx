@@ -4,16 +4,18 @@ import { TradeView } from '@/components/trade/TradeView';
 import { COINS, MINTS } from '@/mock/fixtures';
 
 interface Props {
-  params: { mint: string };
+  params: Promise<{ mint: string }>;
 }
 
-export function generateMetadata({ params }: Props): Metadata {
-  const c = COINS.find((k) => k.mint === params.mint);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { mint } = await params;
+  const c = COINS.find((k) => k.mint === mint);
   return { title: c ? `$${c.sym}` : 'Coin not found' };
 }
 
-export default function TradePage({ params }: Props) {
+export default async function TradePage({ params }: Props) {
+  const { mint } = await params;
   // P0 serves the fixture markets only. P1 resolves any pasted mint through the indexer.
-  if (!MINTS.has(params.mint)) notFound();
-  return <TradeView mint={params.mint} />;
+  if (!MINTS.has(mint)) notFound();
+  return <TradeView mint={mint} />;
 }

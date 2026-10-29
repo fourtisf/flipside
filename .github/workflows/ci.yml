@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# Read-only token: no step needs to write to the repository.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

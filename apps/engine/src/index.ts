@@ -3,14 +3,12 @@
  * never clustered). P0 boots, resolves and hashes the rules and serves /health; the ledger, event log,
  * fills and the audit loop arrive in P2.
  */
-import { canonicalRules, loadRules } from '@coinside/core';
+import { loadRules, rulesToJSON } from '@coinside/core';
 import { rulesHash, startHealthServer } from '@coinside/core/node';
 
 const rules = loadRules(process.env);
 const hash = rulesHash(rules);
-console.log(
-  JSON.stringify({ msg: 'engine boot', rulesHash: hash, rules: JSON.parse(canonicalRules(rules)) }),
-);
+console.log(JSON.stringify({ msg: 'engine boot', rulesHash: hash, rules: rulesToJSON(rules) }));
 
 const server = startHealthServer({
   service: 'engine',

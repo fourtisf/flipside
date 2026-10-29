@@ -95,7 +95,10 @@ export function toPriceScaled(price: number): bigint {
   const [whole, frac = ''] = mant.split('.') as [string, string?];
   const digits = BigInt(whole + frac);
   const e = Number(exp) - frac.length + 18;
-  return e >= 0 ? digits * 10n ** BigInt(e) : digits / 10n ** BigInt(-e);
+  const scaled = e >= 0 ? digits * 10n ** BigInt(e) : digits / 10n ** BigInt(-e);
+  // Below 10^-18 the price truncates to 0, which would break every later "prices must be positive" check.
+  if (scaled === 0n) throw new RangeError(`toPriceScaled: ${price} is below the smallest price (1e-18)`);
+  return scaled;
 }
 
 /** Fixed point back to a float, for display only. */

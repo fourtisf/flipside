@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties, type ElementType } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ElementType } from 'react';
 import { C, hueOf, priceParts } from '@/lib/format';
 
 /**
@@ -142,9 +142,25 @@ export const SearchIcon = ({ s = 14 }: { s?: number }) => (
   </svg>
 );
 
-export const LogoMark = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-    <circle cx="10" cy="10" r="8.6" fill="none" stroke="#EDEDED" strokeWidth="1.4" />
-    <path d="M10 1.4a8.6 8.6 0 0 1 0 17.2z" fill="#EDEDED" />
-  </svg>
-);
+/** The Coinside mark ("Two sides", brand/logo-concepts/4-two-sides): a coin split into an up and a down side. */
+export function LogoMark() {
+  // The mark appears in the header and the footer, so each copy needs its own mask id.
+  const mask = `logo-${useId().replace(/:/g, '')}`;
+  return (
+    <svg width="20" height="20" viewBox="0 0 64 64" aria-hidden="true">
+      <mask id={mask}>
+        <rect width="64" height="64" fill="#fff" />
+        <rect x="30.5" width="3" height="64" fill="#000" />
+        <path
+          d="M12.5 36.5L19 28.5L25.5 36.5M38.5 27.5L45 35.5L51.5 27.5"
+          stroke="#000"
+          strokeWidth="5"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </mask>
+      <circle cx="32" cy="32" r="28" fill="#EDEDED" mask={`url(#${mask})`} />
+    </svg>
+  );
+}

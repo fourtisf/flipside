@@ -7,6 +7,26 @@ import { canonicalRules, type Rules } from '../rules';
 export const rulesHash = (rules: Rules): string =>
   createHash('sha256').update(canonicalRules(rules)).digest('hex');
 
+/**
+ * The health payload every process serves (HealthResponse). coinside-deploy checks `release` to know which
+ * build answered, so all processes must build it here.
+ */
+export function healthBody(
+  service: string,
+  version: string,
+  started: number,
+  extra: Record<string, unknown> & { ok?: boolean } = {},
+) {
+  return {
+    ...extra,
+    ok: extra.ok ?? true,
+    service,
+    version,
+    release: process.env.COINSIDE_RELEASE ?? 'dev',
+    uptimeSeconds: Math.floor((Date.now() - started) / 1000),
+  };
+}
+
 export interface HealthOptions {
   service: string;
   version: string;
@@ -30,17 +50,8 @@ export function startHealthServer({
       res.writeHead(404).end();
       return;
     }
-    const extra = check?.() ?? {};
-    const ok = extra.ok ?? true;
-    const body = {
-      ...extra,
-      ok,
-      service,
-      version,
-      release: process.env.COINSIDE_RELEASE ?? 'dev',
-      uptimeSeconds: Math.floor((Date.now() - started) / 1000),
-    };
-    res.writeHead(ok ? 200 : 503, { 'content-type': 'application/json' }).end(JSON.stringify(body));
+    const body = healthBody(service, version, started, check?.());
+    res.writeHead(body.ok ? 200 : 503, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   });
   server.listen(port, host);
   return server;

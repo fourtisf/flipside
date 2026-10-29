@@ -111,7 +111,8 @@ function Hero() {
     <div className="hero">
       <div>
         <span className="status">
-          <i className="dot"></i>Live on Solana mainnet
+          {/* Back to "Live on Solana mainnet" once prices come from mainnet (P1). */}
+          <i className="dot"></i>Preview with simulated data
         </span>
         <h1 id="h-hero">
           <span>Every coin has</span>

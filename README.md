@@ -16,7 +16,7 @@ data. Prices, trades and wallets are simulated; nothing moves real SOL yet.
 ## Layout
 
 ```
-apps/web          Next.js 14 frontend (the prototype, ported)
+apps/web          Next.js 15 frontend (the prototype, ported)
 apps/api          Fastify REST + WebSocket          (P0: /api/health, /api/rules, /ws hello)
 apps/engine       order book, ledger, risk           (P0: boots, logs the rules hash, /health)
 apps/indexer      prices, liquidity, chain events    (P0: /health)

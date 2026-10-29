@@ -33,6 +33,12 @@
       "prisma",
       "esbuild",
       "sharp"
-    ]
+    ],
+    "overrides": {
+      "postcss": "^8.5.32",
+      "glob@>=10.2.0 <10.5.0": "^10.5.0",
+      "deepmerge-ts@<8": "^8.0.0",
+      "esbuild@>=0.27.3 <0.28.1": "^0.28.1"
+    }
   }
 }

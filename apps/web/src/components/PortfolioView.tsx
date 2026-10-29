@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSX } from 'react';
 import { shortA, sgn, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';
 import { HistTable, PosTable } from './tables';

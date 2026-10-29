@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, type JSX } from 'react';
 import { C, fixed, pct, sgn, shortA } from '@/lib/format';
 import { chg1h, floorCent, maxLev, type Coin } from '@/mock/sim';
 import { useSim } from '@/mock/provider';

@@ -20,6 +20,63 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Audit and fixes (30 Oct 2026)
+
+ALFA asked for the pending decisions to be applied and for a careful audit. Dependencies were checked with
+`pnpm audit`, and the code had an independent review (money math, rules, API, services, web routes, deploy
+scripts, Nginx). Every finding was checked against the code before it was fixed.
+
+### Next.js 15 instead of 14 (security)
+
+The brief pins Next.js 14 (section 3). `pnpm audit` reported 37 known vulnerabilities, 25 of them in Next.js,
+including three critical remote-code-execution advisories in the image optimizer and on Windows hosts. All
+are fixed only in Next 15.5.x: Next 14 no longer gets security fixes. So the web app moved to **Next.js
+15.5.28 with React 19.3.1**, from the coordinated security release of 14 Oct 2026.
+
+- Exposure before the upgrade was low. The app uses no `next/image`, Server Actions, middleware or
+  rewrites, and the host is Linux. The image optimizer endpoint (`/_next/image`) existed anyway, so it is
+  now off in `next.config.mjs` (`images.unoptimized`) and closed in Nginx (404).
+- Migration: route `params` are awaited (`/trade/[mint]`, `/r/[code]`), and the `JSX` type is imported
+  from React. Nothing visual changed: all 12 views match the prototype's page heights, and the e2e suite,
+  which fails on any console or hydration error, passes.
+- `next lint` is deprecated in 15.5 and removed in 16. Move to the ESLint CLI before any Next 16 upgrade.
+- Vitest 3 to **4.1.12** (critical advisories in its `tinypool` dependency, and two in its mocker). Test-only.
+- pnpm overrides pin patched versions of transitive packages: `postcss` (Next still ships 8.4.31), `glob`
+  (eslint-config-next), `deepmerge-ts` (Prisma config) and `esbuild` (tsup). `pnpm audit` now reports no
+  known vulnerabilities.
+
+### Review findings, fixed
+
+- **Rules accepted risky overrides.** Integers took `0x64`, `1e2` and `0b11`; now plain decimal only.
+  `LEV_TIERS` and `MAX_WIN_TIERS` accepted swapped or duplicate tiers, so `10:0,2:500` would have given the
+  thinnest coins 10x. Tiers must now rise with their minimum.
+- **`toPriceScaled` turned prices below 10^-18 into 0**, which only failed later, inside position math. It
+  now throws at the boundary.
+- **The Docs page hardcoded about 20 rule numbers.** They are now written from the rules the engine enforces
+  (`apps/web/src/lib/docs-copy.ts`). A test proves the default rules give the prototype's copy word for word.
+  From P1 the page passes the live `GET /api/rules` (section 14).
+- **Two copies of the health payload** (the API's and the other processes'). `coinside-deploy` reads
+  `release` from it, so it is now built in one place (`healthBody` in `@coinside/core/node`).
+- **Deploy script.** A manual rollback now marks the release it leaves, so a later rollback can't return to
+  it. If switching back after a failed deploy also fails, the script now says the site may be down, instead
+  of exiting with a bare line number.
+- **Nginx comment without a rule.** `/_next/image` is now really closed.
+- **Hardening.** CI runs with a read-only token. The API trusts `X-Forwarded-For` from loopback only (Nginx),
+  so it sees the visitor's address, which per-IP rate limits need in P2. The git history has no secrets:
+  no keys, no env files, and the Helius key never entered the repository.
+
+### Decisions ALFA approved (30 Oct 2026)
+
+- **Logo: Two sides** (brand concept 4). It is used for the header and footer mark, `icon.svg`, `favicon.ico`
+  (16, 32 and 48 px) and a 180 px `apple-icon.png` (full-bleed, since iOS rounds the corners itself).
+- **`--t3` is `#858585`** (prototype `#6E6E6E`). `#6E6E6E` is under 4.5:1 on every surface. `#7C7C7C`, the
+  first suggestion, still fails on the lightest panel (`#1A1A1A`, 4.17:1). `#858585` passes on all of them
+  (4.72:1 or more). Lighthouse accessibility is now 100 on every route at mobile and desktop.
+- **TradingView credit** in the footer ("Charts by TradingView", linked), as the chart library's license
+  requires.
+- **Hero badge** reads "Preview with simulated data" until P1 brings real prices, then goes back to the
+  prototype's "Live on Solana mainnet". The footer already said the data is simulated.
+
 ## Deployment: P0 preview on coinside.fun (29 Oct 2026)
 
 ALFA asked to put the build on the Hostinger VPS now. CLAUDE.md section 13 sets the stack (PM2, Nginx,
@@ -53,7 +110,7 @@ Certbot); these are the choices around it. Runbook: `deploy/README.md`.
   and unknown host names dropped. WebSocket upgrade on `/ws`, and 60 requests per second per IP on `/api`
   (section 10's number) until the API's Redis limits exist. `X-Forwarded-For` is overwritten, not appended,
   because Nginx is the edge. Headers deny framing, which matters for one-click trading. No script CSP yet:
-  Next 14 needs nonces for that, which come with the wallet adapter in P3.
+  Next needs nonces for that, which come with the wallet adapter in P3.
 - **Certificate from Let's Encrypt over HTTP-01 (webroot)**, ECDSA, renewed by certbot's timer with an Nginx
   reload hook. The Nginx config stays exactly as committed; certbot never edits it. No OCSP stapling: Let's
   Encrypt shut OCSP down in 2025. The email address is optional, since Let's Encrypt no longer sends expiry
@@ -129,15 +186,15 @@ This overrides the prototype's letter-on-hue avatars.
 
 | Piece | Choice | Why |
 |---|---|---|
-| Next.js | 14.2.35 (latest 14.x), React 18.3.1 | The brief pins Next.js 14. |
-| TypeScript | 5.9 | TypeScript 7 exists but Next 14 and typescript-eslint need 5.x. |
-| ESLint | 8.57 + typescript-eslint 8 | `eslint-config-next@14` only supports ESLint 8. |
+| Next.js | 15.5.28, React 19.3.1 | The brief pins Next.js 14; moved to 15 for security fixes (see Audit and fixes). |
+| TypeScript | 5.9 | TypeScript 7 exists but Next and typescript-eslint need 5.x. |
+| ESLint | 8.57 + typescript-eslint 8 | Chosen when `eslint-config-next@14` only supported ESLint 8; version 15 also supports ESLint 9. |
 | Prisma | 6.19 | Stable `prisma-client-js` generator and engines; Prisma 7 changes the client and datasource model. Revisit before P2. |
 | zod | 4 | Current major; schemas live in `packages/core/src/schemas.ts`. |
 | Fastify | 5 + `@fastify/websocket` 11 | Current majors. |
 | Charts | `lightweight-charts` 5.2 | The brief asks for TradingView lightweight-charts. |
 | Treemap | `d3-hierarchy` 3, `treemapSquarify.ratio(1)` | Ratio 1 is the classic squarify the prototype implements by hand. |
-| Tests | vitest 3 (unit), Playwright 1.63 (e2e) | Playwright is pinned to the version whose Chromium is preinstalled on our build machines; CI installs its own. |
+| Tests | vitest 4 (unit), Playwright 1.63 (e2e) | Playwright is pinned to the version whose Chromium is preinstalled on our build machines; CI installs its own. |
 | Node services | TypeScript run with `tsx` in dev, bundled with `tsup` for PM2 | Workspace packages ship TypeScript source, so services bundle them and Next transpiles them (`transpilePackages`). No per-package build step. |
 
 ### Styling: one global stylesheet, not CSS modules or Tailwind
@@ -153,7 +210,7 @@ mechanical if we want component scoping.
 ### Fonts
 
 Inter comes from `next/font/google`. Geist Mono comes from Vercel's `geist` package (`next/font/local`)
-because Next 14's Google font list predates Geist Mono. Both are self-hosted at build time, so pages make no
+because Next 14's Google font list predated Geist Mono (kept on Next 15: same font files). Both are self-hosted at build time, so pages make no
 runtime requests to Google. Same families as the prototype's Google Fonts link.
 
 ### Money in P0
@@ -184,7 +241,8 @@ Where the prototype's simulation and the brief's money rules disagree, the brief
 
 ### Accessibility changes (no visual change)
 
-Lighthouse accessibility is 96 to 97 on every route at mobile and desktop (`pnpm a11y`). To get there:
+Lighthouse accessibility was 96 to 97 on every route at mobile and desktop in P0 (`pnpm a11y`), and is 100
+since `--t3` changed (see Audit and fixes). To get there:
 
 - Panel headings on Portfolio, Pool and Emergency are `h2` elements that wear the prototype's `h3` style,
   and footer headings are `h2` with the `h4` style. The prototype skipped levels (h1 to h3, h2 to h4).
@@ -204,9 +262,9 @@ crosshair with an OHLC readout, inverted price axis and swapped colors in Short 
 Known differences from the hand-drawn canvas: the library picks "nice" price steps (5 lines on desktop like
 the prototype, 3 on a 390 px phone), candle bodies are slightly wider, and line widths are whole pixels.
 
-The TradingView attribution logo is turned off to match the prototype. The library's license requires
-attribution with a link to tradingview.com somewhere users can see it. This needs a home before the site
-is public (see the P0 report).
+The TradingView attribution logo on the chart is turned off to match the prototype. The library's license
+requires attribution with a link to tradingview.com where users can see it; that is the footer's "Charts by
+TradingView" on every page.
 
 ### Routes
 
@@ -249,6 +307,7 @@ bankrun tests start in P3, with the real program keypair.
 
 ### Copy
 
-No prototype copy changed except the product name (see Name, above). New copy is limited to `/emergency` and the 404 page, in the same voice. The
+No prototype copy changed except the product name (see Name, above), the hero badge during the preview and
+the footer's TradingView credit (see Audit and fixes). New copy is limited to `/emergency` and the 404 page, in the same voice. The
 footer still says "Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.",
 which is true in P0 and must change when real data arrives.

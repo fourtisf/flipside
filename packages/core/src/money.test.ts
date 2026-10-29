@@ -120,7 +120,8 @@ describe('position math', () => {
     expect(toPriceScaled(0.0048)).toBe(4_800_000_000_000_000n);
     expect(toPriceScaled(5.612e-8)).toBe(56_120_000_000n);
     expect(toPriceScaled(123.456)).toBe(123_456_000_000_000_000_000n);
-    expect(toPriceScaled(1e-20)).toBe(0n);
+    expect(toPriceScaled(1e-18)).toBe(1n);
+    expect(() => toPriceScaled(1e-20)).toThrow(RangeError);
     expect(() => toPriceScaled(0)).toThrow(RangeError);
   });
 });

@@ -128,8 +128,9 @@ class RulesError extends Error {
 function int(env: Env, key: string, def: number, lo = 0, hi = Number.MAX_SAFE_INTEGER): number {
   const raw = env[key];
   if (raw === undefined || raw.trim() === '') return def;
-  const v = Number(raw.trim());
-  if (!Number.isInteger(v) || v < lo || v > hi)
+  // Plain decimal digits only: Number() would also take "0x64", "1e2" or "0b11".
+  const v = /^\d+$/.test(raw.trim()) ? Number(raw.trim()) : NaN;
+  if (!Number.isSafeInteger(v) || v < lo || v > hi)
     throw new RulesError(`${key} must be an integer in [${lo}, ${hi}], got "${raw}"`);
   return v;
 }
@@ -150,21 +151,32 @@ function lamportsRaw(env: Env, key: string, def: bigint): bigint {
   return BigInt(raw.trim());
 }
 
-/** "2:0,5:150,10:500" (value:min SOL) into sorted tiers. */
+/**
+ * "2:0,5:150,10:500" (value:min SOL) into sorted tiers. The first tier starts at 0, minimums are unique,
+ * and the value (leverage, max win) rises with the minimum: a deeper market or a bigger pool never gets a
+ * smaller tier, so a swapped pair like "10:0,2:500" is rejected instead of giving thin coins 10x.
+ */
 function tiers(env: Env, key: string): Array<{ value: number; min: bigint }> | null {
   const raw = env[key];
   if (raw === undefined || raw.trim() === '') return null;
   const out = raw.split(',').map((part) => {
     const [v, m] = part.split(':').map((s) => s.trim());
-    const value = Number(v);
+    const value = v !== undefined && /^\d+$/.test(v) ? Number(v) : NaN;
     const minSol = m === undefined ? null : parseSol(m);
-    if (!Number.isInteger(value) || value <= 0 || minSol === null) {
+    if (!Number.isSafeInteger(value) || value <= 0 || minSol === null) {
       throw new RulesError(`${key} must look like "2:0,5:150", got "${raw}"`);
     }
     return { value, min: minSol };
   });
   out.sort((a, b) => (a.min < b.min ? -1 : a.min > b.min ? 1 : 0));
   if (out[0]?.min !== 0n) throw new RulesError(`${key} needs a tier starting at 0`);
+  for (let i = 1; i < out.length; i++) {
+    const [prev, cur] = [out[i - 1]!, out[i]!];
+    if (cur.min === prev.min)
+      throw new RulesError(`${key} has two tiers starting at the same amount: "${raw}"`);
+    if (cur.value <= prev.value)
+      throw new RulesError(`${key} must rise with the minimum (a bigger minimum, a bigger value): "${raw}"`);
+  }
   return out;
 }
 

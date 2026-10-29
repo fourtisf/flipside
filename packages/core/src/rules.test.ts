@@ -34,6 +34,23 @@ describe('rules', () => {
     expect(() => loadRules({ SIDE_CAP_MAX_SOL: '-1' })).toThrow(/SIDE_CAP_MAX_SOL/);
   });
 
+  it('takes integers in plain decimal only', () => {
+    for (const raw of ['0x64', '1e2', '0b11', '0o7', '+5', '1_000'])
+      expect(() => loadRules({ OPEN_FEE_BPS: raw }), raw).toThrow(/OPEN_FEE_BPS/);
+    expect(loadRules({ OPEN_FEE_BPS: ' 50 ' }).openFeeBps).toBe(50);
+  });
+
+  it('rejects tiers that do not rise with the minimum', () => {
+    // swapped pairs would give the thinnest coins the most leverage
+    expect(() => loadRules({ LEV_TIERS: '10:0,2:500' })).toThrow(/LEV_TIERS must rise/);
+    expect(() => loadRules({ LEV_TIERS: '2:0,5:0' })).toThrow(/same amount/);
+    expect(() => loadRules({ LEV_TIERS: '2:0,2:150' })).toThrow(/LEV_TIERS must rise/);
+    expect(() => loadRules({ MAX_WIN_TIERS: '40000:0,20000:100' })).toThrow(/MAX_WIN_TIERS must rise/);
+    expect(() => loadRules({ LEV_TIERS: '0x5:0' })).toThrow(/LEV_TIERS/);
+    // listed out of order is fine; they are sorted by minimum
+    expect(loadRules({ LEV_TIERS: '10:500,2:0,5:150' }).levTiers.map((t) => t.leverage)).toEqual([2, 5, 10]);
+  });
+
   it('picks leverage and max win tiers by threshold', () => {
     expect(maxLeverage(149n * SOL)).toBe(2);
     expect(maxLeverage(150n * SOL)).toBe(5);

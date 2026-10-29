@@ -275,11 +275,14 @@ deploy() {
   if [[ -n $prev ]]; then
     warn "release $name is unhealthy; switching back to $prev"
     switch_to "$prev"
-    reload "$prev"
-    verify "$prev" || warn "$prev is not healthy either"
-    pm2 save --force >/dev/null
-    record "deploy $ref $sha $name failed, back on $prev"
-    die "release $name failed its health checks and $prev is live again. See: coinside-deploy logs"
+    if reload "$prev" && verify "$prev"; then
+      pm2 save --force >/dev/null
+      record "deploy $ref $sha $name failed, back on $prev"
+      die "release $name failed its health checks and $prev is live again. See: coinside-deploy logs"
+    fi
+    # Not saved: the PM2 dump keeps the last state that was healthy, for the next boot.
+    record "deploy $ref $sha $name failed, and $prev did not come back healthy"
+    die "release $name failed its health checks, and $prev did not come back healthy either. The site may be down: run coinside-deploy status and coinside-deploy logs now."
   fi
   record "deploy $ref $sha $name failed, nothing to go back to"
   die "release $name failed its health checks and there is no earlier release to go back to. See: coinside-deploy logs"
@@ -299,6 +302,8 @@ rollback() {
   reload "$target"
   verify "$target" || die "$target did not come up healthy. See: coinside-deploy logs"
   pm2 save --force >/dev/null
+  # Someone rolled this release back, so it is never a rollback target again.
+  touch "$RELEASES/$live/.failed"
   record "rollback $live -> $target live"
   step "Live: $target"
 }

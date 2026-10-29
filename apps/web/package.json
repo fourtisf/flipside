@@ -17,16 +17,16 @@
     "d3-hierarchy": "^3.1.2",
     "geist": "^1.8.2",
     "lightweight-charts": "^5.2.1",
-    "next": "14.2.35",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "next": "15.5.28",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
     "@types/d3-hierarchy": "^3.1.7",
-    "@types/react": "^18.3.31",
-    "@types/react-dom": "^18.3.7",
-    "eslint-config-next": "14.2.35",
-    "vitest": "^3.2.7"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint-config-next": "15.5.28",
+    "vitest": "^4.1.12"
   }
 }
