@@ -20,6 +20,31 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Pre-launch edition: no paper SOL, no trading until it is real (30 Oct 2026)
+
+ALFA asked to remove "Claim paper SOL" and make everything mainnet. Real-money trading needs the engine, the
+vault program and the external audit (P2 to P6), so it can't be switched on. Asked how the site should look
+until then, ALFA had no preference, so the recommended options apply:
+
+- **coinside.fun serves a pre-launch edition** (`apps/web/src/lib/edition.ts`, the default build).
+  - **No paper SOL or trading:** no Practice toggle, no "Claim 10 paper SOL", no wallet button. The header
+    says "Trading opens soon", and the ticket and terminal order buttons are disabled with the same words.
+  - **Hidden, because it is trading activity that doesn't exist:** the trade tape, protocol stats, Live
+    trades, Top wins, the "Long vs short" column and Most shorted.
+  - **Kept, because it is market data P1 makes real:** the market map, Hot, Big caps, the markets table, the
+    charts and the coin stats. Most liquid replaces Most shorted.
+  - **Pages with nothing real yet:** Portfolio, Pool, Leaderboard and Emergency withdraw keep their heading
+    and say when they open.
+  - **Copy:** the footer and the hero badge say prices are simulated and trading isn't open.
+- **Practice is hidden from visitors, not deleted.** The engine keeps a paper mode because P2's check needs it:
+  a 24-hour run with simulated traders must keep the books balanced before any real SOL is touched. The Docs
+  page drops its Practice sentence in the pre-launch edition.
+- **The prototype edition stays** (`build:prototype`, into `.next-prototype`): the full simulated UI the e2e
+  flows, the side-by-side check against `prototype.html` and development use. CI builds both. The e2e suite
+  runs the flows on the prototype edition and `prelaunch.spec.ts` on the pre-launch edition. Lighthouse
+  accessibility is 100 on every route in both.
+- At launch the trading UI comes back in Real mode only, wired to the engine; that is P6 work.
+
 ## Removing the other apps from the server (30 Oct 2026)
 
 ALFA asked to delete everything on the VPS except Coinside: uspad, divvy (four users and a backup job),

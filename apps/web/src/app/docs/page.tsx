@@ -1,6 +1,7 @@
 import { DEFAULT_RULES } from '@coinside/core/rules';
 import type { Metadata } from 'next';
 import { docsCopy } from '@/lib/docs-copy';
+import { PRELAUNCH } from '@/lib/edition';
 
 export const metadata: Metadata = { title: 'How it works' };
 
@@ -31,7 +32,7 @@ export default function DocsPage() {
                 <b>Deposit SOL</b>
                 <p>
                   Send SOL to the vault program from Portfolio. Only the wallet that deposited can withdraw
-                  it. Or switch to Practice for free paper SOL.
+                  it.{PRELAUNCH ? '' : ' Or switch to Practice for free paper SOL.'}
                 </p>
               </li>
               <li>

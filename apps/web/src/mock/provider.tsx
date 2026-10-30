@@ -1,13 +1,14 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { PRELAUNCH } from '@/lib/edition';
 import { Sim } from './sim';
 
 const SimContext = createContext<Sim | null>(null);
 
 /** Owns the mock engine for the whole app. Lives in the root layout, so it survives navigation. */
 export function SimProvider({ children }: { children: ReactNode }) {
-  const [sim] = useState(() => new Sim());
+  const [sim] = useState(() => new Sim(undefined, undefined, { prelaunch: PRELAUNCH }));
   useEffect(() => sim.start(), [sim]);
   return <SimContext.Provider value={sim}>{children}</SimContext.Provider>;
 }

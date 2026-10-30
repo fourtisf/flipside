@@ -1,6 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = Number(process.env.E2E_PORT ?? 3100);
+// Two builds (lib/edition.ts): the prototype edition (`pnpm build:prototype`, simulated trading and Practice)
+// for the flows suite, and the pre-launch edition (`pnpm build`, what coinside.fun serves) for prelaunch.spec.
+const PROTOTYPE = Number(process.env.E2E_PORT ?? 3100);
+const PRELAUNCH = PROTOTYPE + 1;
+const desktop = { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } };
+const mobile = { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, hasTouch: true };
 
 export default defineConfig({
   testDir: 'e2e',
@@ -8,18 +13,38 @@ export default defineConfig({
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
-  use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure' },
+  use: { trace: 'retain-on-failure' },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     {
-      name: 'mobile',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, hasTouch: true },
+      name: 'desktop',
+      testIgnore: /prelaunch/,
+      use: { ...desktop, baseURL: `http://localhost:${PROTOTYPE}` },
+    },
+    { name: 'mobile', testIgnore: /prelaunch/, use: { ...mobile, baseURL: `http://localhost:${PROTOTYPE}` } },
+    {
+      name: 'prelaunch-desktop',
+      testMatch: /prelaunch/,
+      use: { ...desktop, baseURL: `http://localhost:${PRELAUNCH}` },
+    },
+    {
+      name: 'prelaunch-mobile',
+      testMatch: /prelaunch/,
+      use: { ...mobile, baseURL: `http://localhost:${PRELAUNCH}` },
     },
   ],
-  webServer: {
-    command: `pnpm exec next start -p ${PORT}`,
-    port: PORT,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  webServer: [
+    {
+      command: `pnpm exec next start -p ${PROTOTYPE}`,
+      env: { NEXT_DIST_DIR: '.next-prototype' },
+      port: PROTOTYPE,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      command: `pnpm exec next start -p ${PRELAUNCH}`,
+      port: PRELAUNCH,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
 });

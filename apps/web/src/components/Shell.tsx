@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type JSX } from 'react';
 import { fixed, shortA, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';
 import { navKey, useNavHrefs, type NavKey } from './Header';
+import { PRELAUNCH } from '@/lib/edition';
 import { LogoMark } from './ui';
 
 export function Footer() {
@@ -76,7 +77,11 @@ export function Footer() {
             </a>
             .
           </span>
-          <span>Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.</span>
+          <span>
+            {PRELAUNCH
+              ? 'Preview: prices are simulated and trading is not open yet. Nothing here moves real SOL.'
+              : 'Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.'}
+          </span>
         </div>
       </div>
     </footer>

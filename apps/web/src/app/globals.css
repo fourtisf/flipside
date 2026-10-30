@@ -10,6 +10,7 @@
  * - the candle chart is lightweight-charts: .tvc/.ohlc/.entry style its root and HTML overlays
  * - --t3 is #858585 (prototype #6E6E6E), the closest gray with 4.5:1 contrast on every surface
  * - the footer's TradingView credit (.fb a), which the chart library's license requires
+ * - the pre-launch edition (lib/edition.ts): .soon, .mk.pre (no long vs short column), .sec.last, .soon-page
  * Do not add glows, gradients, glass or new shadows.
  */
 :root{
@@ -41,6 +42,7 @@ sub{font-size:.7em;vertical-align:-.25em;line-height:0}
 .btn.lg{height:42px;padding:0 18px;font-size:14px;border-radius:10px}
 .btn.sm{height:28px;padding:0 10px;font-size:12.5px;border-radius:7px}
 .btn[disabled]{opacity:.4;cursor:not-allowed}
+.soon{display:inline-flex;align-items:center;height:34px;padding:0 12px;border:1px solid var(--line2);border-radius:8px;font-size:13px;font-weight:500;color:var(--t2);white-space:nowrap}
 .sb{height:28px;padding:0 10px;border-radius:7px;font-size:12.5px;font-weight:500;border:1px solid var(--line2);background:var(--s1);transition:all .15s}
 .sb.l{color:var(--long)}.sb.s{color:var(--short)}
 .sb.l:hover{background:var(--longbg);border-color:rgba(61,214,140,.4)}
@@ -185,6 +187,7 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 
 /* sections */
 .sec{padding-top:64px}
+.sec.last{padding-bottom:96px}
 .sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}
 .sec-h h2{font-size:20px;font-weight:600;letter-spacing:-.025em}
 .sec-h p{font-size:13.5px;color:var(--t3);margin-top:4px}
@@ -226,6 +229,7 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .vchips button:hover{color:var(--t1)}
 .vchips button[aria-pressed="true"]{color:var(--t1);border-color:var(--line2);background:var(--s2)}
 .mk{display:grid;grid-template-columns:minmax(170px,1.6fr) minmax(96px,1fr) 80px minmax(96px,1fr) minmax(96px,1fr) minmax(130px,1.2fr) 50px 128px;gap:14px;align-items:center;padding:0 16px;height:58px;border-top:1px solid var(--line);transition:background .15s}
+.mk.pre{grid-template-columns:minmax(170px,1.6fr) minmax(96px,1fr) 80px minmax(96px,1fr) minmax(96px,1fr) 50px 128px}
 .mk:not(.hd){cursor:pointer}
 .mk:not(.hd):hover{background:var(--s2)}
 .mk.hd{height:40px;border-top:0;font-size:12px;color:var(--t3)}
@@ -246,6 +250,8 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .mk.off{opacity:.5}
 .empty{padding:40px 16px;text-align:center;color:var(--t3);font-size:13.5px}
 .empty b{display:block;color:var(--t1);font-weight:550;margin-bottom:4px}
+.soon-page .btn{display:flex;width:max-content;margin:16px auto 0}
+.chips[hidden],.swrow[hidden]{display:none}
 
 /* live + wins */
 .cols2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;padding-bottom:96px}
@@ -437,6 +443,7 @@ dialog .amt{margin-top:16px}
 /* responsive */
 @media (max-width:1200px){
   .mk{grid-template-columns:minmax(150px,1.6fr) minmax(90px,1fr) 76px minmax(90px,1fr) minmax(120px,1.2fr) 46px 124px}
+  .mk.pre{grid-template-columns:minmax(150px,1.6fr) minmax(90px,1fr) 76px minmax(90px,1fr) 46px 124px}
   .mk .c-liq{display:none}
   .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
   .stats>div:nth-child(4){padding-left:0;border-left:0}
@@ -493,7 +500,7 @@ dialog .amt{margin-top:16px}
   .stats>div:nth-child(odd){padding-left:0!important;border-left:0!important}
   .stats>div:nth-child(-n+2){border-top:0}
   .map{height:420px}
-  .mk{grid-template-columns:minmax(0,1fr) auto auto;height:60px}
+  .mk,.mk.pre{grid-template-columns:minmax(0,1fr) auto auto;height:60px}
   .mk.hd{display:none}
   .mk .c-mc,.mk .c-liq,.mk .c-ls,.mk .c-lv,.mk .acts{display:none}
   .pn-h .end,.filter{width:100%;margin-left:0}

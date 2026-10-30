@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { PRELAUNCH } from '@/lib/edition';
 import { VENUES } from '@/mock/fixtures';
 import { ago, fixed, pct, sgn, shortA, sol, usd } from '@/lib/format';
 import {
@@ -127,17 +128,19 @@ function Hero() {
           <Link className="btn w lg" href={`/trade/${sim.bySym[sim.sel]!.mint}`}>
             Open the terminal
           </Link>
-          <button
-            className="btn o lg"
-            id="ctaPractice"
-            onClick={() => {
-              sim.setMode('practice');
-              if (sim.bal() <= 0n) sim.claim();
-              document.querySelector<HTMLInputElement>('#tk-amt')?.focus();
-            }}
-          >
-            Try it with paper SOL
-          </button>
+          {!PRELAUNCH && (
+            <button
+              className="btn o lg"
+              id="ctaPractice"
+              onClick={() => {
+                sim.setMode('practice');
+                if (sim.bal() <= 0n) sim.claim();
+                document.querySelector<HTMLInputElement>('#tk-amt')?.focus();
+              }}
+            >
+              Try it with paper SOL
+            </button>
+          )}
         </div>
         <ul className="trust">
           {TRUST.map((t) => (
@@ -235,6 +238,7 @@ function Lists() {
       mc: mcap(c),
       ss: shortShare(c),
       oiS: c.oiS,
+      liq: c.liq,
     });
     return {
       hot: [...open]
@@ -248,6 +252,10 @@ function Lists() {
         .map(snap),
       big: [...open]
         .sort((a, b) => mcap(b) - mcap(a))
+        .slice(0, 5)
+        .map(snap),
+      liquid: [...open]
+        .sort((a, b) => (b.liq > a.liq ? 1 : b.liq < a.liq ? -1 : 0))
         .slice(0, 5)
         .map(snap),
     };
@@ -269,20 +277,38 @@ function Lists() {
           ))}
         </div>
       </div>
-      <div className="pn">
-        <div className="pn-h">
-          <h3>Most shorted</h3>
-          <span className="c">share of open size</span>
+      {PRELAUNCH ? (
+        // Before launch there is no open interest to rank, so the middle list is market data too.
+        <div className="pn">
+          <div className="pn-h">
+            <h3>Most liquid</h3>
+            <span className="c">SOL in their pools</span>
+          </div>
+          <div id="l-liq">
+            {lists.liquid.map((x) => (
+              <Lr key={x.c.sym} c={x.c} onOpen={openTrade}>
+                {Math.round(solF(x.liq)).toLocaleString('en-US')} SOL
+                <small>up to {maxLev(x.c)}x</small>
+              </Lr>
+            ))}
+          </div>
         </div>
-        <div id="l-short">
-          {lists.short.map((x) => (
-            <Lr key={x.c.sym} c={x.c} onOpen={openTrade}>
-              <span className="dn">{(x.ss * 100).toFixed(0)}% short</span>
-              <small>{fixed(x.oiS)} SOL</small>
-            </Lr>
-          ))}
+      ) : (
+        <div className="pn">
+          <div className="pn-h">
+            <h3>Most shorted</h3>
+            <span className="c">share of open size</span>
+          </div>
+          <div id="l-short">
+            {lists.short.map((x) => (
+              <Lr key={x.c.sym} c={x.c} onOpen={openTrade}>
+                <span className="dn">{(x.ss * 100).toFixed(0)}% short</span>
+                <small>{fixed(x.oiS)} SOL</small>
+              </Lr>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <div className="pn">
         <div className="pn-h">
           <h3>Big caps</h3>
@@ -302,7 +328,7 @@ function Lists() {
 }
 
 /* ---------- markets table ---------- */
-const COLS: Array<[string, SortKey | null, string]> = [
+const ALL_COLS: Array<[string, SortKey | null, string]> = [
   ['Token', null, ''],
   ['Price', 'price', ''],
   ['1h', 'chg', 'c-ch'],
@@ -312,6 +338,9 @@ const COLS: Array<[string, SortKey | null, string]> = [
   ['Max', null, 'c-lv'],
   ['', null, 'r'],
 ];
+// Long vs short is the platform's own open interest, which doesn't exist before launch.
+const COLS = PRELAUNCH ? ALL_COLS.filter(([, , cl]) => cl !== 'c-ls') : ALL_COLS;
+const ROW = PRELAUNCH ? 'mk pre' : 'mk';
 
 function LsBar({ c }: { c: Coin }) {
   const sp = shortShare(c);
@@ -387,7 +416,7 @@ function MarketsTable() {
         </label>
       </div>
       <div role="table" aria-label="All markets">
-        <div className="mk hd" role="row" id="mkHead">
+        <div className={`${ROW} hd`} role="row" id="mkHead">
           {COLS.map(([l, k, cl]) => {
             const on = k !== null && sort.k === k;
             return (
@@ -429,7 +458,7 @@ function MarketsTable() {
               return (
                 <div
                   key={sym}
-                  className={`mk${off ? ' off' : ''}`}
+                  className={`${ROW}${off ? ' off' : ''}`}
                   role="row"
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('[data-trade]')) return;
@@ -461,9 +490,11 @@ function MarketsTable() {
                   <div role="cell" className="c-liq n t2">
                     {Math.round(solF(c.liq)).toLocaleString('en-US')} SOL
                   </div>
-                  <div role="cell" className="c-ls ls">
-                    <LsBar c={c} />
-                  </div>
+                  {!PRELAUNCH && (
+                    <div role="cell" className="c-ls ls">
+                      <LsBar c={c} />
+                    </div>
+                  )}
                   <div role="cell" className="c-lv">
                     <span className={`lev${ml === 10 ? ' hi' : ''}`}>{ml}x</span>
                   </div>
@@ -603,10 +634,10 @@ export function TopWins() {
 export function MarketsView() {
   return (
     <section id="v-markets" aria-labelledby="h-hero">
-      <Tape />
+      {!PRELAUNCH && <Tape />}
       <div className="wrap">
         <Hero />
-        <StatsStrip />
+        {!PRELAUNCH && <StatsStrip />}
       </div>
       <div className="wrap sec">
         <div className="sec-h">
@@ -625,15 +656,17 @@ export function MarketsView() {
       <div className="wrap sec">
         <Lists />
       </div>
-      <div className="wrap sec">
+      <div className={`wrap sec${PRELAUNCH ? ' last' : ''}`}>
         <MarketsTable />
       </div>
-      <div className="wrap sec">
-        <div className="cols2">
-          <LiveTrades />
-          <TopWins />
+      {!PRELAUNCH && (
+        <div className="wrap sec">
+          <div className="cols2">
+            <LiveTrades />
+            <TopWins />
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

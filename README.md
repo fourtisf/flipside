@@ -52,7 +52,18 @@ pnpm turbo run lint typecheck test build
 pnpm format:check
 ```
 
-End-to-end flows at 1440 px and 390 px (starts its own server on port 3100 after a build):
+The web app builds in two editions (`apps/web/src/lib/edition.ts`). `build` is the **pre-launch** edition that
+coinside.fun serves until real trading opens: markets and charts, no trading, no paper SOL, nothing simulated
+shown as activity. `build:prototype` is the approved prototype with simulated trading and Practice mode, kept
+for the e2e flows and the side-by-side check.
+
+End-to-end tests at 1440 px and 390 px: the flows against the prototype edition (port 3100) and the
+pre-launch checks against the pre-launch edition (port 3101). Build both first:
+
+```bash
+pnpm --filter @coinside/web build && pnpm --filter @coinside/web build:prototype
+```
+
 
 ```bash
 pnpm --filter @coinside/web exec playwright install chromium
@@ -62,11 +73,11 @@ pnpm --filter @coinside/web exec playwright install chromium
 pnpm --filter @coinside/web e2e
 ```
 
-Side-by-side screenshots of the prototype and the port, and Lighthouse accessibility on every route, both
-against a running production build on port 3000:
+Side-by-side screenshots of the prototype and the port, and Lighthouse accessibility on every route, against
+the prototype edition on port 3000 (Lighthouse also runs against `start`, the pre-launch edition):
 
 ```bash
-pnpm --filter @coinside/web build && pnpm --filter @coinside/web start
+pnpm --filter @coinside/web build:prototype && pnpm --filter @coinside/web start:prototype
 ```
 
 ```bash

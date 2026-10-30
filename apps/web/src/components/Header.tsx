@@ -7,6 +7,7 @@ import { shortA, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';
 import { tradeHref, useOpenTrade } from './nav';
 import { SearchBox } from './Search';
+import { PRELAUNCH } from '@/lib/edition';
 import { LogoMark, SearchIcon } from './ui';
 
 export type NavKey = 'markets' | 'trade' | 'portfolio' | 'pool' | 'leaders' | 'docs';
@@ -77,7 +78,8 @@ export function Header() {
 
   const bal = sim.bal();
   let wallet;
-  if (sim.mode === 'practice')
+  if (PRELAUNCH) wallet = <span className="soon">Trading opens soon</span>;
+  else if (sim.mode === 'practice')
     wallet =
       bal > 0n ? (
         <span className="bal n">
@@ -132,13 +134,15 @@ export function Header() {
             before={<SearchIcon />}
             after={<kbd id="kbd">{kbd}</kbd>}
           />
-          <div className="seg" role="group" aria-label="Trading mode" id="modeT">
-            {(['real', 'practice'] as const).map((m) => (
-              <button key={m} data-mode={m} aria-pressed={sim.mode === m} onClick={() => sim.setMode(m)}>
-                {m === 'real' ? 'Real' : 'Practice'}
-              </button>
-            ))}
-          </div>
+          {!PRELAUNCH && (
+            <div className="seg" role="group" aria-label="Trading mode" id="modeT">
+              {(['real', 'practice'] as const).map((m) => (
+                <button key={m} data-mode={m} aria-pressed={sim.mode === m} onClick={() => sim.setMode(m)}>
+                  {m === 'real' ? 'Real' : 'Practice'}
+                </button>
+              ))}
+            </div>
+          )}
           <div id="walletbox" style={{ display: 'flex', gap: 8 }}>
             {wallet}
           </div>
