@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type CSSProperties, type ElementType } from 'react';
+import { pxParts } from '@/hl/format';
 import { C, hueOf, priceParts } from '@/lib/format';
 
 /**
@@ -49,9 +50,12 @@ export function Tok({
   );
 }
 
-/** Price with the subscript-zero format for anything under $0.001. */
-export function Price({ p }: { p: number }) {
-  const r = priceParts(p);
+/**
+ * Price with the subscript-zero format for anything under $0.001. With `sz` (a Hyperliquid market's
+ * szDecimals) it shows the decimals Hyperliquid shows for that market.
+ */
+export function Price({ p, sz }: { p: number; sz?: number }) {
+  const r = sz === undefined ? priceParts(p) : pxParts(p, sz);
   if (r.kind === 'plain') return <>{r.text}</>;
   return (
     <>
@@ -71,12 +75,14 @@ export const reducedMotion = () =>
 export function Px({
   p,
   prev,
+  sz,
   as: Tag = 'span',
   className,
   ...rest
 }: {
   p: number;
   prev: number;
+  sz?: number;
   as?: ElementType;
   className?: string;
   role?: string;
@@ -95,7 +101,7 @@ export function Px({
   }, [p, prev]);
   return (
     <Tag ref={ref} className={className} {...rest}>
-      <Price p={p} />
+      <Price p={p} sz={sz} />
     </Tag>
   );
 }

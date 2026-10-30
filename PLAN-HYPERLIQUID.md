@@ -78,6 +78,8 @@ Each phase ends with a report and stops for ALFA, as before.
   - **The site:** coinside.fun shows real mainnet data and stays pre-launch for trading.
   - **Done when:** every listed perp market shows, prices match app.hyperliquid.xyz, and updates arrive
     within a second over the WebSocket.
+  - **Status (30 Oct 2026):** built and tested against fixtures (DECISIONS.md, "H1"). Comparing prices with
+    app.hyperliquid.xyz waits for the development sandbox to reach Hyperliquid again.
 - **H2. Wallet and account (read only).** Connect, then show the Hyperliquid balances, positions, open orders
   and fills of the connected account.
 - **H3. Trading on Hyperliquid testnet.**

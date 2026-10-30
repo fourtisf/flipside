@@ -1,11 +1,17 @@
 import { DEFAULT_RULES } from '@coinside/core/rules';
 import type { Metadata } from 'next';
+import { LiveDocs } from '@/components/live/LiveDocs';
 import { docsCopy } from '@/lib/docs-copy';
-import { PRELAUNCH } from '@/lib/edition';
+import { LIVE } from '@/lib/edition';
 
 export const metadata: Metadata = { title: 'How it works' };
 
 export default function DocsPage() {
+  return LIVE ? <LiveDocs /> : <PrototypeDocs />;
+}
+
+/** The original own-pool design's docs, generated from its rules. */
+function PrototypeDocs() {
   // Every number on this page comes from the rules the engine enforces. P1: the live GET /api/rules.
   const copy = docsCopy(DEFAULT_RULES);
   return (
@@ -32,7 +38,7 @@ export default function DocsPage() {
                 <b>Deposit SOL</b>
                 <p>
                   Send SOL to the vault program from Portfolio. Only the wallet that deposited can withdraw
-                  it.{PRELAUNCH ? '' : ' Or switch to Practice for free paper SOL.'}
+                  it. Or switch to Practice for free paper SOL.
                 </p>
               </li>
               <li>

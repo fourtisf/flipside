@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LIVE } from '@/lib/edition';
 
 export default function NotFound() {
   return (
@@ -7,8 +8,9 @@ export default function NotFound() {
         <div>
           <h1 id="h-nf">Nothing here</h1>
           <p>
-            That page or coin isn&apos;t on Coinside. Coins open once they reach a $30K market cap, 100
-            holders and 7 SOL in trading fees.
+            {LIVE
+              ? "That page isn't on Coinside. Every market Hyperliquid lists is on the markets page."
+              : "That page or coin isn't on Coinside. Coins open once they reach a $30K market cap, 100 holders and 7 SOL in trading fees."}
           </p>
         </div>
         <div className="acts2">

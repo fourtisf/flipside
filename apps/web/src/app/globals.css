@@ -10,7 +10,11 @@
  * - the candle chart is lightweight-charts: .tvc/.ohlc/.entry style its root and HTML overlays
  * - --t3 is #858585 (prototype #6E6E6E), the closest gray with 4.5:1 contrast on every surface
  * - the footer's TradingView credit (.fb a), which the chart library's license requires
- * - the pre-launch edition (lib/edition.ts): .soon, .mk.pre (no long vs short column), .sec.last, .soon-page
+ * - below 1000px the hero column is minmax(0,1fr), so the ticket's sparkline and amount input can't push the
+ *   page 10px wider than a 390px phone (the prototype's 1fr let their intrinsic widths clip the hero text)
+ * - the live edition (lib/edition.ts, Hyperliquid markets): .soon, .sec.last, .soon-page, and the block
+ *   marked "live edition" below (table columns, order book, trades, status messages), built from the same
+ *   tokens and patterns
  * Do not add glows, gradients, glass or new shadows.
  */
 :root{
@@ -229,7 +233,6 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .vchips button:hover{color:var(--t1)}
 .vchips button[aria-pressed="true"]{color:var(--t1);border-color:var(--line2);background:var(--s2)}
 .mk{display:grid;grid-template-columns:minmax(170px,1.6fr) minmax(96px,1fr) 80px minmax(96px,1fr) minmax(96px,1fr) minmax(130px,1.2fr) 50px 128px;gap:14px;align-items:center;padding:0 16px;height:58px;border-top:1px solid var(--line);transition:background .15s}
-.mk.pre{grid-template-columns:minmax(170px,1.6fr) minmax(96px,1fr) 80px minmax(96px,1fr) minmax(96px,1fr) 50px 128px}
 .mk:not(.hd){cursor:pointer}
 .mk:not(.hd):hover{background:var(--s2)}
 .mk.hd{height:40px;border-top:0;font-size:12px;color:var(--t3)}
@@ -251,7 +254,29 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .empty{padding:40px 16px;text-align:center;color:var(--t3);font-size:13.5px}
 .empty b{display:block;color:var(--t1);font-weight:550;margin-bottom:4px}
 .soon-page .btn{display:flex;width:max-content;margin:16px auto 0}
-.chips[hidden],.swrow[hidden]{display:none}
+
+/* live edition: Hyperliquid markets */
+.dot.off{background:var(--t3)}
+.mk.hl{grid-template-columns:minmax(150px,1.4fr) minmax(96px,1fr) 80px minmax(90px,1fr) minmax(90px,1fr) 92px 50px 128px}
+.mk.hl .tk a:hover b{text-decoration:underline;text-underline-offset:2px}
+.map-msg{position:absolute;inset:0;display:grid;place-items:center;font-size:13.5px;color:var(--t3)}
+.tk-wait{display:block;font-size:13px;color:var(--t3);min-height:72px;padding-top:26px}
+.otype{margin-top:10px}
+.otype button{flex:1}
+.cmsg{position:absolute;inset:0;z-index:1;display:grid;place-items:center;font-size:13px;color:var(--t3);pointer-events:none}
+.hlbt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.ob-hd,.ob-r{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px}
+.ob-hd{height:32px;align-items:center;font-size:12px;color:var(--t3)}
+.ob-hd span:not(:first-child),.ob-r span:not(:first-child){text-align:right}
+.ob-r{position:relative;height:24px;align-items:center;font:12px var(--mono);letter-spacing:-.02em}
+.ob-r span{position:relative;white-space:nowrap}
+.ob-r i{position:absolute;right:0;top:1px;bottom:1px;pointer-events:none}
+.ob-r.a i{background:var(--shortbg)}.ob-r.b i{background:var(--longbg)}
+.ob-sp{display:flex;align-items:center;justify-content:space-between;gap:12px;height:36px;margin:4px 0;padding:0 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font:12px var(--mono);color:var(--t3);letter-spacing:-.02em}
+.ob-sp b{font:500 14px var(--mono);color:var(--t1);letter-spacing:-.03em}
+#rt{padding:4px 0 8px}
+#ob{padding-bottom:8px}
+.ob-msg{padding:28px 16px;text-align:center;color:var(--t3);font-size:13px}
 
 /* live + wins */
 .cols2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;padding-bottom:96px}
@@ -443,8 +468,8 @@ dialog .amt{margin-top:16px}
 /* responsive */
 @media (max-width:1200px){
   .mk{grid-template-columns:minmax(150px,1.6fr) minmax(90px,1fr) 76px minmax(90px,1fr) minmax(120px,1.2fr) 46px 124px}
-  .mk.pre{grid-template-columns:minmax(150px,1.6fr) minmax(90px,1fr) 76px minmax(90px,1fr) 46px 124px}
-  .mk .c-liq{display:none}
+  .mk.hl{grid-template-columns:minmax(140px,1.4fr) minmax(90px,1fr) 76px minmax(86px,1fr) 88px 46px 124px}
+  .mk .c-liq,.mk .c-oi{display:none}
   .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
   .stats>div:nth-child(4){padding-left:0;border-left:0}
   .stats>div:nth-child(n+4){border-top:1px solid var(--line)}
@@ -454,7 +479,7 @@ dialog .amt{margin-top:16px}
 }
 @media (max-width:1000px){
   .nav{display:none}
-  .hero{grid-template-columns:1fr;gap:48px;padding:56px 0}
+  .hero{grid-template-columns:minmax(0,1fr);gap:48px;padding:56px 0}
   .ticket{max-width:480px}
   .cols3,.cols2{grid-template-columns:1fr}
   .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:45;justify-content:space-around;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:rgba(0,0,0,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line)}
@@ -464,6 +489,7 @@ dialog .amt{margin-top:16px}
   body{padding-bottom:72px}
   .toasts{top:auto;bottom:84px}
   .tgrid{grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-template-areas:"c" "o" "p"}
+  .hlbt{grid-template-columns:minmax(0,1fr)}
   .order{position:static}
   .thd{flex-wrap:wrap;gap:14px}
   .th-tok{border-right:0;padding-right:0}
@@ -500,9 +526,9 @@ dialog .amt{margin-top:16px}
   .stats>div:nth-child(odd){padding-left:0!important;border-left:0!important}
   .stats>div:nth-child(-n+2){border-top:0}
   .map{height:420px}
-  .mk,.mk.pre{grid-template-columns:minmax(0,1fr) auto auto;height:60px}
+  .mk,.mk.hl{grid-template-columns:minmax(0,1fr) auto auto;height:60px}
   .mk.hd{display:none}
-  .mk .c-mc,.mk .c-liq,.mk .c-ls,.mk .c-lv,.mk .acts{display:none}
+  .mk .c-mc,.mk .c-liq,.mk .c-ls,.mk .c-lv,.mk .acts,.mk .c-vol,.mk .c-oi,.mk .c-fd{display:none}
   .pn-h .end,.filter{width:100%;margin-left:0}
   .vchips{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
   .fi{grid-template-columns:28px minmax(0,1fr) auto}

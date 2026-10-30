@@ -44,8 +44,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Both editions (apps/web/src/lib/edition.ts): pre-launch is what coinside.fun serves, the prototype
-      # edition keeps the full simulated UI under test.
+      # Both editions (apps/web/src/lib/edition.ts): live (Hyperliquid markets) is what coinside.fun serves,
+      # the prototype edition keeps the original design's simulated UI under test.
       - run: pnpm turbo run build --filter=@coinside/web
       - run: pnpm --filter @coinside/web build:prototype
       - run: pnpm --filter @coinside/web exec playwright install --with-deps chromium

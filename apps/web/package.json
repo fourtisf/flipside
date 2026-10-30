@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@coinside/core": "workspace:*",
+    "@nktkas/hyperliquid": "0.33.3",
     "d3-hierarchy": "^3.1.2",
     "geist": "^1.8.2",
     "lightweight-charts": "^5.2.1",

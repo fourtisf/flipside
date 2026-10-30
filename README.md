@@ -52,13 +52,15 @@ pnpm turbo run lint typecheck test build
 pnpm format:check
 ```
 
-The web app builds in two editions (`apps/web/src/lib/edition.ts`). `build` is the **pre-launch** edition that
-coinside.fun serves until real trading opens: markets and charts, no trading, no paper SOL, nothing simulated
-shown as activity. `build:prototype` is the approved prototype with simulated trading and Practice mode, kept
-for the e2e flows and the side-by-side check.
+The web app builds in two editions (`apps/web/src/lib/edition.ts`). `build` is the **live** edition that
+coinside.fun serves: Coinside as a Hyperliquid builder (`PLAN-HYPERLIQUID.md`), with Hyperliquid's real
+markets, prices, candles and order books read in the browser, and trading not open yet. `build:prototype` is
+the approved prototype of the original own-pool design, with simulated trading and Practice mode, kept for its
+e2e flows and the side-by-side check.
 
-End-to-end tests at 1440 px and 390 px: the flows against the prototype edition (port 3100) and the
-pre-launch checks against the pre-launch edition (port 3101). Build both first:
+End-to-end tests at 1440 px and 390 px: the flows against the prototype edition (port 3100) and the live
+checks against the live edition (port 3101), with Hyperliquid's API replaced by fixtures
+(`apps/web/e2e/hl-mock.ts`), so they never depend on the market. Build both first:
 
 ```bash
 pnpm --filter @coinside/web build && pnpm --filter @coinside/web build:prototype
@@ -74,7 +76,8 @@ pnpm --filter @coinside/web e2e
 ```
 
 Side-by-side screenshots of the prototype and the port, and Lighthouse accessibility on every route, against
-the prototype edition on port 3000 (Lighthouse also runs against `start`, the pre-launch edition):
+the prototype edition on port 3000 (run `EDITION=prototype pnpm a11y`). CI runs Lighthouse against `start`, the
+live edition, with real Hyperliquid data:
 
 ```bash
 pnpm --filter @coinside/web build:prototype && pnpm --filter @coinside/web start:prototype

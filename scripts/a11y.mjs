@@ -6,7 +6,8 @@
  *   pnpm --filter @coinside/web build && pnpm --filter @coinside/web start
  *   pnpm a11y
  *
- * Env: BASE_URL, MIN_SCORE (default 95), CHROME_PATH (any Chromium; Lighthouse finds Chrome if unset).
+ * Env: BASE_URL, MIN_SCORE (default 95), CHROME_PATH (any Chromium; Lighthouse finds Chrome if unset),
+ * EDITION=prototype for the prototype edition's routes (apps/web/src/lib/edition.ts; default: live).
  */
 import { execFile } from 'node:child_process';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -17,15 +18,19 @@ const run = promisify(execFile);
 const base = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 const min = Number(process.env.MIN_SCORE ?? 95);
 const out = join(process.cwd(), 'artifacts', 'lighthouse');
-const ROUTES = [
-  '/',
-  '/trade/AK6sDVobPJFuVSuepJF6QdZYvT9R4RqnerRJ8P5qpump',
-  '/portfolio',
-  '/pool',
-  '/leaderboard',
-  '/docs',
-  '/emergency',
-];
+const ROUTES =
+  process.env.EDITION === 'prototype'
+    ? [
+        '/',
+        '/trade/AK6sDVobPJFuVSuepJF6QdZYvT9R4RqnerRJ8P5qpump',
+        '/portfolio',
+        '/pool',
+        '/leaderboard',
+        '/docs',
+        '/emergency',
+      ]
+    : // the live edition reads Hyperliquid from the browser, so these score the pages with real market data
+      ['/', '/trade/SOL', '/portfolio', '/leaderboard', '/docs'];
 
 await mkdir(out, { recursive: true });
 let failed = false;

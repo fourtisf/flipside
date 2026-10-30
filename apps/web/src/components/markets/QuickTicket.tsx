@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, type JSX } from 'react';
-import { PRELAUNCH } from '@/lib/edition';
 import { C, fixed, pct, sgn, shortA } from '@/lib/format';
 import { chg1h, floorCent, maxLev, type Coin } from '@/mock/sim';
 import { useSim } from '@/mock/provider';
@@ -138,7 +137,7 @@ export function QuickTicket() {
       <div className="tk-head">
         <b>Quick trade</b>
         <span className="t3" id="tk-mode">
-          {PRELAUNCH ? 'Preview' : sim.mode === 'practice' ? 'Practice mode' : 'Real SOL'}
+          {sim.mode === 'practice' ? 'Practice mode' : 'Real SOL'}
         </span>
       </div>
       <div className="tk-body">
@@ -212,7 +211,7 @@ export function QuickTicket() {
           />
           <span>SOL</span>
         </div>
-        <div className="chips" id="tk-pct" hidden={PRELAUNCH}>
+        <div className="chips" id="tk-pct">
           {PCTS.map(([p, label]) => (
             <button
               key={p}

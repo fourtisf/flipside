@@ -20,6 +20,54 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## H1: live Hyperliquid markets on coinside.fun (30 Oct 2026)
+
+ALFA said to start ("ok mulai semuanya"). H1 is read only, so it needed none of the open decisions in
+`PLAN-HYPERLIQUID.md`. What was chosen along the way:
+
+- **The live edition replaces the pre-launch edition.** `lib/edition.ts` now has `live` (the default build,
+  coinside.fun) and `prototype`. The flag is `LIVE`, because the edition stays when trading opens. The
+  pre-launch branches inside the prototype's components were removed, so they are back to the approved port
+  exactly; the live pages are their own components (`components/live/`) on the same design system.
+- **The browser reads Hyperliquid directly**, with `@nktkas/hyperliquid` 0.33.3 over Hyperliquid's public info
+  API and WebSocket. No Coinside server sits in between, so market data doesn't depend on ours, and the
+  existing Nginx headers already allow it (no `connect-src` limit). A script Content-Security-Policy (deploy
+  README, P3) must allow `https://api.hyperliquid.xyz` and `wss://api.hyperliquid.xyz`.
+- **Data flow** (`src/hl/`): a snapshot of every perp market (`metaAndAssetCtxs`) on load and every 15 seconds,
+  prices from the `allMids` channel in between, rendered at most 4 times a second. The terminal adds the
+  market's live context, order book, trades and candles. Each subscription retries with backoff if it fails.
+  Pages render on the client only: server rendering would make e2e results depend on whether the server can
+  reach Hyperliquid.
+- **Prices** show Hyperliquid's own precision: up to 5 significant figures, at most 6 minus `szDecimals`
+  decimals, and the prototype's subscript-zero format under $0.001.
+- **Markets page**: the hero keeps "Every coin has two sides. Pick one."; Quick trade (market picker, USDC
+  margin, leverage, estimates, closed order button); a map of the 40 most traded markets, sized by 24h volume
+  and colored by the 24h move clamped to ±10% (the prototype's ±30% over an hour suits memecoins, not BTC);
+  top gainers, top losers and most traded; and all markets with price, 24h, volume, open interest, hourly
+  funding and maximum leverage.
+- **Terminal** (`/trade/SOL`; any case works and the URL takes Hyperliquid's spelling): price and stats with a
+  funding countdown, a link to compare on Hyperliquid, the watchlist, candles from 1 minute to 1 day with the
+  prototype's Short view, the order book and recent trades, and a closed order panel (market or limit, margin,
+  leverage, take profit and stop loss as % of margin, estimates).
+- **SOL is the default market** for the ticket, the terminal and `/trade`: Coinside is for Solana users.
+- **Leverage buttons**: 2x, 5x and 10x where allowed plus the market's maximum, at least three.
+- **Liquidation estimate**: for an isolated position, with maintenance margin at half the initial margin at
+  the market's maximum leverage, before fees and funding. Labeled "about". To check against Hyperliquid's docs
+  and testnet in H3.
+- **Pool and Emergency withdraw** return 404 in the live edition (there is no pool or vault on Hyperliquid) and
+  leave the nav, the tab bar and the footer. Portfolio and Leaderboard say what comes next. Docs describe the
+  Hyperliquid model; its copy is a draft for ALFA, and states no fee until decision 1 is made.
+- **Logos**: letter avatars only. Hyperliquid's own coin images would mean hotlinking another site's assets.
+- **Tests**: unit tests for the transforms and formatting; the live e2e suite (`live.spec.ts`) serves fixtures
+  in place of Hyperliquid's API and WebSocket (`hl-mock.ts`); Lighthouse runs on the live routes. axe found two
+  issues on the terminal (the watchlist as a nested `aside`, and the stats row scrolling without keyboard
+  focus), both fixed in the live edition.
+- **Phones**: the hero column is `minmax(0,1fr)` below 1000px. With `1fr` the ticket's sparkline and amount
+  input made the page 10px wider than a 390px screen and clipped the hero text, in the prototype too.
+
+Not verified yet: the development sandbox lost access to Hyperliquid while this was built, so prices have not
+been compared with app.hyperliquid.xyz and no real responses were recorded as fixtures. That check closes H1.
+
 ## Direction: Coinside as a Hyperliquid builder (30 Oct 2026, proposed)
 
 ALFA asked whether Coinside could work like Hyperliquid with Hyperliquid as the market maker, then chose that

@@ -270,12 +270,7 @@ export class Sim {
   dialogs: { wallets: boolean; fund: null | 'deposit' | 'withdraw' } = { wallets: false, fund: null };
   private walletIdx = 0;
 
-  /** Pre-launch edition: nobody can trade, so the trade buttons and orders say so. */
-  prelaunch = false;
-
-  constructor(seed = SIM_SEED, now = Date.now(), { prelaunch = false } = {}) {
-    this.prelaunch = prelaunch;
-    if (prelaunch) this.mode = 'real';
+  constructor(seed = SIM_SEED, now = Date.now()) {
     this.rnd = mulberry32(seed);
     this.bootAt = now;
     this.auditAt = now;
@@ -471,7 +466,6 @@ export class Sim {
     this.tapeFill = Array.from({ length: 12 }, () => this.simItem());
   }
   availTxt(): string {
-    if (this.prelaunch) return '';
     return this.mode === 'practice'
       ? `${sol(this.bal())} paper SOL available`
       : this.wallet
@@ -569,7 +563,6 @@ export class Sim {
    * or the error message to show under the order form.
    */
   openPosition(sym: string, side: Side, lev: number, amtStr: string, tp: string | null, sl: string | null) {
-    if (this.prelaunch) return 'Trading opens soon.';
     const c = this.bySym[sym]!;
     if (this.mode === 'real' && !this.wallet) {
       this.requestConnect();
@@ -790,7 +783,6 @@ export class Sim {
   }
 
   ctaState(c: Coin, side: Side, lev: number, amtStr: string): { label: string; cls: string; dis?: boolean } {
-    if (this.prelaunch) return { label: 'Trading opens soon', cls: 'w', dis: true };
     if (c.status !== 'open') return { label: 'Trading paused on this coin', cls: 'w', dis: true };
     if (this.mode === 'real' && !this.wallet) return { label: 'Connect wallet to trade', cls: 'w' };
     if (this.mode === 'practice' && this.bal() <= 0n)

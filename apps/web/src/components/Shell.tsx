@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type JSX } from 'react';
 import { fixed, shortA, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';
 import { navKey, useNavHrefs, type NavKey } from './Header';
-import { PRELAUNCH } from '@/lib/edition';
+import { LIVE } from '@/lib/edition';
 import { LogoMark } from './ui';
 
 export function Footer() {
@@ -20,7 +20,11 @@ export function Footer() {
               <LogoMark />
               Coinside
             </span>
-            <p>Long or short any Solana coin by its contract address, filled against an on-chain pool.</p>
+            <p>
+              {LIVE
+                ? "Long or short on every Hyperliquid market from your Solana wallet, on Hyperliquid's order book."
+                : 'Long or short any Solana coin by its contract address, filled against an on-chain pool.'}
+            </p>
           </div>
           <div>
             <h2 className="h4">Product</h2>
@@ -31,9 +35,11 @@ export function Footer() {
               <li>
                 <Link href={hrefs.trade}>Trade</Link>
               </li>
-              <li>
-                <Link href="/pool">Pool</Link>
-              </li>
+              {!LIVE && (
+                <li>
+                  <Link href="/pool">Pool</Link>
+                </li>
+              )}
               <li>
                 <Link href="/leaderboard">Leaderboard</Link>
               </li>
@@ -71,15 +77,15 @@ export function Footer() {
         </div>
         <div className="fb">
           <span>
-            Coinside on Solana. Charts by{' '}
+            {LIVE ? 'Coinside, built on Hyperliquid.' : 'Coinside on Solana.'} Charts by{' '}
             <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">
               TradingView
             </a>
             .
           </span>
           <span>
-            {PRELAUNCH
-              ? 'Preview: prices are simulated and trading is not open yet. Nothing here moves real SOL.'
+            {LIVE
+              ? 'Prices are live from Hyperliquid. Trading is not open yet.'
               : 'Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.'}
           </span>
         </div>
@@ -181,7 +187,7 @@ export function TabBar() {
   const hrefs = useNavHrefs();
   return (
     <nav className="tabbar" aria-label="Main">
-      {TABS.map(([k, label, icon]) => (
+      {TABS.filter(([k]) => !(LIVE && k === 'pool')).map(([k, label, icon]) => (
         <Link key={k} href={hrefs[k]} aria-current={active === k ? 'page' : undefined}>
           {icon}
           {label}

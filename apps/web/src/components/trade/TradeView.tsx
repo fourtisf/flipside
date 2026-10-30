@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo } from 'react';
-import { PRELAUNCH } from '@/lib/edition';
 import { fixed, pct, shortA, usd } from '@/lib/format';
 import { chg1h, maxLev, mcap, solF, type Coin } from '@/mock/sim';
 import { useSim } from '@/mock/provider';
@@ -121,7 +120,7 @@ function OrderPanel({ c }: { c: Coin }) {
         />
         <span>SOL</span>
       </div>
-      <div className="chips" id="o-pct" hidden={PRELAUNCH}>
+      <div className="chips" id="o-pct">
         {PCTS.map(([p, label]) => (
           <button
             key={p}
@@ -183,7 +182,7 @@ function OrderPanel({ c }: { c: Coin }) {
           <span>% loss</span>
         </label>
       </div>
-      <div className="swrow" hidden={PRELAUNCH}>
+      <div className="swrow">
         <span id="ocLab">One-click trading</span>
         <button
           type="button"
@@ -195,7 +194,7 @@ function OrderPanel({ c }: { c: Coin }) {
           onClick={() => sim.toggleOneClick()}
         ></button>
       </div>
-      <p className="hint" id="o-ochint" hidden={PRELAUNCH}>
+      <p className="hint" id="o-ochint">
         {o.oneClick
           ? `On until ${until.toLocaleString('en-US', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}. Trades fill without a wallet pop-up.`
           : 'Sign once, then trade for 24 hours without wallet pop-ups.'}

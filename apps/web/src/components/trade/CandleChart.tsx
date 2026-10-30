@@ -2,8 +2,6 @@
 
 import {
   CandlestickSeries,
-  ColorType,
-  CrosshairMode,
   HistogramSeries,
   LineSeries,
   LineStyle,
@@ -20,6 +18,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { C, hexA, priceTxt } from '@/lib/format';
 import { HIST, type Coin, type Position } from '@/mock/sim';
+import { chartTheme, monoFont } from './chartTheme';
 
 /** The newest candle sits on this hour boundary, so tick marks stay on the same candles every tick. */
 const T0 = 1_699_999_200;
@@ -123,19 +122,9 @@ export function CandleChart({
   useEffect(() => {
     const box = el.current;
     if (!box) return;
-    const mono =
-      getComputedStyle(document.documentElement).getPropertyValue('--mono').trim() ||
-      'ui-monospace, monospace';
     const chart = createChart(box, {
+      ...chartTheme(monoFont()),
       autoSize: true,
-      layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: C.t3,
-        fontFamily: mono,
-        fontSize: 10.5,
-        attributionLogo: false,
-      },
-      grid: { vertLines: { visible: false }, horzLines: { color: '#151515' } },
       // the prototype draws five evenly spaced price lines; a higher density keeps ticks that sparse
       rightPriceScale: {
         borderVisible: false,
@@ -152,16 +141,6 @@ export function CandleChart({
         secondsVisible: true,
         allowBoldLabels: false,
         tickMarkFormatter: relLabel,
-      },
-      crosshair: {
-        mode: CrosshairMode.Normal,
-        vertLine: { color: 'rgba(237,237,237,.25)', style: LineStyle.Dashed, width: 1, labelVisible: false },
-        horzLine: {
-          color: 'rgba(237,237,237,.25)',
-          style: LineStyle.Dashed,
-          width: 1,
-          labelBackgroundColor: '#2A2A2A',
-        },
       },
       handleScroll: false,
       handleScale: false,

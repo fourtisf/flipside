@@ -1,9 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Two builds (lib/edition.ts): the prototype edition (`pnpm build:prototype`, simulated trading and Practice)
-// for the flows suite, and the pre-launch edition (`pnpm build`, what coinside.fun serves) for prelaunch.spec.
+// for the flows suite, and the live edition (`pnpm build`, what coinside.fun serves) for live.spec.
 const PROTOTYPE = Number(process.env.E2E_PORT ?? 3100);
-const PRELAUNCH = PROTOTYPE + 1;
+const LIVE = PROTOTYPE + 1;
 const desktop = { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } };
 const mobile = { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, hasTouch: true };
 
@@ -17,19 +17,19 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
-      testIgnore: /prelaunch/,
+      testIgnore: /live/,
       use: { ...desktop, baseURL: `http://localhost:${PROTOTYPE}` },
     },
-    { name: 'mobile', testIgnore: /prelaunch/, use: { ...mobile, baseURL: `http://localhost:${PROTOTYPE}` } },
+    { name: 'mobile', testIgnore: /live/, use: { ...mobile, baseURL: `http://localhost:${PROTOTYPE}` } },
     {
-      name: 'prelaunch-desktop',
-      testMatch: /prelaunch/,
-      use: { ...desktop, baseURL: `http://localhost:${PRELAUNCH}` },
+      name: 'live-desktop',
+      testMatch: /live/,
+      use: { ...desktop, baseURL: `http://localhost:${LIVE}` },
     },
     {
-      name: 'prelaunch-mobile',
-      testMatch: /prelaunch/,
-      use: { ...mobile, baseURL: `http://localhost:${PRELAUNCH}` },
+      name: 'live-mobile',
+      testMatch: /live/,
+      use: { ...mobile, baseURL: `http://localhost:${LIVE}` },
     },
   ],
   webServer: [
@@ -41,8 +41,8 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
-      command: `pnpm exec next start -p ${PRELAUNCH}`,
-      port: PRELAUNCH,
+      command: `pnpm exec next start -p ${LIVE}`,
+      port: LIVE,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
