@@ -65,8 +65,10 @@ ALFA said to start ("ok mulai semuanya"). H1 is read only, so it needed none of 
 - **Phones**: the hero column is `minmax(0,1fr)` below 1000px. With `1fr` the ticket's sparkline and amount
   input made the page 10px wider than a 390px screen and clipped the hero text, in the prototype too.
 
-Not verified yet: the development sandbox lost access to Hyperliquid while this was built, so prices have not
-been compared with app.hyperliquid.xyz and no real responses were recorded as fixtures. That check closes H1.
+Verified on real data (CI run 5, 30 Oct 2026): the development sandbox couldn't reach Hyperliquid, so the check
+runs in CI's "Live data" job instead. All 179 listed perps show; BTC 77,120 against a 77,119.5 mid, ETH 2,233
+against 2,232.95, SOL 94.593 against 94.5955; 5 price messages in 5 seconds and 11 order book messages; 179 of 179
+coins with a logo.
 
 Hardening after review (ALFA: "pastikan semuanya berjalan lancar"):
 
