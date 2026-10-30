@@ -94,7 +94,12 @@ Hardening after review (ALFA: "pastikan semuanya berjalan lancar"):
   keeps its letter avatar. The "Live data" CI job counts how many coins have one and logs why any are missing.
   The first version served the SVGs as they were with a 100 kB cap: 161 of 179 coins had a logo, and the 18
   without were mostly memecoins, whose icons are large pictures wrapped in SVG. Rendering to WebP makes every
-  icon a few kilobytes and means no SVG from elsewhere is served from our domain.
+  icon a few kilobytes and means no SVG from elsewhere is served from our domain. Two more fixes, from the CI
+  logs: the render density follows each SVG's size (a fixed density pushed Hyperliquid's 5,000-unit BTC
+  canvas past sharp's pixel limit), and sources up to 10 MB are accepted (HMSTR's is a 3.1 MB SVG). That left
+  PEOPLE, which Hyperliquid has no icon for, so coins without one get CoinGecko's: the exact ticker with the
+  best market-cap rank in its public search, images from coingecko.com only, rendered the same way. The footer
+  credits CoinGecko.
 - **Known cost**: each build carries both editions' code, because the edition flag is not folded away across
   modules, so the live pages ship about 15 to 20 kB (gzipped) of prototype code. Archiving the original design
   (`PLAN-HYPERLIQUID.md`, decision 7) removes it.

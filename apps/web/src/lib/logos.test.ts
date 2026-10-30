@@ -8,21 +8,54 @@ const WEBP = enc('RIFF....WEBP');
 const fakeRender: Render = async () => WEBP;
 const noRender: Render = async () => null;
 
-/** A stand-in for Hyperliquid: lists BTC, kPEPE and ETH; has icons for BTC.svg and PEPE.svg. */
-function fakeHyperliquid(opts: { down?: boolean; icons?: Record<string, string> } = {}) {
+/**
+ * A stand-in for Hyperliquid and CoinGecko. Hyperliquid lists BTC, kPEPE, ETH and PEOPLE, has icons for BTC.svg
+ * and PEPE.svg, and answers anything else with its web page (as it does for PEOPLE). CoinGecko knows PEOPLE.
+ */
+function fakeSources(
+  opts: { down?: boolean; icons?: Record<string, string>; gecko?: Record<string, unknown[]> } = {},
+) {
   const icons = opts.icons ?? { BTC: SVG, PEPE: SVG };
+  const gecko = opts.gecko ?? {
+    people: [
+      {
+        symbol: 'PEOPLE',
+        market_cap_rank: 400,
+        large: 'https://coin-images.coingecko.com/coins/images/1/large/people.png',
+      },
+      {
+        symbol: 'PEOPLE',
+        market_cap_rank: 3000,
+        large: 'https://coin-images.coingecko.com/coins/images/2/large/other.png',
+      },
+      {
+        symbol: 'PEOPLEX',
+        market_cap_rank: 1,
+        large: 'https://coin-images.coingecko.com/coins/images/3/large/x.png',
+      },
+    ],
+  };
   const calls: string[] = [];
   const fetcher = (async (url: string | URL | Request) => {
     const u = String(url);
     calls.push(u);
     if (opts.down) throw new Error('network down');
     if (u.endsWith('/info'))
-      return Response.json({ universe: [{ name: 'BTC' }, { name: 'kPEPE' }, { name: 'ETH' }] });
+      return Response.json({
+        universe: [{ name: 'BTC' }, { name: 'kPEPE' }, { name: 'ETH' }, { name: 'PEOPLE' }],
+      });
+    if (u.startsWith('https://api.coingecko.com/'))
+      return Response.json({ coins: gecko[decodeURIComponent(u.split('query=')[1]!)] ?? [] });
+    if (u.includes('coingecko.com/coins/images/')) return new Response(PNG);
     const file = decodeURIComponent(u.split('/coins/')[1]!.replace(/\.svg$/, ''));
-    return icons[file] ? new Response(icons[file]) : new Response('nope', { status: 404 });
+    return icons[file]
+      ? new Response(icons[file])
+      : new Response('<!DOCTYPE html><html lang="en"></html>', { headers: { 'content-type': 'text/html' } });
   }) as typeof fetch;
   return { fetcher, calls };
 }
+const fakeHyperliquid = fakeSources;
+const PNG = enc('png bytes');
 
 describe('logos', () => {
   it('recognizes SVG documents, not HTML pages', () => {
@@ -122,6 +155,38 @@ describe('logos', () => {
     await Promise.all(Array.from({ length: 20 }, () => store.get('BTC')));
     expect(hl.calls.filter((c) => c.endsWith('/coins/BTC.svg'))).toHaveLength(1);
     expect(hl.calls.filter((c) => c.endsWith('/info'))).toHaveLength(1);
+  });
+
+  it('asks CoinGecko when Hyperliquid has no icon, taking the best-ranked exact ticker', async () => {
+    const src = fakeSources();
+    const store = new LogoStore(src.fetcher, Date.now, fakeRender);
+    expect(await store.get('PEOPLE')).toEqual({ body: WEBP, type: 'image/webp' });
+    expect(src.calls).toContain('https://coin-images.coingecko.com/coins/images/1/large/people.png');
+    expect(src.calls.some((c) => c.includes('/images/2/') || c.includes('/images/3/'))).toBe(false);
+  });
+
+  it('only takes images from CoinGecko itself, and never asks it when Hyperliquid is down', async () => {
+    const evil = fakeSources({
+      gecko: { people: [{ symbol: 'PEOPLE', large: 'https://evil.example/x.png' }] },
+    });
+    expect(await new LogoStore(evil.fetcher, Date.now, fakeRender).get('PEOPLE')).toBeNull();
+    expect(evil.calls).not.toContain('https://evil.example/x.png');
+
+    const down = fakeSources({ down: true });
+    await new LogoStore(down.fetcher, Date.now, fakeRender).get('PEOPLE');
+    expect(down.calls.some((c) => c.includes('coingecko'))).toBe(false);
+  });
+
+  it('renders raster icons (PNG) too', async () => {
+    const { default: sharp } = await import('sharp');
+    const png = await sharp({
+      create: { width: 250, height: 250, channels: 4, background: { r: 61, g: 214, b: 140, alpha: 1 } },
+    })
+      .png()
+      .toBuffer();
+    const out = await renderWebp(new Uint8Array(png));
+    expect((await sharp(Buffer.from(out!)).metadata()).width).toBe(64);
+    expect(await renderWebp(enc('not an image'))).toBeNull();
   });
 
   it('rejects sources that are not SVG', async () => {

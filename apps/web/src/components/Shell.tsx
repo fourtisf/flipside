@@ -81,7 +81,17 @@ export function Footer() {
             <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">
               TradingView
             </a>
-            .
+            {LIVE ? (
+              <>
+                , a few coin icons by{' '}
+                <a href="https://www.coingecko.com/" target="_blank" rel="noopener noreferrer">
+                  CoinGecko
+                </a>
+                .
+              </>
+            ) : (
+              '.'
+            )}
           </span>
           <span>
             {LIVE
