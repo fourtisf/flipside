@@ -1,5 +1,10 @@
 # Coinside: build brief for Claude Code
 
+> **Direction change, 30 Oct 2026.** ALFA chose to rebuild Coinside as a Hyperliquid builder: a trading app
+> for Solana users on Hyperliquid's order book, with no pool or vault of its own. See `PLAN-HYPERLIQUID.md`.
+> This brief stays the record of the original design until the decisions in that plan are made, and is then
+> rewritten. Until then, don't build more of the pool, vault, engine or risk engine described below.
+
 Read this whole file before writing code. `prototype.html` in this folder is the approved UI and the single source of truth for layout, copy, colors, typography, spacing and behavior. When this brief and the prototype disagree on anything visual, the prototype wins. When they disagree on rules or money logic, this brief wins.
 
 ---

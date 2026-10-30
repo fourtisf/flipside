@@ -20,6 +20,23 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Direction: Coinside as a Hyperliquid builder (30 Oct 2026, proposed)
+
+ALFA asked whether Coinside could work like Hyperliquid with Hyperliquid as the market maker, then chose that
+direction. It removes the parts that made the original design slow and risky for ALFA:
+- the seed capital for the pool;
+- the pool's losses when traders win;
+- a vault program holding users' SOL, which needs an external audit;
+- building an engine and a risk engine.
+
+Coinside becomes an app on Hyperliquid's order book that earns a builder fee on each order. Solana users
+deposit SOL through Unit or USDC through Across. The cost is the "any token by contract address" feature and
+a crowded field (Phantom already offers Hyperliquid perps in its wallet).
+
+The plan, phases and open decisions are in `PLAN-HYPERLIQUID.md`. `CLAUDE.md` now points to it and is rewritten
+once the decisions are made. Nothing in the original design is deleted yet; it is archived on a branch and tag
+(`own-pool-design`) when it leaves the main tree.
+
 ## Pre-launch edition: no paper SOL, no trading until it is real (30 Oct 2026)
 
 ALFA asked to remove "Claim paper SOL" and make everything mainnet. Real-money trading needs the engine, the
