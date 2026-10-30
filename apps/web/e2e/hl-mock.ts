@@ -3,8 +3,17 @@
  * the fixtures from hl-fixtures.ts. Tests never reach the real exchange, so they don't depend on the market
  * or the network.
  */
+import { deflateRawSync } from 'node:zlib';
 import type { Page, WebSocketRoute } from '@playwright/test';
 import { META_AND_CTXS, book, candles, mids, trades } from './hl-fixtures';
+
+/** fastAssetCtxs arrives as base64 of raw-DEFLATE JSON, as Hyperliquid sends it. */
+const packed = (data: unknown) => deflateRawSync(Buffer.from(JSON.stringify(data))).toString('base64');
+
+/** Icons served in place of /logos/<coin>.svg. POPCAT has none, so its letter avatar shows. */
+export const NO_LOGO = 'POPCAT';
+const ICON =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#EDEDED"/></svg>';
 
 interface Info {
   type: string;
@@ -19,12 +28,25 @@ export interface HlMock {
   subs: Array<Record<string, unknown>>;
   /** Push a message to every open socket, as Hyperliquid would. */
   push: (channel: string, data: unknown) => void;
+  /** Push new mids over the fast channel, which is where live prices come from. */
+  pushMids: (mids: Record<string, string>) => void;
 }
 
 export async function mockHyperliquid(page: Page, { down = false } = {}): Promise<HlMock> {
-  const mock: HlMock = { info: [], subs: [], push: () => {} };
+  const mock: HlMock = { info: [], subs: [], push: () => {}, pushMids: () => {} };
   const sockets: WebSocketRoute[] = [];
   mock.push = (channel, data) => sockets.forEach((ws) => ws.send(JSON.stringify({ channel, data })));
+  mock.pushMids = (m) =>
+    mock.push(
+      'fastAssetCtxs',
+      packed(Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { midPx: v }]))),
+    );
+
+  await page.route('**/logos/*.svg', (route) =>
+    route.request().url().endsWith(`/${NO_LOGO}.svg`)
+      ? route.fulfill({ status: 404, body: '' })
+      : route.fulfill({ contentType: 'image/svg+xml', body: ICON }),
+  );
 
   await page.route('https://api.hyperliquid.xyz/info', async (route) => {
     if (down) return route.abort('connectionrefused');
@@ -61,7 +83,16 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
       const send = (channel: string, data: unknown) => ws.send(JSON.stringify({ channel, data }));
       const coin = String(s.coin ?? '');
       if (s.type === 'allMids') send('allMids', { mids: mids() });
-      if (s.type === 'l2Book') send('l2Book', book(coin));
+      if (s.type === 'fastAssetCtxs')
+        send(
+          'fastAssetCtxs',
+          packed(Object.fromEntries(Object.entries(mids()).map(([k, v]) => [k, { midPx: v, markPx: v }]))),
+        );
+      if (s.type === 'l2Book') {
+        const b = book(coin)!;
+        // the fast feed has the top 5 levels a side, the default feed 20
+        send('l2Book', s.fast ? { ...b, levels: [b.levels[0].slice(0, 5), b.levels[1].slice(0, 5)] } : b);
+      }
       if (s.type === 'trades')
         send(
           'trades',

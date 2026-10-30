@@ -2,9 +2,18 @@
 
 import * as info from '@nktkas/hyperliquid/api/info';
 import * as sub from '@nktkas/hyperliquid/api/subscription';
-import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import type { L2BookEvent } from '@nktkas/hyperliquid/api/subscription';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { httpConfig, wsConfig } from './client';
-import { bookSide, withDepth } from './format';
+import { bookSide, mergeSide, withDepth } from './format';
 import { applyCtx } from './markets';
 import { HlStore, keepSubscribed } from './store';
 
@@ -52,27 +61,40 @@ export function useActiveCtx(name: string) {
 
 export type Book = ReturnType<typeof withDepth>;
 
-/** The order book, `levels` per side, live over the WebSocket. Null until the first snapshot. */
+type Levels = L2BookEvent['levels'];
+/** Hyperliquid's fast book feed sends this many levels a side; the default feed sends 20. */
+const FAST_LEVELS = 5;
+
+/**
+ * The order book, `levels` per side, live over the WebSocket. Null until the first snapshot. Hyperliquid's
+ * default feed has 20 levels but arrives every 5 seconds, its fast feed 5 levels twice a second, so the top
+ * comes from the fast feed and the rest from the default one.
+ */
 export function useBook(name: string, levels: number): Book | null {
-  const [book, setBook] = useState<Book | null>(null);
+  const [feeds, setFeeds] = useState<{ top: Levels | null; deep: Levels | null }>({ top: null, deep: null });
   useEffect(() => {
-    setBook(null);
+    setFeeds({ top: null, deep: null });
     // a message still in flight for the previous market must not land on this one
     let on = true;
-    const stop = keepSubscribed((opts) =>
-      sub.l2Book(
-        wsConfig(),
-        { coin: name },
-        (e) => on && setBook(withDepth(bookSide(e.levels[0], levels), bookSide(e.levels[1], levels))),
-        opts,
-      ),
-    );
+    // Both subscriptions hear every l2Book message for the coin, so each message is sorted by its depth.
+    const take = (e: L2BookEvent) => {
+      if (!on) return;
+      const deep = e.levels[0].length > FAST_LEVELS || e.levels[1].length > FAST_LEVELS;
+      setFeeds((f) => (deep ? { ...f, deep: e.levels } : { ...f, top: e.levels }));
+    };
+    const stopFast = keepSubscribed((opts) => sub.l2Book(wsConfig(), { coin: name, fast: true }, take, opts));
+    const stopDeep = keepSubscribed((opts) => sub.l2Book(wsConfig(), { coin: name }, take, opts));
     return () => {
       on = false;
-      stop();
+      stopFast();
+      stopDeep();
     };
-  }, [name, levels]);
-  return book;
+  }, [name]);
+  return useMemo(() => {
+    if (!feeds.top && !feeds.deep) return null;
+    const side = (i: 0 | 1) => mergeSide(feeds.top?.[i] ?? null, feeds.deep?.[i] ?? null, i ? 1 : -1, levels);
+    return withDepth(bookSide(side(0), levels), bookSide(side(1), levels));
+  }, [feeds, levels]);
 }
 
 export interface Trade {

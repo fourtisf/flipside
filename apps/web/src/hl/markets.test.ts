@@ -128,3 +128,18 @@ describe('unitNote', () => {
     expect(unitNote('kaito')).toBeNull();
   });
 });
+
+describe('price channels', () => {
+  it('takes mids and marks from the fast channel, and lets allMids in only when it goes quiet', () => {
+    const store = new HlStore();
+    store.applySnapshot(META_AND_CTXS);
+    store.applyFast({ BTC: { midPx: '97500', markPx: '97499' }, '@107': { midPx: '1.0' } });
+    expect(store.byName.BTC!.px).toBe(97500);
+    expect(store.byName.BTC!.mark).toBe(97499);
+    const t = Date.now();
+    store.applySlowMids({ BTC: '97000' }, t + 1_000);
+    expect(store.byName.BTC!.px).toBe(97500);
+    store.applySlowMids({ BTC: '97000' }, t + 11_000);
+    expect(store.byName.BTC!.px).toBe(97000);
+  });
+});

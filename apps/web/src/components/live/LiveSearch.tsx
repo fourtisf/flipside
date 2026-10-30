@@ -1,11 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { change24h, findMarket, pair, tokName, type Market } from '@/hl/markets';
+import { change24h, findMarket, pair, type Market } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
 import { pct } from '@/lib/format';
 import { ComboSearch } from '../ComboSearch';
-import { Price, Tok } from '../ui';
+import { Price } from '../ui';
+import { CoinTok } from './CoinTok';
 
 const CA_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
@@ -63,7 +64,7 @@ export function LiveSearchBox({
         const ch = change24h(m);
         return (
           <>
-            <Tok s={tokName(m.name)} size={26} />
+            <CoinTok name={m.name} size={26} />
             <span>
               <b>{m.name}</b>
               <small>

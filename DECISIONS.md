@@ -81,6 +81,17 @@ Hardening after review (ALFA: "pastikan semuanya berjalan lancar"):
   refreshes at once.
 - **Error pages**: a crash shows "Something went wrong" with Try again and Back to markets, not a blank screen.
 - **k-markets** (kPEPE, kBONK) say "priced per 1,000 PEPE", in the terminal, the ticket and the docs.
+- **Faster live data**, after the first CI run against the real Hyperliquid showed prices (BTC 77,266 shown vs
+  77,265.5 mid) and the market count right, but `allMids` and the default order book arriving only about every
+  5 seconds. Prices now come from `fastAssetCtxs` (mids and marks for the coins that changed, compressed), with
+  `allMids` used only while it is silent for 10 seconds. The order book's top 5 levels come from the fast feed
+  (twice a second) and the rest from the default feed. The last candle follows the live price between candle
+  messages.
+- **Coin logos** (ALFA: "setiap token harus ada logonya"): Hyperliquid's own icon for each market, served from
+  coinside.fun at `/logos/<coin>.svg` (`lib/logos.ts`). The web server fetches an icon once and keeps it for a
+  day; browsers cache it too. It fetches only names Hyperliquid lists, looks for kPEPE under kPEPE and PEPE, accepts
+  SVG under 100 kB only, and serves it sandboxed so it can't run scripts. A coin without an icon keeps its
+  letter avatar. The "Live data" CI job counts how many coins have one.
 - **Known cost**: each build carries both editions' code, because the edition flag is not folded away across
   modules, so the live pages ship about 15 to 20 kB (gzipped) of prototype code. Archiving the original design
   (`PLAN-HYPERLIQUID.md`, decision 7) removes it.

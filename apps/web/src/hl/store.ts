@@ -13,6 +13,8 @@ const SNAPSHOT_MS = 15_000;
 const RENDER_MS = 250;
 /** Nothing heard from Hyperliquid for this long means the connection is gone and prices may be old. */
 export const STALE_MS = 45_000;
+/** allMids takes over prices when fastAssetCtxs has said nothing for this long. */
+const FAST_QUIET_MS = 10_000;
 
 /**
  * loading: no snapshot yet. live: data is flowing. stale: data was flowing but nothing has arrived for a
@@ -76,7 +78,8 @@ export interface Draft {
  * components re-render when `version` changes.
  *
  * - A snapshot of every perp market (metaAndAssetCtxs) on start and every 15 seconds.
- * - Prices from the allMids WebSocket channel in between, so they move within a second.
+ * - Prices from the fastAssetCtxs WebSocket channel in between, so they move within a second, with allMids
+ *   (about every 5 seconds) as the fallback.
  */
 export class HlStore {
   markets: Market[] = [];
@@ -101,6 +104,8 @@ export class HlStore {
   private pending: ReturnType<typeof setTimeout> | undefined;
   /** When anything last arrived from Hyperliquid (ms): a snapshot or a batch of prices. */
   private heardAt = 0;
+  /** When the fast price channel last spoke (ms). */
+  private fastAt = 0;
 
   subscribe = (l: () => void) => {
     this.listeners.add(l);
@@ -135,12 +140,38 @@ export class HlStore {
     this.emit();
   }
 
-  applyMids(mids: Record<string, string>) {
+  applyMids(mids: Record<string, string>, marksMoved = false) {
     Object.assign(this.mids, mids);
     this.heardAt = Date.now();
     const back = this.status === 'stale';
     if (back) this.status = 'live';
-    if (applyMids(this.markets, mids) || back) this.emitSoon();
+    if (applyMids(this.markets, mids) || marksMoved || back) this.emitSoon();
+  }
+
+  /**
+   * fastAssetCtxs: mids and marks for the coins that changed, many times a second. This is what keeps
+   * prices live; allMids only arrives about every 5 seconds.
+   */
+  applyFast(e: Record<string, { markPx?: string; midPx?: string | null }>) {
+    this.fastAt = Date.now();
+    const mids: Record<string, string> = {};
+    let marksMoved = false;
+    for (const [coin, v] of Object.entries(e)) {
+      if (v.midPx) mids[coin] = v.midPx;
+      const m = v.markPx ? this.byName[coin] : undefined;
+      const mark = Number(v.markPx);
+      if (m && mark > 0 && mark !== m.mark) {
+        m.mark = mark;
+        marksMoved = true;
+      }
+    }
+    this.applyMids(mids, marksMoved);
+  }
+
+  /** allMids, the slower channel: used only while the fast one is silent, so two sources never fight. */
+  applySlowMids(mids: Record<string, string>, now = Date.now()) {
+    if (now - this.fastAt < FAST_QUIET_MS) this.heardAt = now;
+    else this.applyMids(mids);
   }
 
   /** Run every few seconds: when nothing has arrived for a while, stop calling the prices live. */
@@ -186,7 +217,14 @@ export class HlStore {
     void poll();
     document.addEventListener('visibilitychange', onVisible);
     const watchdog = setInterval(() => this.checkStale(), 5_000);
-    const stopMids = keepSubscribed((opts) => sub.allMids(wsConfig(), (e) => this.applyMids(e.mids), opts));
+    // fastAssetCtxs arrives compressed and needs DecompressionStream (every current browser has it)
+    const stopFast =
+      typeof DecompressionStream === 'undefined'
+        ? () => {}
+        : keepSubscribed((opts) => sub.fastAssetCtxs(wsConfig(), (e) => this.applyFast(e), opts));
+    const stopMids = keepSubscribed((opts) =>
+      sub.allMids(wsConfig(), (e) => this.applySlowMids(e.mids), opts),
+    );
     return () => {
       stopped = true;
       clearTimeout(timer);
@@ -194,6 +232,7 @@ export class HlStore {
       clearInterval(watchdog);
       document.removeEventListener('visibilitychange', onVisible);
       ctl.abort();
+      stopFast();
       stopMids();
     };
   }

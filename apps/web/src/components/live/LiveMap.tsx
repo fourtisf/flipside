@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useMemo, useRef } from 'react';
-import { change24h, marketHref, tokName, type Market } from '@/hl/markets';
+import { change24h, marketHref, type Market } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
 import { pct } from '@/lib/format';
 import { layoutTiles, logoSpot, mix, tileFont, useBoxSize } from '../treemap';
-import { Tok } from '../ui';
+
 import { statusText } from './status';
+import { CoinTok } from './CoinTok';
 
 /** How many markets the map shows: the most traded. The rest are in the table. */
 const TILES = 40;
@@ -47,7 +48,7 @@ export function LiveMap() {
         const m = hl.byName[r.key];
         if (!m) return null;
         const fs = r.fs;
-        const logo = r.spot && <Tok s={tokName(m.name)} size={Math.round(fs * 1.15)} />;
+        const logo = r.spot && <CoinTok name={m.name} size={Math.round(fs * 1.15)} />;
         const show = r.w > 54 && r.h > 40;
         const style = { left: r.x, top: r.y, width: r.w, height: r.h, background: liveTileColor(m) };
         // Slivers under 24px are too small to hit (WCAG target size): color only, like the prototype.

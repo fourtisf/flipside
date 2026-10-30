@@ -5,6 +5,7 @@ import {
   fundingText,
   levChoices,
   liqPrice,
+  mergeSide,
   pxDecimals,
   pxParts,
   pxDiffText,
@@ -129,5 +130,22 @@ describe('order book', () => {
     expect(b.spread).toBe(1);
     expect(b.spreadPct).toBeCloseTo(0.01);
     expect(withDepth([], []).spread).toBeNull();
+  });
+});
+
+describe('order book from two feeds', () => {
+  const L = (px: number, sz = 1) => ({ px: String(px), sz: String(sz) });
+  it('takes the top from the fast feed and the rest from the deep one', () => {
+    const top = [L(101), L(102)];
+    const deep = [L(101), L(102.5), L(103), L(104)];
+    expect(mergeSide(top, deep, 1, 4).map((l) => l.px)).toEqual(['101', '102', '102.5', '103']);
+    const bids = mergeSide([L(99), L(98)], [L(99), L(97.5), L(97)], -1, 3);
+    expect(bids.map((l) => l.px)).toEqual(['99', '98', '97.5']);
+  });
+
+  it('uses whichever feed has arrived', () => {
+    expect(mergeSide(null, [L(1), L(2)], 1, 5)).toHaveLength(2);
+    expect(mergeSide([L(1)], null, 1, 5)).toHaveLength(1);
+    expect(mergeSide(null, null, 1, 5)).toEqual([]);
   });
 });

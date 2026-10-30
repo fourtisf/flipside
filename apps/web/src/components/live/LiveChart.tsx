@@ -82,6 +82,8 @@ export function LiveChart({ m, tf, flip }: { m: Market; tf: Tf; flip: boolean })
   flipRef.current = flip;
   /** Volume per candle time, so the Short view can recolor the bars. */
   const vols = useRef(new Map<number, number>());
+  /** True once this market and timeframe's history is on the chart. */
+  const loaded = useRef(false);
   const sz = m.szDecimals;
 
   useEffect(() => {
@@ -162,6 +164,7 @@ export function LiveChart({ m, tf, flip }: { m: Market; tf: Tf; flip: boolean })
     const coin = m.name;
     const ctl = new AbortController();
     let ready = false;
+    loaded.current = false;
     const queued: Bar[] = [];
     setState('loading');
     setOhlc(null);
@@ -213,7 +216,7 @@ export function LiveChart({ m, tf, flip }: { m: Market; tf: Tf; flip: boolean })
           const rows = cs.map((b) => put(b, false)!);
           a.candles.setData(rows.map((r) => r.bar));
           a.vol.setData(rows.map((r) => r.v));
-          ready = true;
+          ready = loaded.current = true;
           queued.splice(0).forEach((b) => put(b, true));
           const n = a.candles.data().length;
           a.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, n - VIEW), to: n + 3 });
@@ -232,6 +235,20 @@ export function LiveChart({ m, tf, flip }: { m: Market; tf: Tf; flip: boolean })
       stop();
     };
   }, [m.name, tf]);
+
+  // Hyperliquid pushes the candle about every 5 seconds; the live price moves the last candle in between.
+  useEffect(() => {
+    const a = api.current;
+    const last = a?.candles.data().at(-1) as CandlestickData | undefined;
+    if (!a || !loaded.current || !last || !(m.px > 0)) return;
+    if (Date.now() >= ((last.time as number) + STEP[tf] / 1000) * 1000) return; // that candle has closed
+    a.candles.update({
+      ...last,
+      close: m.px,
+      high: Math.max(last.high, m.px),
+      low: Math.min(last.low, m.px),
+    });
+  }, [m.px, tf]);
 
   const good = (q: Ohlc) => (flip ? q.c < q.o : q.c >= q.o);
   return (

@@ -3,12 +3,16 @@
  * `pnpm build` at 1440 and 390 px, with Hyperliquid's API replaced by fixtures (hl-mock.ts).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { mockHyperliquid } from './hl-mock';
+import { NO_LOGO, mockHyperliquid } from './hl-mock';
 
 function watchErrors(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  // a coin without an icon is a 404 the browser logs; the page shows its letter avatar instead
+  page.on(
+    'console',
+    (m) => m.type() === 'error' && !m.location().url.includes('/logos/') && errors.push(m.text()),
+  );
   return errors;
 }
 
@@ -48,8 +52,24 @@ test('markets: every Hyperliquid market, live prices, trading closed', async ({ 
   await expect(page.locator('#map a.tile').first()).toHaveAttribute('href', '/trade/BTC');
 
   // a price pushed over the WebSocket shows within a second
-  hl.push('allMids', { mids: { BTC: '98100' } });
+  hl.pushMids({ BTC: '98100' });
   await expect(rowPrice(page, 'BTC')).toHaveText('$98,100', { timeout: 1_000 });
+
+  // every coin shows its icon, or its letter when it has none
+  const row = (name: string) =>
+    page.locator('#rows .mk').filter({ has: page.locator(`b:text-is("${name}")`) });
+  await expect(row('BTC').locator('.tok.img img')).toHaveJSProperty('complete', true);
+  await expect
+    .poll(() =>
+      row('BTC')
+        .locator('.tok img')
+        .evaluate((i: HTMLImageElement) => i.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await row(NO_LOGO).scrollIntoViewIfNeeded();
+  await expect(row(NO_LOGO).locator('.tok')).not.toHaveClass(/img/);
+  await expect(row(NO_LOGO).locator('.tok')).toHaveText('P');
+  await page.evaluate(() => window.scrollTo(0, 0));
 
   // Quick trade: SOL by default, estimates, closed order button
   await expect(page.locator('#tk-coin')).toContainText('SOL');

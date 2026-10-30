@@ -1,9 +1,9 @@
 /**
  * H1's done check against the real Hyperliquid, not fixtures: every listed perp shows, prices match
- * Hyperliquid's own mids, and price updates arrive over the WebSocket within a second. Runs only with
- * HL_REAL=1 (the "Live data" CI job), because it depends on the market and the network.
+ * Hyperliquid's own mids, price updates arrive over the WebSocket within a second, and coins have their icons.
+ * Runs only with HL_REAL=1 (the "Live data" CI job), because it depends on the market and the network.
  */
-import { expect, test, type APIRequestContext } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 const INFO = 'https://api.hyperliquid.xyz/info';
 
@@ -13,16 +13,26 @@ async function info<T>(request: APIRequestContext, body: object): Promise<T> {
   return (await r.json()) as T;
 }
 
-test('markets: every listed perp, at Hyperliquid prices, updating live', async ({ page, request }) => {
-  const frames: number[] = [];
+/** Times at which the page received each WebSocket message on `channel`. */
+function frames(page: Page, channel: string): number[] {
+  const at: number[] = [];
+  const head = `{"channel":"${channel}"`;
   page.on('websocket', (ws) =>
     ws.on('framereceived', (f) => {
-      if (typeof f.payload === 'string' && f.payload.startsWith('{"channel":"allMids"'))
-        frames.push(Date.now());
+      if (typeof f.payload === 'string' && f.payload.startsWith(head)) at.push(Date.now());
     }),
   );
+  return at;
+}
+
+const live = (page: Page) =>
+  expect(page.locator('.status')).toHaveText('Live prices from Hyperliquid', { timeout: 30_000 });
+
+test('markets: every listed perp, at Hyperliquid prices, updating live', async ({ page, request }) => {
+  const fast = frames(page, 'fastAssetCtxs');
+  const slow = frames(page, 'allMids');
   await page.goto('/');
-  await expect(page.locator('.status')).toHaveText('Live prices from Hyperliquid', { timeout: 30_000 });
+  await live(page);
 
   type Meta = [{ universe: Array<{ name: string; isDelisted?: boolean }> }, unknown[]];
   const [meta] = await info<Meta>(request, { type: 'metaAndAssetCtxs' });
@@ -44,22 +54,43 @@ test('markets: every listed perp, at Hyperliquid prices, updating live', async (
     expect(Math.abs(shown / real - 1), name).toBeLessThan(0.005);
   }
 
-  // price updates keep arriving: at least one allMids message a second over 5 seconds
+  // price updates keep arriving: at least one fast message a second over 5 seconds
   const from = Date.now();
   await page.waitForTimeout(5_000);
-  const n = frames.filter((t) => t >= from).length;
-  console.log(`allMids messages in 5 s: ${n}`);
+  const n = fast.filter((t) => t >= from).length;
+  console.log(`fastAssetCtxs messages in 5 s: ${n} (allMids: ${slow.filter((t) => t >= from).length})`);
   expect(n).toBeGreaterThanOrEqual(5);
 });
 
-test('terminal: candles, order book, trades and stats for BTC and a k-market', async ({ page }) => {
-  const books: number[] = [];
-  page.on('websocket', (ws) =>
-    ws.on('framereceived', (f) => {
-      if (typeof f.payload === 'string' && f.payload.startsWith('{"channel":"l2Book"'))
-        books.push(Date.now());
+test('logos: every coin has its icon', async ({ page, request }) => {
+  const r = await request.get('/logos/BTC.svg');
+  expect(r.status()).toBe(200);
+  expect(r.headers()['content-type']).toContain('image/svg+xml');
+
+  await page.goto('/');
+  await live(page);
+  // icons load lazily: bring every row on screen once, then count the ones that loaded
+  for (const row of await page.locator('#rows .mk').all()) await row.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(3_000);
+  const result = await page.locator('#rows .mk').evaluateAll((rows) =>
+    rows.map((row) => {
+      const img = row.querySelector<HTMLImageElement>('.tok img');
+      return {
+        name: row.querySelector('b')?.textContent ?? '',
+        ok: !!img && img.complete && img.naturalWidth > 0,
+      };
     }),
   );
+  const missing = result.filter((x) => !x.ok).map((x) => x.name);
+  console.log(
+    `logos: ${result.length - missing.length} of ${result.length}; without: ${missing.join(', ') || 'none'}`,
+  );
+  for (const name of ['BTC', 'ETH', 'SOL', 'HYPE']) expect(missing, name).not.toContain(name);
+  expect(missing.length / result.length).toBeLessThan(0.1);
+});
+
+test('terminal: candles, order book, trades and stats for BTC and a k-market', async ({ page }) => {
+  const books = frames(page, 'l2Book');
   await page.goto('/trade/BTC');
   await expect(page.locator('#th-title')).toHaveText('BTC-USD', { timeout: 30_000 });
   await expect(page.locator('.cmsg')).toHaveCount(0, { timeout: 30_000 });
@@ -67,11 +98,13 @@ test('terminal: candles, order book, trades and stats for BTC and a k-market', a
   await expect(page.locator('#ob .ob-r.b')).toHaveCount(10);
   await expect(page.locator('#rt .ob-r').first()).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('#th-stats')).toContainText('Max leverage');
-  await page.waitForTimeout(10_000);
-  // how often Hyperliquid pushes the book by default, for the record
-  const gaps = books.slice(1).map((t, i) => t - books[i]!);
-  console.log(`l2Book messages in ~10 s: ${books.length}, gaps ms: ${gaps.join(', ')}`);
-  expect(books.length).toBeGreaterThan(0);
+
+  // the fast book feed: at least one message a second
+  const from = Date.now();
+  await page.waitForTimeout(5_000);
+  const n = books.filter((t) => t >= from).length;
+  console.log(`l2Book messages in 5 s: ${n}`);
+  expect(n).toBeGreaterThanOrEqual(5);
 
   await page.goto('/trade/kpepe');
   await expect(page).toHaveURL(/\/trade\/kPEPE$/, { timeout: 30_000 });

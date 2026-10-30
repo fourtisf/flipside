@@ -129,3 +129,6 @@ export const tokName = (name: string) => name.replace(/^k(?=[A-Z])/, '');
 /** "priced per 1,000 PEPE" for Hyperliquid's k-markets, whose price and size count thousands of coins. */
 export const unitNote = (name: string): string | null =>
   /^k[A-Z]/.test(name) ? `priced per 1,000 ${tokName(name)}` : null;
+
+/** The coin's icon, served by coinside.fun from Hyperliquid's set (lib/logos.ts). */
+export const logoUrl = (name: string) => `/logos/${encodeURIComponent(name)}.svg`;

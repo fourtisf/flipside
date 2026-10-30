@@ -14,11 +14,14 @@ export function Tok({
   logo,
   size,
   inline,
+  lazy,
 }: {
   s: string;
   logo?: string | null;
   size?: number;
   inline?: boolean;
+  /** Load the logo only when it scrolls near the screen (long lists). */
+  lazy?: boolean;
 }) {
   const [broken, setBroken] = useState<string | null>(null);
   const img = useRef<HTMLImageElement>(null);
@@ -41,6 +44,7 @@ export function Tok({
           width={size ?? 28}
           height={size ?? 28}
           decoding="async"
+          loading={lazy ? 'lazy' : undefined}
           onError={() => setBroken(logo)}
         />
       ) : (

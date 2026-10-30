@@ -77,6 +77,24 @@ export function sizeFor(usdc: number, lev: number, px: number, szDecimals: numbe
   return Math.floor(((usdc * lev) / px) * f + 1e-9) / f;
 }
 
+type Level = { px: string; sz: string };
+
+/**
+ * One side of the order book from two feeds: the fast feed's top levels (5, twice a second) and, beyond them,
+ * the slow feed's deeper levels (20, every 5 seconds). `dir` is 1 for asks (rising prices), -1 for bids.
+ */
+export function mergeSide(
+  top: readonly Level[] | null,
+  deep: readonly Level[] | null,
+  dir: 1 | -1,
+  n: number,
+) {
+  if (!top?.length) return (deep ?? []).slice(0, n);
+  const edge = Number(top[top.length - 1]!.px);
+  const beyond = (deep ?? []).filter((l) => (dir > 0 ? Number(l.px) > edge : Number(l.px) < edge));
+  return [...top, ...beyond].slice(0, n);
+}
+
 export interface BookRow {
   px: number;
   sz: number;

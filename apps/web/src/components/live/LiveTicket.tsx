@@ -1,13 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { DEFAULT_MARKET, change24h, marketHref, pair, tokName, unitNote } from '@/hl/markets';
+import { DEFAULT_MARKET, change24h, marketHref, pair, unitNote } from '@/hl/markets';
 import { useHl, useSpark } from '@/hl/provider';
 import { C, pct } from '@/lib/format';
-import { Price, Tok } from '../ui';
+import { Price } from '../ui';
 import { LiveSearchBox } from './LiveSearch';
 import { LevButtons, Sides, Summary, levFor } from './OrderBits';
 import { statusText } from './status';
+import { CoinTok } from './CoinTok';
 
 /** The 24h sparkline: 15-minute closes, ending at the live price. */
 function Spark({ name, px }: { name: string; px: number }) {
@@ -80,7 +81,7 @@ export function LiveTicket() {
         {m ? (
           <>
             <div className="tk-coin" id="tk-coin">
-              <Tok s={tokName(m.name)} size={36} />
+              <CoinTok name={m.name} size={36} />
               <div>
                 <b>{m.name}</b>
                 <small>

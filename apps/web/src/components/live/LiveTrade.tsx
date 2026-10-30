@@ -5,14 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { hlTradeUrl } from '@/hl/client';
 import { fundingCountdown, fundingText, pxText } from '@/hl/format';
-import { change24h, findMarket, marketHref, pair, tokName, unitNote, type Market } from '@/hl/markets';
+import { change24h, findMarket, marketHref, pair, unitNote, type Market } from '@/hl/markets';
 import { useActiveCtx, useHl } from '@/hl/provider';
 import { pct, usd } from '@/lib/format';
-import { Price, Px, Shield, Tok } from '../ui';
+import { Price, Px, Shield } from '../ui';
 import { OrderBook, RecentTrades } from './BookTrades';
 import { LiveChart, TFS, type Tf } from './LiveChart';
 import { LevButtons, Sides, Summary, levFor } from './OrderBits';
 import { statusText } from './status';
+import { CoinTok } from './CoinTok';
 
 function Watchlist({ sel }: { sel: Market }) {
   const hl = useHl();
@@ -51,7 +52,7 @@ function Watchlist({ sel }: { sel: Market }) {
             return (
               <li key={name}>
                 <Link className="wi" href={marketHref(name)} scroll={false} aria-current={name === sel.name}>
-                  <Tok s={tokName(name)} size={24} />
+                  <CoinTok name={name} size={24} />
                   <span>
                     <b>{name}</b>
                     <small>{usd(m.volume)}</small>
@@ -223,7 +224,7 @@ function Terminal({ m }: { m: Market }) {
       <div className="thd">
         <div className="th-tok">
           <span id="th-tok">
-            <Tok s={tokName(m.name)} size={36} />
+            <CoinTok name={m.name} size={36} />
           </span>
           <div>
             <h1 id="th-title">{pair(m.name)}</h1>

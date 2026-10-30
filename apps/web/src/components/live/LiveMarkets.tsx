@@ -4,14 +4,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, type ReactNode } from 'react';
 import { fundingText } from '@/hl/format';
-import { change24h, marketHref, pair, tokName, type Market } from '@/hl/markets';
+import { change24h, marketHref, pair, type Market } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
 import type { Side, SortKey, Status } from '@/hl/store';
 import { M, pct, usd } from '@/lib/format';
-import { Price, Px, Tok } from '../ui';
+import { Price, Px } from '../ui';
 import { LiveMap, MAP_RANGE } from './LiveMap';
 import { LiveTicket } from './LiveTicket';
 import { statusText } from './status';
+import { CoinTok } from './CoinTok';
 
 /* ---------- hero ---------- */
 const TRUST = [
@@ -107,7 +108,7 @@ function Hero() {
 function Lr({ m, sub, children }: { m: Market; sub: string; children: ReactNode }) {
   return (
     <Link className="lr" href={marketHref(m.name)}>
-      <Tok s={tokName(m.name)} size={28} />
+      <CoinTok name={m.name} size={28} />
       <span style={{ minWidth: 0 }}>
         <b>{m.name}</b>
         <small>{sub}</small>
@@ -287,7 +288,7 @@ function MarketsTable() {
                   }}
                 >
                   <div className="tk" role="cell">
-                    <Tok s={tokName(m.name)} size={28} />
+                    <CoinTok name={m.name} size={28} />
                     <div style={{ minWidth: 0 }}>
                       <Link href={marketHref(name)} onClick={(e) => e.stopPropagation()}>
                         <b>{m.name}</b>
