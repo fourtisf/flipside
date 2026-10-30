@@ -39,6 +39,31 @@ adds to what's there:
   `coinside` user, separately from any PM2 that root or another user runs.
 - **Time zone.** Left as it is.
 
+### Removing the other apps
+
+`remove-other-apps.sh` removes every app on the server except Coinside. By default it only shows what it would
+remove. With `--yes` it stops the other apps, writes everything it removes (home folders, databases, Redis
+data, configs, crontabs, certificates) to one root-only archive, `/root/removed-apps-backup-<time>.tar.gz`,
+and only then deletes. The PostgreSQL and Redis servers stay, because Coinside uses them from P2. Anything a
+package installed stays too. `--keep NAME` keeps a user, site, database or folder.
+
+```bash
+bash /srv/coinside/current/deploy/remove-other-apps.sh
+```
+
+Take a snapshot in hPanel (VPS → Snapshots & Backups), then:
+
+```bash
+bash /srv/coinside/current/deploy/remove-other-apps.sh --yes
+```
+
+```bash
+bash /srv/coinside/current/deploy/bootstrap.sh
+```
+
+The last command makes Coinside the default site for unknown host names, now that no other site holds that
+role. Delete the archive after a week or two once nothing is missed.
+
 ## On the server
 
 | Path | What |

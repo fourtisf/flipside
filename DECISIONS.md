@@ -20,6 +20,33 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Removing the other apps from the server (30 Oct 2026)
+
+ALFA asked to delete everything on the VPS except Coinside: uspad, divvy (four users and a backup job),
+mochibo, and leftovers from ambervale and balast. `deploy/remove-other-apps.sh` does it in a way that can be
+undone:
+
+- It shows the plan by default. It only deletes with `--yes`, after stopping the apps and writing everything
+  it removes to one root-only archive (`pg_dumpall`, the Redis dump, home folders, configs, crontabs,
+  certificates). If the archive can't be written and read back, nothing is deleted.
+- It finds the other apps instead of naming them, so it doesn't depend on a hand-made list. App accounts are
+  users with a home in `/home`, or ordinary user IDs with a login shell. The first rehearsal also caught
+  system accounts with high IDs (a build system's), which is why service accounts are left alone.
+- It keeps anything a package installed, Ubuntu's own backups, the PostgreSQL and Redis servers (Coinside
+  needs them in P2), SSH, the firewall and root's hidden files. It deletes only inside a fixed list of
+  folders.
+- Nginx goes first and is tested; if Nginx fails without the other sites, they are put back and nothing else
+  is removed.
+
+Rehearsed against a copy of the server's layout:
+- **What it removed:** app users with running processes, an app under root's PM2, systemd services, cron
+  files, an Nginx site, databases with data, a table an app left in the shared `postgres` database, Redis
+  keys, and leftover folders.
+- **What survived:** Coinside kept serving.
+- **The backup:** restoring it brought back the database rows and files.
+- **Bugs the rehearsal found, all fixed:** the stash could overwrite a same-named Nginx file; tar failed with
+  no files to archive; a partial archive was readable by everyone; a table owned by an app survived.
+
 ## Audit and fixes (30 Oct 2026)
 
 ALFA asked for the pending decisions to be applied and for a careful audit. Dependencies were checked with
