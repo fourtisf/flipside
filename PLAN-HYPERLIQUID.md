@@ -25,21 +25,25 @@ funds and never takes the other side of a trade.
 1. **Connect.** The user connects a Solana wallet that also has an EVM address (Phantom, Backpack). That EVM
    address is their Hyperliquid account. Wallets without one are decision 3 below.
 2. **Deposit from Solana.**
-   - **SOL:** goes through **Unit** to a deposit address made for the user's Hyperliquid account. It arrives
-     in about a minute as spot SOL. The app swaps it to USDC on Hyperliquid's spot market and moves it to
-     the perps account; the user signs both.
+   - **SOL:** goes through **Unit**. The app asks Unit for the user's Solana deposit address
+     (`GET https://api.hyperunit.xyz/gen/solana/hyperliquid/sol/<hyperliquid address>`). The address is
+     permanently tied to that account and comes with Unit guardian signatures, which the app checks before
+     showing it. The minimum is 0.12 SOL. The SOL arrives in about a minute as the spot token `USOL`. The app
+     swaps it to USDC on Hyperliquid's spot market and moves it to the perps account; the user signs both.
    - **USDC:** goes through **Across**, straight to the Hyperliquid account. (USDC sent to Unit's Solana
      address is lost: Unit only accepts SOL, FARTCOIN and PUMP there.)
 3. **Approve once.**
-   - **The builder fee:** an `approveBuilderFee` signature from the main wallet, with a maximum the user can
-     revoke at any time.
+   - **The builder fee:** an `ApproveBuilderFee` action signed by the main wallet (an agent wallet can't
+     sign it), with a maximum the user can revoke at any time. A user can have at most 10 builder approvals
+     active.
    - **An agent key for one-click trading:** made in the browser and approved by the main wallet. It can
      place and cancel orders but never withdraw, the same idea as the session keys in the original brief.
 4. **Trade.** Long or short with leverage up to each market's maximum. Order types: market (an
    immediate-or-cancel order with a slippage cap), limit, and take profit / stop loss. Margin is isolated or
    cross. Every order carries Coinside's builder code.
-5. **Withdraw to Solana.** Swap USDC to SOL on Hyperliquid's spot market, then withdraw through Unit to the
-   user's Solana address.
+5. **Withdraw to Solana.** Swap USDC to `USOL` on Hyperliquid's spot market, then send it to the Unit
+   withdrawal address made for the user's Solana address (`/gen/hyperliquid/solana/sol/<solana address>`).
+   Unit pays out on Solana about 10 seconds after the Hyperliquid transfer is final.
 
 ## Architecture
 
@@ -100,7 +104,8 @@ fees on about $37B of volume in under a year. As an illustration, $1M of daily v
 
 1. **Builder fee.** 0.05% (Phantom's level) or lower to compete. The cap is 0.1%.
 2. **Builder wallet.** An EVM address that ALFA controls, ideally a hardware wallet. Hyperliquid requires the
-   builder to hold a minimum balance (100 USDC in its perps account as of 2025; to be checked).
+   builder to hold at least 100 USDC in its perps account and to use the standard account mode. Fees are
+   claimed through Hyperliquid's referral reward claim.
 3. **Wallets.**
    - **Option A:** at first, only wallets that also have an EVM address (Phantom, Backpack). No third party.
    - **Option B:** an embedded wallet provider such as Privy, so any Solana wallet works. Costs money and
@@ -118,9 +123,26 @@ fees on about $37B of volume in under a year. As an illustration, $1M of daily v
   - `api.hyperliquid.xyz` and `api.hyperliquid-testnet.xyz` (REST and WebSocket);
   - `hyperliquid.gitbook.io` (docs);
   - `api.hyperunit.xyz` and `docs.hyperunit.xyz` (Unit);
-  - Across's API, in H4.
-- **To verify against the official docs** once they can be read: the builder fee units in the order action,
-  the builder's minimum balance, the approval flows, and Unit's deposit address API and minimums.
+  - Across's API, in H4;
+  - `stats-data.hyperliquid.xyz` (the builder fills files), for the leaderboard and fee reports.
+
+  The first five work since 30 Oct 2026.
+
+## Verified against the official docs (30 Oct 2026)
+
+- **Builder fees:**
+  - **Cap:** at most 0.1% on perps and 1% on spot. On spot, the fee doesn't apply to the buying side.
+  - **Order parameter:** `{"b": address, "f": number}`, where `f` is in tenths of a basis point (10 = 0.01%, so
+    0.05% is `f: 50`).
+  - **Reporting:** the approved maximum is readable with `{"type": "maxBuilderFee", ...}`. Total fees are in
+    the `referral` info response, and every builder fill is published daily at
+    `https://stats-data.hyperliquid.xyz/Mainnet/builder_fills/<builder address, lowercase>/<YYYYMMDD>.csv.lz4`.
+- **Unit:**
+  - **Solana deposits:** the minimum is 0.12 SOL. Deposit and withdrawal addresses come from
+    `GET /gen/:src_chain/:dst_chain/:asset/:dst_addr`, signed by the guardians. SOL arrives as `USOL`.
+  - **Recovering a failed Solana deposit (a "revert"):** possible after about 3 days, with a Solana signature
+    and a HYPE fee. Unit warns that the built-in EVM addresses of some Solana wallets can make reverts harder,
+    which H4 has to handle.
 
 ## Sources
 
