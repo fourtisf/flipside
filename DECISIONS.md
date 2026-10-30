@@ -88,10 +88,13 @@ Hardening after review (ALFA: "pastikan semuanya berjalan lancar"):
   (twice a second) and the rest from the default feed. The last candle follows the live price between candle
   messages.
 - **Coin logos** (ALFA: "setiap token harus ada logonya"): Hyperliquid's own icon for each market, served from
-  coinside.fun at `/logos/<coin>.svg` (`lib/logos.ts`). The web server fetches an icon once and keeps it for a
-  day; browsers cache it too. It fetches only names Hyperliquid lists, looks for kPEPE under kPEPE and PEPE, accepts
-  SVG under 100 kB only, and serves it sandboxed so it can't run scripts. A coin without an icon keeps its
-  letter avatar. The "Live data" CI job counts how many coins have one.
+  coinside.fun at `/logos/<coin>` (`lib/logos.ts`). The web server fetches an icon once, renders it to a 64 px
+  WebP with sharp (Next's image library, now a direct dependency) and keeps it for a day; browsers cache it
+  too. It fetches only names Hyperliquid lists and looks for kPEPE under kPEPE and PEPE. A coin without an icon
+  keeps its letter avatar. The "Live data" CI job counts how many coins have one and logs why any are missing.
+  The first version served the SVGs as they were with a 100 kB cap: 161 of 179 coins had a logo, and the 18
+  without were mostly memecoins, whose icons are large pictures wrapped in SVG. Rendering to WebP makes every
+  icon a few kilobytes and means no SVG from elsewhere is served from our domain.
 - **Known cost**: each build carries both editions' code, because the edition flag is not folded away across
   modules, so the live pages ship about 15 to 20 kB (gzipped) of prototype code. Archiving the original design
   (`PLAN-HYPERLIQUID.md`, decision 7) removes it.

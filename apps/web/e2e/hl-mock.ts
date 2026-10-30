@@ -10,7 +10,7 @@ import { META_AND_CTXS, book, candles, mids, trades } from './hl-fixtures';
 /** fastAssetCtxs arrives as base64 of raw-DEFLATE JSON, as Hyperliquid sends it. */
 const packed = (data: unknown) => deflateRawSync(Buffer.from(JSON.stringify(data))).toString('base64');
 
-/** Icons served in place of /logos/<coin>.svg. POPCAT has none, so its letter avatar shows. */
+/** Icons served in place of /logos/<coin>. POPCAT has none, so its letter avatar shows. */
 export const NO_LOGO = 'POPCAT';
 const ICON =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#EDEDED"/></svg>';
@@ -42,8 +42,8 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
       packed(Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { midPx: v }]))),
     );
 
-  await page.route('**/logos/*.svg', (route) =>
-    route.request().url().endsWith(`/${NO_LOGO}.svg`)
+  await page.route('**/logos/*', (route) =>
+    route.request().url().endsWith(`/${NO_LOGO}`)
       ? route.fulfill({ status: 404, body: '' })
       : route.fulfill({ contentType: 'image/svg+xml', body: ICON }),
   );

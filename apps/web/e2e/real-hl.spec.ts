@@ -63,9 +63,9 @@ test('markets: every listed perp, at Hyperliquid prices, updating live', async (
 });
 
 test('logos: every coin has its icon', async ({ page, request }) => {
-  const r = await request.get('/logos/BTC.svg');
+  const r = await request.get('/logos/BTC');
   expect(r.status()).toBe(200);
-  expect(r.headers()['content-type']).toContain('image/svg+xml');
+  expect(r.headers()['content-type']).toBe('image/webp');
 
   await page.goto('/');
   await live(page);
@@ -85,8 +85,16 @@ test('logos: every coin has its icon', async ({ page, request }) => {
   console.log(
     `logos: ${result.length - missing.length} of ${result.length}; without: ${missing.join(', ') || 'none'}`,
   );
+  // why each missing one is missing, straight from the source
+  for (const name of missing) {
+    const src = await request.get(`https://app.hyperliquid.xyz/coins/${encodeURIComponent(name)}.svg`);
+    const body = await src.body();
+    console.log(
+      `  ${name}: ${src.status()} ${src.headers()['content-type'] ?? '-'} ${body.length} bytes: ${body.subarray(0, 80).toString().replace(/\s+/g, ' ')}`,
+    );
+  }
   for (const name of ['BTC', 'ETH', 'SOL', 'HYPE']) expect(missing, name).not.toContain(name);
-  expect(missing.length / result.length).toBeLessThan(0.1);
+  expect(missing.length / result.length).toBeLessThan(0.05);
 });
 
 test('terminal: candles, order book, trades and stats for BTC and a k-market', async ({ page }) => {

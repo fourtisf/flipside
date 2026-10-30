@@ -131,4 +131,4 @@ export const unitNote = (name: string): string | null =>
   /^k[A-Z]/.test(name) ? `priced per 1,000 ${tokName(name)}` : null;
 
 /** The coin's icon, served by coinside.fun from Hyperliquid's set (lib/logos.ts). */
-export const logoUrl = (name: string) => `/logos/${encodeURIComponent(name)}.svg`;
+export const logoUrl = (name: string) => `/logos/${encodeURIComponent(name)}`;
