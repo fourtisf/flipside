@@ -43,11 +43,20 @@ export const iconCandidates = (name: string): string[] => {
   return base === name ? [name] : [name, base];
 };
 
-/** sharp renders the SVG (pictures embedded in it included) into a 64 px WebP, on a transparent background. */
+/**
+ * sharp renders the SVG (pictures embedded in it included) into a 64 px WebP, on a transparent background. The
+ * render density follows the SVG's own size: a fixed density blows a 5000-unit canvas up past sharp's pixel
+ * limit, which is how Hyperliquid's own BTC icon first failed.
+ */
 export const renderWebp: Render = async (svg) => {
   try {
     const { default: sharp } = await import('sharp');
-    const out = await sharp(svg, { density: 300 })
+    // reading the size doesn't rasterize, so a huge canvas needn't count against the pixel limit
+    const { width = 0, height = 0 } = await sharp(svg, { limitInputPixels: false }).metadata();
+    const size = Math.max(width, height) || ICON_PX;
+    // rasterize at about twice the icon size, then scale down
+    const density = Math.min(2400, Math.max(1, (72 * ICON_PX * 2) / size));
+    const out = await sharp(svg, { density })
       .resize(ICON_PX, ICON_PX, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .webp({ quality: 90 })
       .toBuffer();

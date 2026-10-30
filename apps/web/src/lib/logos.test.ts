@@ -49,6 +49,16 @@ describe('logos', () => {
     expect((await renderWebp(enc(big)))!.byteLength).toBeLessThan(10_000);
   });
 
+  it('renders SVGs of any canvas size, tiny or huge', async () => {
+    const { default: sharp } = await import('sharp');
+    for (const n of [16, 32, 500, 5000, 20000]) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${n}" height="${n}" viewBox="0 0 ${n} ${n}"><circle cx="${n / 2}" cy="${n / 2}" r="${n / 2}" fill="#3DD68C"/></svg>`;
+      const out = await renderWebp(enc(svg));
+      expect(out, `${n}`).not.toBeNull();
+      expect((await sharp(Buffer.from(out!)).metadata()).width, `${n}`).toBe(64);
+    }
+  });
+
   it('renders an SVG that wraps a picture (how many memecoin icons are made)', async () => {
     const { default: sharp } = await import('sharp');
     const png = await sharp({

@@ -65,6 +65,15 @@ test('markets: every listed perp, at Hyperliquid prices, updating live', async (
 test('logos: every coin has its icon', async ({ page, request }) => {
   const r = await request.get('/logos/BTC');
   expect(r.status()).toBe(200);
+  if (r.headers()['content-type'] !== 'image/webp') {
+    // say why sharp couldn't render Hyperliquid's own icon
+    const src = await (await request.get('https://app.hyperliquid.xyz/coins/BTC.svg')).body();
+    const { default: sharp } = await import('sharp');
+    const meta = await sharp(src)
+      .metadata()
+      .catch((e: Error) => e.message);
+    console.log(`BTC.svg: ${src.length} bytes, ${JSON.stringify(meta)}: ${src.subarray(0, 200).toString()}`);
+  }
   expect(r.headers()['content-type']).toBe('image/webp');
 
   await page.goto('/');
