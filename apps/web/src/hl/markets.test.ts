@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { META_AND_CTXS, ROWS } from '../../e2e/hl-fixtures';
-import { applyCtx, applyMids, change24h, findMarket, toMarkets } from './markets';
+import { applyCtx, applyMids, change24h, findMarket, toMarkets, unitNote } from './markets';
 import { HlStore } from './store';
 
 describe('toMarkets', () => {
@@ -98,5 +98,33 @@ describe('findMarket', () => {
     expect(findMarket(ms, '$btc')!.name).toBe('BTC');
     expect(findMarket(ms, 'OLDCOIN')).toBeUndefined();
     expect(findMarket(ms, 'nope')).toBeUndefined();
+  });
+});
+
+describe('connection state', () => {
+  it('says prices may be old when nothing arrives, and live again when prices come back', () => {
+    const store = new HlStore();
+    store.applySnapshot(META_AND_CTXS);
+    const t = Date.now();
+    store.checkStale(t + 10_000);
+    expect(store.status).toBe('live');
+    store.checkStale(t + 46_000);
+    expect(store.status).toBe('stale');
+    store.applyMids({ BTC: '97123.5' }); // unchanged prices still prove the connection is back
+    expect(store.status).toBe('live');
+  });
+
+  it('never calls a page stale before anything arrived', () => {
+    const store = new HlStore();
+    store.checkStale(Date.now() + 100_000);
+    expect(store.status).toBe('loading');
+  });
+});
+
+describe('unitNote', () => {
+  it('explains k-markets only', () => {
+    expect(unitNote('kPEPE')).toBe('priced per 1,000 PEPE');
+    expect(unitNote('SOL')).toBeNull();
+    expect(unitNote('kaito')).toBeNull();
   });
 });

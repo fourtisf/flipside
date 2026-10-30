@@ -23,7 +23,10 @@ const STEPS: Array<[string, string]> = [
 ];
 
 const RULES: Array<[string, string]> = [
-  ['Markets', 'Every perpetual market Hyperliquid lists, from BTC and SOL to the biggest memecoins.'],
+  [
+    'Markets',
+    'Every perpetual market Hyperliquid lists, from BTC and SOL to the biggest memecoins. A "k" in front of a name, as in kPEPE, means the price and size count 1,000 coins.',
+  ],
   ['Leverage', 'Each market has its own maximum, shown next to it on every page.'],
   [
     'Orders',

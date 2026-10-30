@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { DEFAULT_MARKET, change24h, marketHref, pair, tokName } from '@/hl/markets';
+import { DEFAULT_MARKET, change24h, marketHref, pair, tokName, unitNote } from '@/hl/markets';
 import { useHl, useSpark } from '@/hl/provider';
 import { C, pct } from '@/lib/format';
 import { Price, Tok } from '../ui';
@@ -85,6 +85,7 @@ export function LiveTicket() {
                 <b>{m.name}</b>
                 <small>
                   {pair(m.name)} perpetual, up to {m.maxLeverage}x
+                  {unitNote(m.name) ? `, ${unitNote(m.name)}` : ''}
                 </small>
               </div>
               <div className="r">

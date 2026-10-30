@@ -125,3 +125,7 @@ export const marketHref = (name: string) => `/trade/${encodeURIComponent(name)}`
 
 /** The name for the letter avatar: kPEPE is PEPE (Hyperliquid's "k" means 1,000 units). */
 export const tokName = (name: string) => name.replace(/^k(?=[A-Z])/, '');
+
+/** "priced per 1,000 PEPE" for Hyperliquid's k-markets, whose price and size count thousands of coins. */
+export const unitNote = (name: string): string | null =>
+  /^k[A-Z]/.test(name) ? `priced per 1,000 ${tokName(name)}` : null;

@@ -6,7 +6,7 @@ import { useMemo, type ReactNode } from 'react';
 import { fundingText } from '@/hl/format';
 import { change24h, marketHref, pair, tokName, type Market } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
-import type { Side, SortKey } from '@/hl/store';
+import type { Side, SortKey, Status } from '@/hl/store';
 import { M, pct, usd } from '@/lib/format';
 import { Price, Px, Tok } from '../ui';
 import { LiveMap, MAP_RANGE } from './LiveMap';
@@ -128,7 +128,7 @@ function ListPanel({
   title: string;
   note: string;
   list: Market[];
-  status: 'loading' | 'live' | 'down';
+  status: Status;
 }) {
   return (
     <div className="pn">
@@ -325,7 +325,7 @@ function MarketsTable() {
           ) : (
             <div role="row">
               <div className="empty" role="cell">
-                {hl.status === 'live' ? (
+                {hl.markets.length ? (
                   <>
                     <b>No markets match</b>Try a ticker like SOL, BTC or HYPE.
                   </>

@@ -11,6 +11,14 @@ import { DEFAULT_MARKET, applyMids, toMarkets, type Market } from './markets';
 const SNAPSHOT_MS = 15_000;
 /** Prices arrive many times a second; the UI re-renders at most this often. */
 const RENDER_MS = 250;
+/** Nothing heard from Hyperliquid for this long means the connection is gone and prices may be old. */
+export const STALE_MS = 45_000;
+
+/**
+ * loading: no snapshot yet. live: data is flowing. stale: data was flowing but nothing has arrived for a
+ * while (prices on screen may be old). down: Hyperliquid couldn't be reached before anything arrived.
+ */
+export type Status = 'loading' | 'live' | 'stale' | 'down';
 
 /**
  * Keep a WebSocket subscription alive: retry with backoff if subscribing fails, or if a confirmed
@@ -73,8 +81,7 @@ export interface Draft {
 export class HlStore {
   markets: Market[] = [];
   byName: Record<string, Market> = {};
-  /** loading: no snapshot yet. live: data is flowing. down: Hyperliquid can't be reached right now. */
-  status: 'loading' | 'live' | 'down' = 'loading';
+  status: Status = 'loading';
   /** When the last snapshot arrived (ms). */
   updatedAt = 0;
   /** Bumped on every snapshot: lists and table rows re-order then, not on every price tick. */
@@ -92,6 +99,8 @@ export class HlStore {
   private listeners = new Set<() => void>();
   private mids: Record<string, string> = {};
   private pending: ReturnType<typeof setTimeout> | undefined;
+  /** When anything last arrived from Hyperliquid (ms): a snapshot or a batch of prices. */
+  private heardAt = 0;
 
   subscribe = (l: () => void) => {
     this.listeners.add(l);
@@ -121,14 +130,22 @@ export class HlStore {
     this.markets = toMarkets(snap, this.mids, this.byName);
     this.byName = Object.fromEntries(this.markets.map((m) => [m.name, m]));
     this.status = 'live';
-    this.updatedAt = Date.now();
+    this.updatedAt = this.heardAt = Date.now();
     this.rowsKey++;
     this.emit();
   }
 
   applyMids(mids: Record<string, string>) {
     Object.assign(this.mids, mids);
-    if (applyMids(this.markets, mids)) this.emitSoon();
+    this.heardAt = Date.now();
+    const back = this.status === 'stale';
+    if (back) this.status = 'live';
+    if (applyMids(this.markets, mids) || back) this.emitSoon();
+  }
+
+  /** Run every few seconds: when nothing has arrived for a while, stop calling the prices live. */
+  checkStale(now = Date.now()) {
+    if (this.status === 'live' && now - this.heardAt > STALE_MS) this.set((s) => void (s.status = 'stale'));
   }
 
   /** Re-render without new data (a pushed market context changed a Market in place). */
@@ -139,30 +156,43 @@ export class HlStore {
   /** Connect. Returns a function that disconnects (the provider calls it on unmount). */
   start(): () => void {
     let stopped = false;
+    let inflight = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const ctl = new AbortController();
     const poll = async () => {
-      if (stopped) return;
+      if (stopped || inflight) return;
+      clearTimeout(timer);
+      let next = SNAPSHOT_MS;
       // Skip the refresh while the tab is hidden; prices keep coming over the WebSocket.
-      if (typeof document === 'undefined' || !document.hidden || !this.markets.length) {
+      if (!document.hidden || !this.markets.length) {
+        inflight = true;
         try {
           this.applySnapshot(await info.metaAndAssetCtxs(httpConfig(), ctl.signal));
         } catch {
           if (stopped) return;
           if (this.status === 'loading') this.set((s) => void (s.status = 'down'));
           // Retry sooner while there is nothing to show.
-          timer = setTimeout(poll, this.markets.length ? SNAPSHOT_MS : 5_000);
-          return;
+          if (!this.markets.length) next = 5_000;
+        } finally {
+          inflight = false;
         }
       }
-      timer = setTimeout(poll, SNAPSHOT_MS);
+      if (!stopped) timer = setTimeout(poll, next);
+    };
+    // Coming back to the tab refreshes at once instead of waiting for the next round.
+    const onVisible = () => {
+      if (!document.hidden && Date.now() - this.updatedAt > SNAPSHOT_MS) void poll();
     };
     void poll();
+    document.addEventListener('visibilitychange', onVisible);
+    const watchdog = setInterval(() => this.checkStale(), 5_000);
     const stopMids = keepSubscribed((opts) => sub.allMids(wsConfig(), (e) => this.applyMids(e.mids), opts));
     return () => {
       stopped = true;
       clearTimeout(timer);
       clearTimeout(this.pending);
+      clearInterval(watchdog);
+      document.removeEventListener('visibilitychange', onVisible);
       ctl.abort();
       stopMids();
     };

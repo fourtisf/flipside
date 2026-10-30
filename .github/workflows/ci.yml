@@ -1,8 +1,9 @@
 name: CI
 
+# Every push: the work lands on the repository's default branch (claude/new-session-nptqr8), not main, and
+# coinside-deploy deploys whatever that branch holds.
 on:
   push:
-    branches: [main]
   pull_request:
 
 # Read-only token: no step needs to write to the repository.
@@ -64,6 +65,33 @@ jobs:
           path: |
             apps/web/test-results
             artifacts/lighthouse
+
+  live-data:
+    # H1's done check on the real Hyperliquid: every listed perp shows, prices match its mids, and updates
+    # arrive over the WebSocket. Separate from the e2e job, which uses fixtures, because the market or
+    # Hyperliquid itself can make this one fail.
+    name: Live data (real Hyperliquid)
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter=@coinside/web
+      - run: pnpm --filter @coinside/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @coinside/web e2e
+        env:
+          CI: true
+          HL_REAL: 1
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: live-data-report
+          path: apps/web/test-results
 
   deploy:
     name: Deploy scripts (shellcheck) and Nginx config (nginx -t)

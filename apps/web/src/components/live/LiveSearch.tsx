@@ -51,7 +51,7 @@ export function LiveSearchBox({
       matches={(v) => marketMatches(hl.markets, v)}
       resolve={(v) => findMarket(hl.markets, v)?.name}
       emptyMsg={(v) =>
-        hl.status === 'live'
+        hl.markets.length
           ? marketMsg(v)
           : hl.status === 'down'
             ? "Can't reach Hyperliquid right now. Markets show up as soon as it answers."

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { hlTradeUrl } from '@/hl/client';
 import { fundingCountdown, fundingText, pxText } from '@/hl/format';
-import { change24h, findMarket, marketHref, pair, tokName, type Market } from '@/hl/markets';
+import { change24h, findMarket, marketHref, pair, tokName, unitNote, type Market } from '@/hl/markets';
 import { useActiveCtx, useHl } from '@/hl/provider';
 import { pct, usd } from '@/lib/format';
 import { Price, Px, Shield, Tok } from '../ui';
@@ -228,7 +228,9 @@ function Terminal({ m }: { m: Market }) {
           <div>
             <h1 id="th-title">{pair(m.name)}</h1>
             <small>
-              <span id="th-venue">Perpetual on Hyperliquid</span>
+              <span id="th-venue">
+                Perpetual on Hyperliquid{unitNote(m.name) ? `, ${unitNote(m.name)}` : ''}
+              </span>
               <a className="copyb" href={hlTradeUrl(m.name)} target="_blank" rel="noopener noreferrer">
                 Compare
                 <svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true">
@@ -254,6 +256,11 @@ function Terminal({ m }: { m: Market }) {
           ))}
         </dl>
       </div>
+      {hl.status === 'stale' && (
+        <div className="guardbox" role="status">
+          {statusText('stale')}
+        </div>
+      )}
       <div className="tgrid">
         <Watchlist sel={m} />
         <div className="pn chart">
@@ -316,19 +323,16 @@ export function LiveTradeView({ name }: { name: string }) {
   }, [m, name, router]);
 
   if (m) return <Terminal m={m} />;
+  const loaded = hl.markets.length > 0;
   return (
     <section id="v-trade" className="wrap page" aria-labelledby="th-title">
       <div className="ph">
         <div>
-          <h1 id="th-title">{hl.status === 'live' ? 'Market not found' : pair(name)}</h1>
-          <p>
-            {hl.status === 'live'
-              ? `Hyperliquid has no perpetual market called ${name}.`
-              : statusText(hl.status)}
-          </p>
+          <h1 id="th-title">{loaded ? 'Market not found' : pair(name)}</h1>
+          <p>{loaded ? `Hyperliquid has no perpetual market called ${name}.` : statusText(hl.status)}</p>
         </div>
       </div>
-      {hl.status === 'live' && (
+      {loaded && (
         <div className="pn">
           <div className="empty soon-page">
             <b>Try another ticker</b>

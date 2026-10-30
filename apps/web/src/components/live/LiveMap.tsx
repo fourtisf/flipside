@@ -77,7 +77,7 @@ export function LiveMap() {
           </Link>
         );
       })}
-      {hl.status !== 'live' && (
+      {!hl.markets.length && (
         <p className="map-msg" role="status">
           {statusText(hl.status)}
         </p>

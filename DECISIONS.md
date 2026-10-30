@@ -68,6 +68,23 @@ ALFA said to start ("ok mulai semuanya"). H1 is read only, so it needed none of 
 Not verified yet: the development sandbox lost access to Hyperliquid while this was built, so prices have not
 been compared with app.hyperliquid.xyz and no real responses were recorded as fixtures. That check closes H1.
 
+Hardening after review (ALFA: "pastikan semuanya berjalan lancar"):
+
+- **CI had never run.** It ran on pushes to `main` and on pull requests, but the work lands on the default
+  branch `claude/new-session-nptqr8`. It now runs on every push.
+- **H1's done check runs in CI against the real Hyperliquid** (job "Live data", `e2e/real-hl.spec.ts`): the
+  market count equals Hyperliquid's listed perps, BTC, ETH and SOL are within 0.5% of its mids, and allMids
+  messages keep arriving. It also logs how often the order book is pushed. It is its own job because the market
+  or Hyperliquid can make it fail.
+- **Stale prices are called stale.** If nothing arrives from Hyperliquid for 45 seconds, the page stops saying
+  "Live prices" and says it is reconnecting; the terminal shows the same notice. Coming back to a hidden tab
+  refreshes at once.
+- **Error pages**: a crash shows "Something went wrong" with Try again and Back to markets, not a blank screen.
+- **k-markets** (kPEPE, kBONK) say "priced per 1,000 PEPE", in the terminal, the ticket and the docs.
+- **Known cost**: each build carries both editions' code, because the edition flag is not folded away across
+  modules, so the live pages ship about 15 to 20 kB (gzipped) of prototype code. Archiving the original design
+  (`PLAN-HYPERLIQUID.md`, decision 7) removes it.
+
 ## Direction: Coinside as a Hyperliquid builder (30 Oct 2026, proposed)
 
 ALFA asked whether Coinside could work like Hyperliquid with Hyperliquid as the market maker, then chose that
