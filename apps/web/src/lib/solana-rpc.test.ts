@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PUBLIC_RPC, SolBalances, isSolAddress } from './solana-rpc';
+import { PUBLIC_RPC, SolBalances, isSolAddress, rpcUrlFromEnv } from './solana-rpc';
 
 const ADDR = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 const answer = (body: unknown, status = 200) =>
@@ -40,7 +40,19 @@ describe('Solana balance on the server', () => {
     ).rejects.toThrow(/Invalid param/);
   });
 
-  it("uses Solana's public mainnet node when no RPC URL is set", () => {
-    expect(PUBLIC_RPC).toBe('https://api.mainnet-beta.solana.com');
+  it("uses the server's Helius mainnet key, never a devnet URL, and Solana's public node without one", () => {
+    const H = 'https://mainnet.helius-rpc.com/?api-key=k-123';
+    expect(rpcUrlFromEnv({ HELIUS_RPC_URL: H, HELIUS_API_KEY: 'k-123' })).toBe(H);
+    expect(
+      rpcUrlFromEnv({
+        HELIUS_RPC_URL: 'https://devnet.helius-rpc.com/?api-key=k-123',
+        HELIUS_API_KEY: 'k-123',
+      }),
+    ).toBe(H);
+    expect(rpcUrlFromEnv({ HELIUS_RPC_URL: 'https://mainnet.helius-rpc.com/?api-key=' })).toBe(PUBLIC_RPC);
+    expect(rpcUrlFromEnv({ SOLANA_RPC_URL: 'https://rpc.example', HELIUS_RPC_URL: H })).toBe(
+      'https://rpc.example',
+    );
+    expect(rpcUrlFromEnv({})).toBe('https://api.mainnet-beta.solana.com');
   });
 });

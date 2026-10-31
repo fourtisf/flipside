@@ -27,8 +27,10 @@ read only the Hyperliquid account (the 0x address); the SOL sits in the Solana s
 Phantom and Backpack hold both). Deposit step 1 now connects that side over the Wallet Standard (the Solana
 equivalent of EIP-6963; only its address is shared), picking the Solana wallet with the same name as the
 connected one, and shows its address, SOL balance and value. The balance comes from our own server
-(`GET /solana/balance/<address>`), which calls `getBalance` and nothing else on `SOLANA_RPC_URL` (a Helius mainnet
-URL kept in the server's environment file) or Solana's public node, and keeps each answer 5 seconds. It refreshes
+(`GET /solana/balance/<address>`), which calls `getBalance` and nothing else, and keeps each answer 5 seconds. It
+uses the Helius mainnet key already in the server's environment file (`HELIUS_RPC_URL`, or `HELIUS_API_KEY`; a
+devnet URL is skipped), `SOLANA_RPC_URL` if set to override it, else Solana's public node. The key never leaves the
+server. It refreshes
 every 15 seconds while the page is open. The Deposit SOL button stays off until the Unit address check is in.
 
 **No links to Hyperliquid's own site** (ALFA: "hapus view on Hyperliquid"). Removed "View on Hyperliquid" from

@@ -1,7 +1,8 @@
 /**
  * Reading a Solana wallet's SOL balance, on the server. The browser asks GET /solana/balance/<address> and
- * this answers from a Solana RPC node: SOLANA_RPC_URL when set (a Helius mainnet URL with its key, kept in the
- * server's environment file and never sent to the browser), else Solana's public mainnet endpoint.
+ * this answers from a Solana mainnet RPC node: the Helius key already in the server's environment file
+ * (HELIUS_RPC_URL, or HELIUS_API_KEY), or SOLANA_RPC_URL to override it, else Solana's public node. The key
+ * stays on the server: it is never sent to the browser, logged, or put in an error message.
  *
  * It only ever makes one call, getBalance, for one valid address, and keeps each answer for a few seconds, so
  * the route can't be used as an open RPC proxy.
@@ -12,6 +13,17 @@ export const PUBLIC_RPC = 'https://api.mainnet-beta.solana.com';
 /** A Solana address: base58, 32 to 44 characters. */
 export const isSolAddress = (s: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
 
+/** The mainnet RPC URL to use, from the server's environment. A devnet Helius URL is never used for balances. */
+export function rpcUrlFromEnv(env: Record<string, string | undefined> = process.env): string {
+  const own = env.SOLANA_RPC_URL?.trim();
+  if (own) return own;
+  const helius = env.HELIUS_RPC_URL?.trim();
+  if (helius && helius.includes('mainnet') && !helius.endsWith('api-key=')) return helius;
+  const key = env.HELIUS_API_KEY?.trim();
+  if (key) return `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(key)}`;
+  return PUBLIC_RPC;
+}
+
 const TTL_MS = 5_000;
 
 export class SolBalances {
@@ -19,7 +31,7 @@ export class SolBalances {
   private inflight = new Map<string, Promise<string>>();
 
   constructor(
-    private readonly rpcUrl: string = process.env.SOLANA_RPC_URL?.trim() || PUBLIC_RPC,
+    private readonly rpcUrl: string = rpcUrlFromEnv(),
     private readonly fetcher: typeof fetch = fetch,
     private readonly now: () => number = Date.now,
   ) {}
