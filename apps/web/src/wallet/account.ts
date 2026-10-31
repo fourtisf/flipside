@@ -153,6 +153,16 @@ export function mergeFills(prev: FillRow[], incoming: FillRow[], keep = 50): Fil
   return [...fresh, ...prev].sort((a, b) => b.time - a.time || b.tid - a.tid).slice(0, keep);
 }
 
+/**
+ * Nothing in the account: no perps value, no positions and no spot balance. Hyperliquid refuses every action from
+ * an account that has never deposited ("Must deposit before performing actions"), approving a trading key too.
+ * False while the account isn't known yet, so nothing is blocked on a slow or failed read.
+ */
+export function isEmpty(summary: Summary | null, positions: PositionRow[], spot: SpotRow[] | null): boolean {
+  if (!summary || !spot) return false;
+  return !(summary.value > 0) && positions.length === 0 && spot.every((b) => !(b.total > 0));
+}
+
 /** The account as an external store, for the header and the Portfolio page. */
 export class AccountStore {
   address: Address | null = null;
@@ -176,6 +186,11 @@ export class AccountStore {
   private emit() {
     this.version++;
     this.listeners.forEach((l) => l());
+  }
+
+  /** Known to be empty: the order button asks for a deposit first. */
+  empty(): boolean {
+    return isEmpty(this.summary, this.positions, this.spot);
   }
 
   private perps(ch: ClearinghouseStateResponse) {

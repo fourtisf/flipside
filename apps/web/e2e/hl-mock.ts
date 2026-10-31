@@ -7,6 +7,8 @@ import { deflateRawSync } from 'node:zlib';
 import type { Page, WebSocketRoute } from '@playwright/test';
 import {
   CLEARINGHOUSE,
+  EMPTY_CLEARINGHOUSE,
+  EMPTY_SPOT,
   FILLS,
   META_AND_CTXS,
   ORDERS,
@@ -50,9 +52,12 @@ export interface HlMock {
   push: (channel: string, data: unknown) => void;
   /** Push new mids over the fast channel, which is where live prices come from. */
   pushMids: (mids: Record<string, string>) => void;
+  /** An empty account receives a deposit: the funded account arrives over the socket, as Hyperliquid sends it. */
+  fund: (user: string) => void;
 }
 
-export async function mockHyperliquid(page: Page, { down = false } = {}): Promise<HlMock> {
+/** `empty`: the connected wallet has never deposited, as every new address on Hyperliquid. */
+export async function mockHyperliquid(page: Page, { down = false, empty = false } = {}): Promise<HlMock> {
   const mock: HlMock = {
     info: [],
     exchange: [],
@@ -60,7 +65,9 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
     push: () => {},
     pushMids: () => {},
     failNext: () => {},
+    fund: () => {},
   };
+  let account = empty ? { ch: EMPTY_CLEARINGHOUSE, spot: EMPTY_SPOT } : { ch: CLEARINGHOUSE, spot: SPOT };
   let fail: string | null = null;
   mock.failNext = (m) => void (fail = m);
   const sockets: WebSocketRoute[] = [];
@@ -70,6 +77,11 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
       'fastAssetCtxs',
       packed(Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { midPx: v }]))),
     );
+  mock.fund = (user) => {
+    account = { ch: CLEARINGHOUSE, spot: SPOT };
+    mock.push('clearinghouseState', { dex: '', user, clearinghouseState: CLEARINGHOUSE });
+    mock.push('spotState', { user, spotState: SPOT });
+  };
 
   await page.route('**/logos/*', (route) =>
     route.request().url().endsWith(`/${NO_LOGO}`)
@@ -121,13 +133,13 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
         return route.fulfill({ json: book(body.coin!) });
       // the account of whoever connects (any address gets the fixture account)
       case 'clearinghouseState':
-        return route.fulfill({ json: CLEARINGHOUSE });
+        return route.fulfill({ json: account.ch });
       case 'spotClearinghouseState':
-        return route.fulfill({ json: SPOT });
+        return route.fulfill({ json: account.spot });
       case 'frontendOpenOrders':
-        return route.fulfill({ json: ORDERS });
+        return route.fulfill({ json: empty ? [] : ORDERS });
       case 'userFills':
-        return route.fulfill({ json: FILLS });
+        return route.fulfill({ json: empty ? [] : FILLS });
       default:
         return route.fulfill({ status: 422, body: `unexpected info request ${body.type}` });
     }
@@ -169,10 +181,10 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
       }
       const user = String(s.user ?? '');
       if (s.type === 'clearinghouseState')
-        send('clearinghouseState', { dex: '', user, clearinghouseState: CLEARINGHOUSE });
-      if (s.type === 'spotState') send('spotState', { user, spotState: SPOT });
-      if (s.type === 'openOrders') send('openOrders', { dex: '', user, orders: ORDERS });
-      if (s.type === 'userFills') send('userFills', { user, fills: FILLS, isSnapshot: true });
+        send('clearinghouseState', { dex: '', user, clearinghouseState: account.ch });
+      if (s.type === 'spotState') send('spotState', { user, spotState: account.spot });
+      if (s.type === 'openOrders') send('openOrders', { dex: '', user, orders: empty ? [] : ORDERS });
+      if (s.type === 'userFills') send('userFills', { user, fills: empty ? [] : FILLS, isSnapshot: true });
       if (s.type === 'candle') {
         const now = Date.now();
         send('candle', candles(coin, String(s.interval), now - 60_000, now).at(-1));

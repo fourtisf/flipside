@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CLEARINGHOUSE, FILLS, ORDERS, SPOT } from '../../e2e/hl-fixtures';
-import { mergeFills, toFills, toOrders, toPerps, toSpot } from './account';
+import { CLEARINGHOUSE, EMPTY_CLEARINGHOUSE, EMPTY_SPOT, FILLS, ORDERS, SPOT } from '../../e2e/hl-fixtures';
+import { isEmpty, mergeFills, toFills, toOrders, toPerps, toSpot } from './account';
 import { WALLETS, shortAddr, walletByRdns, walletFromFlags } from './catalog';
 import { WalletStore, connectError, type Eip1193 } from './store';
 
@@ -123,6 +123,21 @@ describe('wallet store', () => {
 });
 
 describe('account', () => {
+  it('knows an account that has never deposited, and never guesses before it has read one', () => {
+    const empty = toPerps(EMPTY_CLEARINGHOUSE);
+    expect(isEmpty(empty.summary, empty.positions, toSpot(EMPTY_SPOT))).toBe(true);
+    // a balance only on spot (SOL deposited as USOL) is not empty
+    const usol = toSpot({
+      balances: [{ coin: 'USOL', token: 254, total: '0.5', hold: '0.0', entryNtl: '90' }],
+    });
+    expect(isEmpty(empty.summary, empty.positions, usol)).toBe(false);
+    const full = toPerps(CLEARINGHOUSE);
+    expect(isEmpty(full.summary, full.positions, toSpot(EMPTY_SPOT))).toBe(false);
+    // not read yet, or the read failed: don't block anything
+    expect(isEmpty(null, [], null)).toBe(false);
+    expect(isEmpty(empty.summary, empty.positions, null)).toBe(false);
+  });
+
   it('reads positions and the summary from the clearinghouse state', () => {
     const { summary, positions } = toPerps(CLEARINGHOUSE);
     expect(summary).toEqual({ value: 1234.56, withdrawable: 744.26, marginUsed: 490.3, pnl: 74.66 - 11.24 });

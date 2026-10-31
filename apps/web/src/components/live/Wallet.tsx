@@ -186,6 +186,17 @@ export function WalletMenu() {
               <a className="btn o" href={explorerUrl(a)} target="_blank" rel="noopener noreferrer">
                 View on Hyperliquid
               </a>
+              <button
+                type="button"
+                className="btn o"
+                id="depositBtn"
+                onClick={() => {
+                  wallet.set((s) => void (s.dialog = null));
+                  trade.set((s) => void (s.deposit = true));
+                }}
+              >
+                Deposit
+              </button>
               <Link
                 className="btn o"
                 href="/portfolio"

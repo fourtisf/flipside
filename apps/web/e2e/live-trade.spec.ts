@@ -155,3 +155,32 @@ test('a closed wallet prompt during setup says so; the wallet menu turns trading
   await page.keyboard.press('Escape');
   await expect(page.locator('#o-cta')).toHaveText('Enable trading');
 });
+
+test('an empty account is asked to deposit first, and can trade once the deposit arrives', async ({
+  page,
+}) => {
+  // Hyperliquid refuses every action, approving a trading key too, from an address that has never deposited
+  const hl = await mockHyperliquid(page, { empty: true });
+  await fakeWallet(page, { address: ADDRESS });
+  await page.goto('/trade/SOL');
+  await page.locator('#connect').click();
+  await page.locator('#wl button[data-wallet="app.phantom"]').click();
+  await expect(page.locator('#o-cta')).toHaveText('Deposit first');
+  await page.locator('#o-cta').click();
+  const dialog = page.locator('#deposit');
+  await expect(dialog).toContainText('Your Hyperliquid account is empty');
+  await expect(dialog).toContainText('0x1234…5678');
+  await expect(page.locator('#depGo')).toHaveAttribute('href', 'https://app.hyperliquid.xyz/portfolio');
+  await page.keyboard.press('Escape');
+  expect(hl.exchange).toHaveLength(0);
+
+  // the deposit lands (on Hyperliquid, same account): the button moves on by itself
+  hl.fund(ADDRESS);
+  await expect(page.locator('#o-cta')).toHaveText('Enable trading');
+
+  // the wallet menu opens the same help
+  await page.locator('#walletBtn').click();
+  await page.locator('#depositBtn').click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).not.toContainText('Your Hyperliquid account is empty');
+});

@@ -493,6 +493,9 @@ dialog h3{font-size:18px;font-weight:600;letter-spacing:-.02em}
 dialog p{font-size:13.5px;color:var(--t2);margin-top:6px}
 dialog .amt{margin-top:16px}
 .dlg-a{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.dsteps{list-style:none;counter-reset:d;margin-top:14px;display:grid;gap:10px}
+.dsteps li{counter-increment:d;position:relative;padding-left:24px;font-size:13.5px;color:var(--t2)}
+.dsteps li::before{content:counter(d);position:absolute;left:0;top:1px;font:500 12px var(--mono);color:var(--t3)}
 .tabbar{display:none}
 
 /* responsive */

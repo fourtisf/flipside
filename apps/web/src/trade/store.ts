@@ -45,6 +45,8 @@ export class TradeStore {
   /** The person has accepted the risk notice on this device. */
   accepted = false;
   dialog = false;
+  /** The "how to deposit" dialog is open. */
+  deposit = false;
   busy: string | null = null;
   msg: { text: string; ok: boolean; at: number } | null = null;
 

@@ -150,6 +150,8 @@ export function explain(message: string): string {
   if (t.includes('insufficient margin'))
     return 'Not enough margin for this order. Lower the amount or the leverage.';
   if (t.includes('minimum value')) return `The position must be worth at least $${MIN_ORDER_USD}.`;
+  if (t.includes('must deposit before performing actions'))
+    return 'Your Hyperliquid account is empty. Deposit first, then enable trading.';
   if (t.includes('does not exist'))
     return 'Hyperliquid has no account for this wallet yet. Deposit first, then enable trading again.';
   if (t.includes('reduce only')) return 'There is no position to close on this market.';

@@ -23,6 +23,9 @@ export function wsConfig() {
   return { transport: ws };
 }
 
+/** Hyperliquid's Portfolio page, where its Deposit button is: the way to fund an account until Coinside's own (H4). */
+export const hlPortfolioUrl = `https://app.hyperliquid${TESTNET ? '-testnet' : ''}.xyz/portfolio`;
+
 /** Where to see the same market on Hyperliquid, for the "Compare on Hyperliquid" link. */
 export const hlTradeUrl = (name: string) =>
   `https://app.hyperliquid${TESTNET ? '-testnet' : ''}.xyz/trade/${encodeURIComponent(name)}`;

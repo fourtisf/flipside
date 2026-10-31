@@ -20,6 +20,21 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## An empty account: deposit first (31 Oct 2026)
+
+The first real try on coinside.fun: Enable trading answered "Must deposit before performing actions". Hyperliquid
+refuses every action, approving a trading key too, from an address that has never deposited.
+
+- **The order button says so before anyone signs:** once the account is read and has nothing in it (no perps
+  value, no positions, no spot balance), the button reads "Deposit first" instead of "Enable trading". It moves
+  on by itself when the deposit arrives over the socket. While the account isn't read yet, nothing is blocked.
+- **Deposit help, until H4:** "Deposit first" (and Deposit in the wallet menu) opens a dialog: deposit on
+  Hyperliquid with the same wallet (same account, so the balance shows on Coinside), check Hyperliquid's minimum,
+  and turn USOL into USDC in Perps to trade. It links to Hyperliquid's Portfolio page, where its Deposit button
+  is. Coinside's own deposits from Solana replace this in H4.
+- Hyperliquid's message, if it still comes, reads "Your Hyperliquid account is empty. Deposit first, then enable
+  trading."
+
 ## Coinside charges no fee (ALFA, 31 Oct 2026)
 
 ALFA: "semuanya free, jadi Coinside tidak memungut biaya apapun, fee trading dll". This answers decisions 1 and 2

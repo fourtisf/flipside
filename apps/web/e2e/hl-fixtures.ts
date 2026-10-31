@@ -251,6 +251,18 @@ export const SPOT: SpotClearinghouseStateResponse = {
   ],
 };
 
+/** A wallet that has never deposited: what Hyperliquid answers for any new address. */
+const zero = { accountValue: '0.0', totalNtlPos: '0.0', totalRawUsd: '0.0', totalMarginUsed: '0.0' };
+export const EMPTY_CLEARINGHOUSE: ClearinghouseStateResponse = {
+  marginSummary: zero,
+  crossMarginSummary: zero,
+  crossMaintenanceMarginUsed: '0.0',
+  withdrawable: '0.0',
+  assetPositions: [],
+  time: 1_793_000_000_000,
+};
+export const EMPTY_SPOT: SpotClearinghouseStateResponse = { balances: [] };
+
 export const ORDERS: FrontendOpenOrdersResponse = [
   {
     coin: 'SOL',
