@@ -6,19 +6,19 @@ the original design (Coinside as the house, with its own pool and vault).
 
 ## What changes
 
-|                          | Original design (CLAUDE.md)                        | Hyperliquid builder                                                 |
-| ------------------------ | -------------------------------------------------- | ------------------------------------------------------------------- |
-| Who takes the other side | Coinside's own pool (the house)                    | Hyperliquid's order book and its market makers                      |
-| Seed capital             | ALFA funds the pool                                | None                                                                |
-| Risk when traders win    | The pool pays                                      | None for Coinside                                                   |
-| Where users' money is    | Coinside's vault program (needs an external audit) | The user's own Hyperliquid account                                  |
-| What has to be built     | Engine, ledger, vault, risk engine, price indexer  | An app on top of Hyperliquid's API                                  |
-| Markets                  | Any Solana token by contract address               | What Hyperliquid lists (BTC, ETH, SOL and popular memecoins)        |
-| Revenue                  | 1% to open + 1% to close, minus pool losses        | A builder fee on every order (Hyperliquid caps it at 0.1% on perps) |
+|                          | Original design (CLAUDE.md)                        | Hyperliquid builder                                          |
+| ------------------------ | -------------------------------------------------- | ------------------------------------------------------------ |
+| Who takes the other side | Coinside's own pool (the house)                    | Hyperliquid's order book and its market makers               |
+| Seed capital             | ALFA funds the pool                                | None                                                         |
+| Risk when traders win    | The pool pays                                      | None for Coinside                                            |
+| Where users' money is    | Coinside's vault program (needs an external audit) | The user's own Hyperliquid account                           |
+| What has to be built     | Engine, ledger, vault, risk engine, price indexer  | An app on top of Hyperliquid's API                           |
+| Markets                  | Any Solana token by contract address               | What Hyperliquid lists (BTC, ETH, SOL and popular memecoins) |
+| Revenue                  | 1% to open + 1% to close, minus pool losses        | None: Coinside charges no fee (decided 31 Oct 2026)          |
 
 Coinside becomes a **Hyperliquid builder**: a trading app made for Solana users. Orders go to Hyperliquid's
-order book with Coinside's builder code, and Coinside earns a fee on each one. Coinside never holds user
-funds and never takes the other side of a trade.
+order book. Coinside charges no fee of its own (decided 31 Oct 2026), never holds user funds and never takes
+the other side of a trade.
 
 ## How it works for a user
 
@@ -86,33 +86,38 @@ Each phase ends with a report and stops for ALFA, as before.
   - **Status (31 Oct 2026):** built. Nine wallets with their own logos, connect and reconnect, and the account
     in the header, the order forms and Portfolio (DECISIONS.md, "H2").
 - **H3. Trading on Hyperliquid testnet.**
-  - **Scope:** approve the builder fee and the agent key; market, limit, take profit / stop loss; close;
+  - **Scope:** approve the agent key; market, limit, take profit / stop loss; close;
     leverage; clear error messages; Hyperliquid's rate limits.
-  - **Done when:** a scripted end-to-end run on testnet passes and the builder fee shows on the fills.
+  - **Done when:** a scripted end-to-end run on testnet passes.
   - **Status (31 Oct 2026):** built for mainnet, as ALFA asked, with a $1,000 cap per order and a switch to turn it
-    off. The builder fee waits for decisions 1 and 2 (DECISIONS.md, "H3").
+    off. No builder fee: Coinside charges none (decisions 1 and 2), so enabling trading is one signature.
 - **H4. Deposits and withdrawals from Solana.**
   - **Scope:** Unit (SOL) and Across (USDC), with status tracking, limits, and handling when a transfer is
     late or fails.
   - **Done when:** it works with small real amounts on mainnet (the bridges may have no testnet).
 - **H5. Mainnet launch.**
-  - **Prerequisites:** a funded builder account, geo-blocking, terms and a plain risk disclosure, and
-    monitoring.
+  - **Prerequisites:** geo-blocking, terms and a plain risk disclosure, and monitoring.
   - **Rollout:** a small beta first.
 - **H6. Growth.** Indonesian language and Rupiah values, referrals, the weekly competition, share cards, and
   copy trading (it needs its own design, because followers' orders must be signed by their own keys).
 
 ## Revenue
 
-Coinside earns the builder fee on every filled order. Phantom charges 0.05% and reported about $20M in builder
-fees on about $37B of volume in under a year. As an illustration, $1M of daily volume at 0.05% is $500 a day.
+**Decided 31 Oct 2026: Coinside charges no fee.** ALFA: "semuanya free, jadi Coinside tidak memungut biaya
+apapun, fee trading dll". Users pay only Hyperliquid's own trading fee and the bridges' network fees, none of
+which go to Coinside. Coinside has no revenue from trading.
+
+What was considered: a builder fee on every filled order. Phantom charges 0.05% and reported about $20M in
+builder fees on about $37B of volume in under a year. Adding a fee later is possible, but every user would have
+to approve it with one more wallet signature.
 
 ## Decisions for ALFA
 
-1. **Builder fee.** 0.05% (Phantom's level) or lower to compete. The cap is 0.1%.
-2. **Builder wallet.** An EVM address that ALFA controls, ideally a hardware wallet. Hyperliquid requires the
-   builder to hold at least 100 USDC in its perps account and to use the standard account mode. Fees are
-   claimed through Hyperliquid's referral reward claim.
+1. **Builder fee.** Decided 31 Oct 2026: none. Coinside charges no fee (see Revenue). The question was 0.05%
+   (Phantom's level) or lower, with a cap of 0.1%.
+2. **Builder wallet.** Not needed while there is no fee. It was to be an EVM address ALFA controls, holding at
+   least 100 USDC in its perps account. Without a builder code Hyperliquid publishes no "Coinside volume", so the
+   leaderboard, referrals and competition (H6) will need their own way to know which trades came from Coinside.
 3. **Wallets.** Decided 31 Oct 2026: connect wallets directly, several of them (Phantom, Backpack, MetaMask,
    Rabby, OKX, Coinbase, Rainbow, Trust, Zerion), no Privy. What follows was the question.
    - **Option A:** at first, only wallets that also have an EVM address (Phantom, Backpack). No third party.

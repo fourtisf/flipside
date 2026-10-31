@@ -2,8 +2,8 @@ import { MAX_ORDER_USD } from '@/trade/config';
 
 /**
  * How Coinside works as a Hyperliquid builder (PLAN-HYPERLIQUID.md). Every claim here is either Hyperliquid's
- * or Unit's documented behavior, or a rule Coinside sets before launch; nothing promises a number ALFA has not
- * decided yet (the builder fee, decision 1).
+ * or Unit's documented behavior, or a rule Coinside sets. Coinside charges no fee (ALFA, 31 Oct 2026); the
+ * fees named here are Hyperliquid's and the bridges', which Coinside doesn't set or receive.
  */
 const STEPS: Array<[string, string]> = [
   [
@@ -36,7 +36,7 @@ const RULES: Array<[string, string]> = [
   ],
   [
     'Fees',
-    "Hyperliquid's trading fee plus Coinside's fee, both shown before you confirm an order. Hyperliquid caps a builder's fee at 0.1% of the order.",
+    "Coinside charges no fee. You pay only Hyperliquid's own trading fee, which goes to Hyperliquid. Each trade's fee shows in your Portfolio.",
   ],
   [
     'Funding',
@@ -58,8 +58,8 @@ const SAFETY: Array<[string, string]> = [
     'To trade without a wallet pop-up on every order, you approve a trading key once. It can place and cancel orders, never withdraw.',
   ],
   [
-    'A fee you approve',
-    "Coinside's fee only applies after you approve it, up to a maximum you set, and you can revoke it at any time.",
+    'No Coinside fee',
+    'Coinside adds nothing on top: no fee on trades, deposits or withdrawals. Hyperliquid charges its own trading fee, and bridges charge network fees.',
   ],
   [
     'A public order book',

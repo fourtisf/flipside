@@ -3,7 +3,6 @@
 import {
   ApiRequestError,
   approveAgent,
-  approveBuilderFee,
   cancel,
   order,
   updateLeverage,
@@ -12,7 +11,7 @@ import { httpConfig } from '@/hl/client';
 import type { Market } from '@/hl/markets';
 import type { OrderRow, PositionRow } from '@/wallet/account';
 import type { WalletStore } from '@/wallet/store';
-import { BUILDER, TRADING, builderFeePct } from './config';
+import { TRADING } from './config';
 import { describe, explain, planClose, planOpen, type OpenInput } from './orders';
 import { agentSigner, forgetAgent, loadAgent, newAgent, saveAgent, walletSigner, type Agent } from './signer';
 
@@ -87,17 +86,16 @@ export class TradeStore {
     this.emit();
   }
 
-  /** Orders can be placed: trading is on, and this wallet approved a trading key (and the fee, if there is one). */
+  /** Orders can be placed: trading is on, and this wallet approved a trading key. */
   ready(): boolean {
-    if (!TRADING || !this.agent || !this.owner) return false;
-    return !BUILDER || this.agent.builderFee === builderFeePct(BUILDER.f);
+    return TRADING && !!this.agent && !!this.owner;
   }
 
   private agentConfig() {
     return { ...httpConfig(), wallet: agentSigner(this.agent!) };
   }
 
-  /** The wallet approves a new trading key, and the builder fee if Coinside charges one. Two signatures at most. */
+  /** The wallet approves a new trading key: one signature, and no fee to approve (Coinside charges none). */
   async enable() {
     const provider = this.wallet.provider();
     const owner = this.wallet.address;
@@ -112,11 +110,6 @@ export class TradeStore {
     try {
       const config = { ...httpConfig(), wallet: walletSigner(provider, owner) };
       await approveAgent(config, { agentAddress: agent.address, agentName: 'coinside' });
-      if (BUILDER) {
-        const maxFeeRate = builderFeePct(BUILDER.f) as `${string}%`;
-        await approveBuilderFee(config, { builder: BUILDER.b, maxFeeRate });
-        agent.builderFee = maxFeeRate;
-      }
       saveAgent(owner, agent);
       this.set((s) => {
         s.agent = agent;
@@ -150,8 +143,7 @@ export class TradeStore {
 
   /** A key Hyperliquid no longer knows (replaced elsewhere, or never approved): forget it so the button asks again. */
   private checkKey(e: unknown) {
-    if (e instanceof ApiRequestError && /does not exist|builder fee has not been approved/i.test(e.message))
-      this.turnOff();
+    if (e instanceof ApiRequestError && /does not exist/i.test(e.message)) this.turnOff();
   }
 
   async open(input: OpenInput) {
@@ -166,11 +158,7 @@ export class TradeStore {
     try {
       const config = this.agentConfig();
       await updateLeverage(config, plan.leverage);
-      const res = await order(config, {
-        orders: plan.orders,
-        grouping: plan.grouping,
-        ...(plan.builder ? { builder: plan.builder } : {}),
-      });
+      const res = await order(config, { orders: plan.orders, grouping: plan.grouping });
       this.set((s) => s.say(describe(res, input.m), true));
     } catch (e) {
       this.checkKey(e);
@@ -187,11 +175,7 @@ export class TradeStore {
       s.msg = null;
     });
     try {
-      await order(this.agentConfig(), {
-        orders: [planClose(p, m)],
-        grouping: 'na',
-        ...(BUILDER ? { builder: BUILDER } : {}),
-      });
+      await order(this.agentConfig(), { orders: [planClose(p, m)], grouping: 'na' });
       this.set((s) => s.say(`Closed your ${p.coin} ${p.side}.`, true));
     } catch (e) {
       this.checkKey(e);

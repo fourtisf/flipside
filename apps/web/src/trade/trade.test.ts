@@ -7,7 +7,6 @@ import { META_AND_CTXS } from '../../e2e/hl-fixtures';
 import { toMarkets } from '@/hl/markets';
 import type { PositionRow } from '@/wallet/account';
 import type { Eip1193 } from '@/wallet/store';
-import { builderFeePct } from './config';
 import { describe as describeFill, explain, planClose, planOpen, through, triggerAt } from './orders';
 import { agentSigner, newAgent, typedDataJson, walletSigner } from './signer';
 
@@ -25,7 +24,9 @@ describe('planOpen', () => {
     ]);
     expect(r.plan.grouping).toBe('na');
     expect(r.plan.leverage).toEqual({ asset: 2, isCross: true, leverage: 5 });
-    expect(r.plan.builder).toBeUndefined();
+    // Coinside charges no fee: no builder code on any order
+    expect(r.plan).not.toHaveProperty('builder');
+    expect(r.plan.orders[0]).not.toHaveProperty('builder');
   });
 
   it('sends a market short 1% below, and a limit order at its own price', () => {
@@ -125,12 +126,6 @@ describe('results and errors', () => {
     expect(explain('Insufficient margin to place order. asset=5')).toMatch(/Not enough margin/);
     expect(explain('User or API Wallet 0xabc does not exist.')).toMatch(/Deposit first/);
     expect(explain('Something new')).toBe('Something new');
-  });
-
-  it('writes the builder fee the way approveBuilderFee wants it', () => {
-    expect(builderFeePct(50)).toBe('0.05%');
-    expect(builderFeePct(100)).toBe('0.1%');
-    expect(builderFeePct(25)).toBe('0.025%');
   });
 });
 

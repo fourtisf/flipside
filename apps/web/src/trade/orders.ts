@@ -1,14 +1,15 @@
 /**
  * Turns what someone typed into a Hyperliquid order, or says plainly why it can't be placed. Pure, so every rule
  * is unit tested: prices to Hyperliquid's 5 significant figures and tick, sizes rounded down to the market's lot,
- * the $10 minimum, the beta cap, and take profit / stop loss as reduce-only trigger orders.
+ * the $10 minimum, the beta cap, and take profit / stop loss as reduce-only trigger orders. No order carries a
+ * builder code: Coinside charges no fee.
  */
 import type { OrderParameters, OrderSuccessResponse } from '@nktkas/hyperliquid/api/exchange';
 import { formatPrice, formatSize } from '@nktkas/hyperliquid/utils';
 import { pxText, szText } from '@/hl/format';
 import type { Market } from '@/hl/markets';
 import type { PositionRow } from '@/wallet/account';
-import { BUILDER, MAX_ORDER_USD, MIN_ORDER_USD, SLIPPAGE } from './config';
+import { MAX_ORDER_USD, MIN_ORDER_USD, SLIPPAGE } from './config';
 
 export type Order = OrderParameters['orders'][number];
 export type Side = 'long' | 'short';
@@ -32,7 +33,6 @@ export interface Plan {
   orders: Order[];
   grouping: 'na' | 'normalTpsl';
   leverage: { asset: number; isCross: boolean; leverage: number };
-  builder?: { b: `0x${string}`; f: number };
   /** For the confirmation: the size in coins and the price the order is sent at. */
   size: string;
   px: string;
@@ -109,7 +109,6 @@ export function planOpen(i: OpenInput): Planned {
       orders,
       grouping: orders.length > 1 ? 'normalTpsl' : 'na',
       leverage: { asset: m.asset, isCross: !m.onlyIsolated, leverage: lev },
-      ...(BUILDER ? { builder: BUILDER } : {}),
       size,
       px,
       notional,
@@ -153,8 +152,6 @@ export function explain(message: string): string {
   if (t.includes('minimum value')) return `The position must be worth at least $${MIN_ORDER_USD}.`;
   if (t.includes('does not exist'))
     return 'Hyperliquid has no account for this wallet yet. Deposit first, then enable trading again.';
-  if (t.includes('builder fee has not been approved'))
-    return "Coinside's fee hasn't been approved for this wallet yet. Enable trading again.";
   if (t.includes('reduce only')) return 'There is no position to close on this market.';
   return message;
 }

@@ -23,6 +23,7 @@ async function enable(page: Page) {
   await page.locator('#o-cta').click();
   const dialog = page.locator('#enable');
   await expect(dialog).toContainText('can never withdraw or move your funds');
+  await expect(dialog).toContainText('Coinside charges no fee');
   await expect(page.locator('#enableGo')).toBeDisabled();
   await page.locator('#ack').check();
   await page.locator('#enableGo').click();
@@ -49,6 +50,7 @@ test('enable trading once, then a market long goes to Hyperliquid signed by the 
   });
 
   await expect(page.locator('#o-cta')).toHaveText('Long SOL');
+  await expect(page.locator('#o-sum')).toContainText('Coinside feeFree');
   await page.locator('#o-amt').fill('100');
   await page.locator('#o-lev button[data-lev="5"]').click();
   await page.locator('#o-cta').click();
@@ -60,7 +62,7 @@ test('enable trading once, then a market long goes to Hyperliquid signed by the 
     grouping: 'na',
     orders: [{ a: 2, b: true, p: '189.1', s: '2.67', r: false, t: { limit: { tif: 'Ioc' } } }],
   });
-  // no builder fee is configured in this build
+  // Coinside charges no fee: orders carry no builder code
   expect(orders(hl)[0]!.action.builder).toBeUndefined();
   expect(await wallet.signed()).toHaveLength(1);
 

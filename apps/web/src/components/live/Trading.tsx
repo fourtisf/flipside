@@ -3,7 +3,7 @@
 import type { Market } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
 import type { Draft } from '@/hl/store';
-import { BUILDER, MAX_ORDER_USD, TRADING, builderFeePct } from '@/trade/config';
+import { MAX_ORDER_USD, TRADING } from '@/trade/config';
 import { planOpen, type OpenInput } from '@/trade/orders';
 import type { OrderRow, PositionRow } from '@/wallet/account';
 import { useAccount, useTrade, useWallet } from '@/wallet/provider';
@@ -76,7 +76,7 @@ export function TradeButton({ id, m, d, lev }: { id: string; m: Market; d: Draft
   );
 }
 
-/** Turn trading on for this wallet: the risk notice, then one or two wallet signatures. */
+/** Turn trading on for this wallet: the risk notice, then one wallet signature. */
 export function EnableDialog() {
   const trade = useTrade();
   const wallet = useWallet();
@@ -91,12 +91,7 @@ export function EnableDialog() {
           Orders then go through without a pop-up each time. The trading key can place and cancel orders, and
           can never withdraw or move your funds.
         </p>
-        {BUILDER && (
-          <p>
-            You also approve Coinside&apos;s fee of up to {builderFeePct(BUILDER.f)} of each order, which you
-            can revoke on Hyperliquid at any time.
-          </p>
-        )}
+        <p>Coinside charges no fee. You pay only Hyperliquid&apos;s own trading fee.</p>
         <p className="hint">
           While trading is new, one order can open at most a ${MAX_ORDER_USD.toLocaleString('en-US')}{' '}
           position.

@@ -68,7 +68,7 @@ export function triggerPx(entry: number, lev: number, side: Side, pctOfMargin: n
  * Estimates for an order: the ticket shows the first four rows, the terminal all of them. Rounded the safe
  * way: sizes down, and the liquidation price is Hyperliquid's own formula before fees.
  */
-export function Summary({ m, d, lev, rows = 7 }: { m: Market; d: Draft; lev: number; rows?: number }) {
+export function Summary({ m, d, lev, rows }: { m: Market; d: Draft; lev: number; rows?: number }) {
   const limit = d.type === 'limit' ? amount(d.limit) : 0;
   const entry = limit || m.px;
   const margin = amount(d.amt);
@@ -90,6 +90,7 @@ export function Summary({ m, d, lev, rows = 7 }: { m: Market; d: Draft; lev: num
         {fundingText(m.funding)}
       </span>,
     ],
+    ['Coinside fee', 'Free'],
   ];
   const tp = amount(d.tp);
   const sl = amount(d.sl);
@@ -99,7 +100,7 @@ export function Summary({ m, d, lev, rows = 7 }: { m: Market; d: Draft; lev: num
     all.push(['Stop loss at', <Price key="sl" p={triggerPx(entry, lev, d.side, -sl)} sz={m.szDecimals} />]);
   return (
     <>
-      {all.slice(0, rows).map(([k, v]) => (
+      {all.slice(0, rows ?? all.length).map(([k, v]) => (
         <div key={k}>
           <dt>{k}</dt>
           <dd>{v}</dd>

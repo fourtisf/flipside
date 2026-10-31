@@ -237,6 +237,9 @@ test('docs: how it works on Hyperliquid', async ({ page }) => {
   await mockHyperliquid(page);
   await page.goto('/docs');
   await expect(page.locator('#d-safety')).toContainText('Coinside never holds your funds');
-  await expect(page.locator('#d-rules')).toContainText('0.1%');
+  // Coinside charges no fee
+  await expect(page.locator('#d-rules')).toContainText('Coinside charges no fee');
+  await expect(page.locator('#d-safety')).toContainText('No Coinside fee');
+  await expect(page.locator('main')).not.toContainText('0.1%');
   await nothingOld(page);
 });

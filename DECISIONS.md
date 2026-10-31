@@ -20,6 +20,22 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Coinside charges no fee (ALFA, 31 Oct 2026)
+
+ALFA: "semuanya free, jadi Coinside tidak memungut biaya apapun, fee trading dll". This answers decisions 1 and 2
+in `PLAN-HYPERLIQUID.md`: no builder fee, so no builder wallet is needed.
+
+- **Removed, not just switched off:** the builder-fee settings (`NEXT_PUBLIC_BUILDER_ADDRESS`,
+  `NEXT_PUBLIC_BUILDER_FEE`), the `approveBuilderFee` step and the builder code on orders are gone from the code,
+  so no setting can turn a fee on by mistake. Enabling trading is one wallet signature. Tests check that no order
+  carries a builder code.
+- **Said plainly:** the order panel has a "Coinside fee: Free" row, the Enable trading dialog says Coinside
+  charges no fee, and the docs say users pay only Hyperliquid's own trading fee and the bridges' network fees,
+  which Coinside doesn't set or receive. Each trade's Hyperliquid fee already shows in Portfolio.
+- **What it means:** Coinside earns nothing from trading. A fee later would need every user to approve it with
+  one more signature. Hyperliquid publishes builder fills only for orders with a builder code, so the leaderboard,
+  referrals and competition will need another way to tell which trades came through Coinside.
+
 ## H3: trading on mainnet (31 Oct 2026)
 
 ALFA: "saya ingin ke mainnet bisa trading". The plan had H3 on testnet first; ALFA chose mainnet. To keep that
@@ -42,9 +58,7 @@ safe:
 - **Limits while trading is new**: one order can open at most a $1,000 position (`NEXT_PUBLIC_MAX_ORDER_USD`), and
   Hyperliquid's own $10 minimum is checked before sending. `NEXT_PUBLIC_TRADING=off` turns trading off at the next
   deploy.
-- **Builder fee: off until ALFA sets it.** With `NEXT_PUBLIC_BUILDER_ADDRESS` and `NEXT_PUBLIC_BUILDER_FEE` set,
-  Enable trading also asks the wallet to approve the fee, and every order carries the builder code. Unset, orders
-  carry none and Coinside earns nothing (decisions 1 and 2 are still open).
+- **Builder fee:** none. ALFA decided Coinside charges no fee (see "Coinside charges no fee" above).
 - **Checked without the network**: the trading key's signature on an order recovers to the key under Hyperliquid's
   L1 scheme, and the wallet's `approveAgent` signature (made through `eth_signTypedData_v4`) recovers to the
   wallet, in unit tests with real keys. The e2e suite drives the whole flow with a pretend wallet and a pretend

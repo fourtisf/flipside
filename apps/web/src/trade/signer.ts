@@ -1,8 +1,8 @@
 /**
  * The two keys that sign for Hyperliquid:
  *
- * - The connected wallet signs the account actions (approve the trading key, approve the builder fee, move
- *   USDC between spot and perps, send to Solana). Each one opens the wallet, with the wallet's own chain as the
+ * - The connected wallet signs the account actions (approve the trading key, move USDC between spot and perps,
+ *   send to Solana). Each one opens the wallet, with the wallet's own chain as the
  *   signature chain, as Hyperliquid's EIP-712 user-signed actions expect.
  * - A trading key ("agent wallet" in Hyperliquid's words), made in this browser and approved once by the
  *   wallet, signs orders, cancels and leverage changes without a pop-up each time. Hyperliquid never lets an
@@ -54,8 +54,6 @@ export function walletSigner(provider: Eip1193, address: Address): AbstractViemJ
 export interface Agent {
   key: `0x${string}`;
   address: Address;
-  /** The builder fee this wallet has approved, if any ("0.05%"). */
-  builderFee?: string;
 }
 
 const KEY = (owner: string) => `coinside.agent.${owner.toLowerCase()}`;

@@ -10,9 +10,7 @@
         "NEXT_PUBLIC_COINSIDE_UI",
         "NEXT_PUBLIC_HL_TESTNET",
         "NEXT_PUBLIC_TRADING",
-        "NEXT_PUBLIC_MAX_ORDER_USD",
-        "NEXT_PUBLIC_BUILDER_ADDRESS",
-        "NEXT_PUBLIC_BUILDER_FEE"
+        "NEXT_PUBLIC_MAX_ORDER_USD"
       ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
