@@ -33,6 +33,19 @@ devnet URL is skipped), `SOLANA_RPC_URL` if set to override it, else Solana's pu
 server. It refreshes
 every 15 seconds while the page is open. The Deposit SOL button stays off until the Unit address check is in.
 
+After ALFA's first try ("masih sama aja": the panel still showed only a button), the Solana side connects without
+being looked for:
+
+- **Asked once, for someone who came to deposit:** with an empty account, Deposit asks the matching wallet for its
+  Solana side as soon as it opens, once per browser session.
+- **Reconnected silently after that:** a wallet connected before is reconnected on load without a prompt (the
+  standard's silent connect, or `onlyIfTrusted` on older providers).
+- **Bitget's older provider too:** wallets that inject only `window.bitkeep.solana` (or Phantom's, OKX's,
+  Backpack's or Solflare's older provider) and don't announce over the Wallet Standard are found 300 ms after load
+  and wrapped as standard wallets. Their silent connect never opens a prompt.
+- **A wallet that doesn't answer** a connect request within 90 seconds gets a plain message instead of a stuck
+  button.
+
 **No links to Hyperliquid's own site** (ALFA: "hapus view on Hyperliquid"). Removed "View on Hyperliquid" from
 Portfolio and the wallet menu, and "Compare" from the terminal's coin header. Everything a person does stays on
 Coinside; Hyperliquid is named as the exchange underneath, never linked as a place to go.

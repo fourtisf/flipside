@@ -68,7 +68,54 @@ export function discover(onRegister: (ws: StdWallet[]) => void): () => void {
   return () => window.removeEventListener('wallet-standard:register-wallet', listener);
 }
 
+/** A wallet's older injected Solana provider (window.bitkeep.solana and the like), Phantom's API. */
+interface LegacySol {
+  connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey?: { toString(): string } } | void>;
+  publicKey?: { toString(): string } | null;
+}
+
+/** Where wallets put their older injected Solana provider, for wallets that don't announce over the standard. */
+type Injected = Record<string, { solana?: unknown; isSolflare?: boolean } | undefined>;
+const LEGACY: Array<[name: string, get: (w: Injected) => unknown]> = [
+  ['Bitget Wallet', (w) => w.bitkeep?.solana ?? w.bitget?.solana],
+  ['Phantom', (w) => w.phantom?.solana],
+  ['OKX Wallet', (w) => w.okxwallet?.solana],
+  ['Backpack', (w) => w.backpack?.solana],
+  ['Solflare', (w) => (w.solflare?.isSolflare ? w.solflare : undefined)],
+];
+
+/**
+ * An older injected provider wrapped as a standard wallet. Its silent connect reads an address the wallet
+ * already shares (publicKey), else asks with onlyIfTrusted, which answers only for a site the person allowed
+ * before. Coinside only tries that silently for a wallet this person connected before (see restore()).
+ */
+export function legacyWallet(name: string, p: LegacySol, icon = ''): StdWallet {
+  const accounts: StdAccount[] = [];
+  const connect = async (input?: { silent?: boolean }) => {
+    let pk = p.publicKey?.toString();
+    if (!pk) {
+      const r = await p.connect(input?.silent ? { onlyIfTrusted: true } : undefined);
+      pk = (r && r.publicKey?.toString()) || p.publicKey?.toString();
+    }
+    if (pk && !accounts.length) accounts.push({ address: pk });
+    return { accounts: pk ? [{ address: pk }] : [] };
+  };
+  return {
+    name,
+    icon,
+    chains: ['solana:mainnet'],
+    features: { 'standard:connect': { connect }, 'coinside:legacy': true },
+    accounts,
+  };
+}
+
+const firstWord = (s: string) => s.toLowerCase().split(' ')[0] ?? '';
+
+/** How long a wallet has to answer a connect request before Coinside stops waiting. */
+export const CONNECT_TIMEOUT_MS = 90_000;
+
 const REMEMBER = (owner: string) => `coinside.sol.${owner.toLowerCase()}`;
+const ASKED = 'coinside.sol.asked';
 
 /** The connected Solana wallet and its SOL balance, as an external store. */
 export class SolanaStore {
@@ -84,6 +131,7 @@ export class SolanaStore {
 
   private owner: string | null = null;
   private evmName = '';
+  private evmIcon = '';
   private timer: ReturnType<typeof setInterval> | null = null;
   version = 0;
   private listeners = new Set<() => void>();
@@ -98,28 +146,59 @@ export class SolanaStore {
     this.listeners.forEach((l) => l());
   }
 
+  /** Add wallets, skipping a second entry for the same wallet (the standard one wins over the older one). */
+  private add(ws: StdWallet[]) {
+    for (const w of ws)
+      if (isSolanaWallet(w) && !this.wallets.some((x) => firstWord(x.name) === firstWord(w.name)))
+        this.wallets = [...this.wallets, w];
+  }
+
+  /** Older injected providers, for wallets that haven't announced themselves over the standard. */
+  private addLegacy() {
+    const win = window as unknown as Injected;
+    for (const [name, get] of LEGACY) {
+      const p = get(win) as LegacySol | undefined;
+      if (
+        p &&
+        typeof p.connect === 'function' &&
+        !this.wallets.some((x) => firstWord(x.name) === firstWord(name))
+      ) {
+        const icon = firstWord(name) === firstWord(this.evmName) ? this.evmIcon : '';
+        this.wallets = [...this.wallets, legacyWallet(name, p, icon)];
+      }
+    }
+  }
+
   start() {
     const stop = discover((ws) => {
-      for (const w of ws)
-        if (isSolanaWallet(w) && !this.wallets.some((x) => x.name === w.name))
-          this.wallets = [...this.wallets, w];
+      // a standard wallet replaces an older entry for the same wallet
+      this.wallets = this.wallets.filter((x) => !ws.some((w) => firstWord(w.name) === firstWord(x.name)));
+      this.add(ws);
       this.emit();
       void this.restore();
     });
+    // wallets that only inject an older provider: look once the standard ones have had their turn
+    const later = setTimeout(() => {
+      this.addLegacy();
+      this.emit();
+      void this.restore();
+    }, 300);
     const onVisible = () => {
       if (document.visibilityState === 'visible') void this.refresh();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       stop();
+      clearTimeout(later);
       document.removeEventListener('visibilitychange', onVisible);
       this.stopPolling();
     };
   }
 
   /** Follow the connected EVM wallet: its owner keys what we remember, its name picks the Solana side. */
-  follow(owner: string | null, evmName: string) {
+  follow(owner: string | null, evmName: string, evmIcon = '') {
     this.evmName = evmName;
+    this.evmIcon = evmIcon;
     if (owner === this.owner) return;
     this.owner = owner;
     this.reset();
@@ -139,12 +218,15 @@ export class SolanaStore {
 
   /** The Solana wallet that goes with the connected wallet: same name, or the only one there is. */
   match(): StdWallet | null {
-    const key = this.evmName.toLowerCase().split(' ')[0] ?? '';
-    const named = key ? this.wallets.find((w) => w.name.toLowerCase().split(' ')[0] === key) : undefined;
+    const key = firstWord(this.evmName);
+    const named = key ? this.wallets.find((w) => firstWord(w.name) === key) : undefined;
     return named ?? (this.wallets.length === 1 ? this.wallets[0]! : null);
   }
 
-  /** Reconnect silently to the wallet this owner connected before, if it is here. */
+  /**
+   * Without a prompt: the wallet this owner connected before, else the one that matches the connected wallet,
+   * if it already shares its Solana address with this site.
+   */
   private async restore() {
     if (!this.owner || this.address || this.connecting) return;
     let saved: { name: string } | null = null;
@@ -153,12 +235,33 @@ export class SolanaStore {
     } catch {
       saved = null;
     }
-    const w = saved && this.wallets.find((x) => x.name === saved.name);
+    // a wallet connected before; else the matching one, if it can be asked without any chance of a prompt
+    const matched = this.match();
+    const w =
+      (saved && this.wallets.find((x) => x.name === saved.name)) ||
+      (matched && !matched.features['coinside:legacy'] ? matched : null);
     if (w) await this.connect(w.name, true);
+  }
+
+  /**
+   * Ask the matching wallet once per browser session, for a person who came to deposit: Deposit calls this when
+   * the account is empty, so the SOL shows without hunting for a button. Never asks twice in a session.
+   */
+  async askOnce() {
+    if (!this.owner || this.address || this.connecting) return;
+    try {
+      if (sessionStorage.getItem(ASKED)) return;
+      sessionStorage.setItem(ASKED, '1');
+    } catch {
+      return;
+    }
+    if (!this.wallets.length) this.addLegacy();
+    if (this.match()) await this.connect();
   }
 
   /** Connect a Solana wallet (by name, or the one that matches). Only its address is shared. */
   async connect(name?: string, silent = false) {
+    if (!this.wallets.length && typeof window !== 'undefined') this.addLegacy();
     const w = name ? this.wallets.find((x) => x.name === name) : this.match();
     if (!w) {
       this.picking = this.wallets.length > 1;
@@ -172,7 +275,14 @@ export class SolanaStore {
     this.emit();
     try {
       const feature = w.features['standard:connect'] as ConnectFeature;
-      const { accounts } = await feature.connect(silent ? { silent: true } : undefined);
+      const asked = feature.connect(silent ? { silent: true } : undefined);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const { accounts } = await Promise.race([
+        asked,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('timeout')), CONNECT_TIMEOUT_MS);
+        }),
+      ]).finally(() => clearTimeout(timer));
       const address = accounts[0]?.address ?? w.accounts[0]?.address;
       if (!address) throw new Error('no account');
       this.address = address;
@@ -188,10 +298,13 @@ export class SolanaStore {
     } catch (e) {
       if (!silent) {
         const code = (e as { code?: number })?.code;
+        const message = String((e as Error)?.message);
         this.error =
-          code === 4001 || /reject|denied|cancel/i.test(String((e as Error)?.message))
+          code === 4001 || /reject|denied|cancel/i.test(message)
             ? `You closed the request in ${w.name}. Nothing was shared.`
-            : `${w.name} couldn't connect its Solana account. Unlock it and try again.`;
+            : message === 'timeout'
+              ? `${w.name} didn't answer. Open it, unlock it and approve, then try again.`
+              : `${w.name} couldn't connect its Solana account. Unlock it and try again.`;
       }
     } finally {
       this.connecting = false;

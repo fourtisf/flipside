@@ -23,17 +23,19 @@ export interface FakeWallet {
 
 export async function fakeWallet(
   page: Page,
-  { address, name = 'Phantom', rdns = 'app.phantom', icon = PHANTOM_ICON, solana } = {} as {
+  { address, name = 'Phantom', rdns = 'app.phantom', icon = PHANTOM_ICON, solana, legacySolana } = {} as {
     address: string;
     name?: string;
     rdns?: string;
     icon?: string;
     /** Also a Solana account with this address, announced over the Wallet Standard as real wallets do. */
     solana?: string;
+    /** Instead, only an older injected provider at window[legacySolana].solana, as Bitget's window.bitkeep. */
+    legacySolana?: string;
   },
 ): Promise<FakeWallet> {
   await page.addInitScript(
-    ({ address, name, rdns, icon, solana }) => {
+    ({ address, name, rdns, icon, solana, legacySolana }) => {
       const listeners: Record<string, Array<(v: unknown) => void>> = {};
       const w = window as unknown as Record<string, unknown>;
       let current = address;
@@ -76,7 +78,27 @@ export async function fakeWallet(
       window.addEventListener('eip6963:requestProvider', announce);
       announce();
 
-      if (solana) {
+      if (solana && legacySolana) {
+        // Phantom's older API: connect() opens the prompt; publicKey is set once the site is allowed
+        const pk = { toString: () => solana };
+        // like Phantom's: no publicKey until connect(); onlyIfTrusted answers only for an allowed site
+        const p: {
+          publicKey: typeof pk | null;
+          connect: (o?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: typeof pk }>;
+        } = {
+          publicKey: null,
+          async connect(o) {
+            const allowed = !!localStorage.getItem('fake-solana-allowed');
+            if (o?.onlyIfTrusted && !allowed)
+              throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
+            if (!o?.onlyIfTrusted) w.__solanaPrompts = ((w.__solanaPrompts as number) ?? 0) + 1;
+            localStorage.setItem('fake-solana-allowed', '1');
+            p.publicKey = pk;
+            return { publicKey: pk };
+          },
+        };
+        w[legacySolana] = { solana: p };
+      } else if (solana) {
         const accounts: Array<{ address: string }> = [];
         const std = {
           version: '1.0.0',
@@ -111,7 +133,7 @@ export async function fakeWallet(
         window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', { detail: register }));
       }
     },
-    { address, name, rdns, icon, solana },
+    { address, name, rdns, icon, solana, legacySolana },
   );
   return {
     reject: () =>

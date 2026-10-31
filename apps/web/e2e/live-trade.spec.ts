@@ -180,8 +180,8 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   await expect(page.locator('#moveBtn')).toBeDisabled();
   expect(hl.exchange).toHaveLength(0);
 
-  // the SOL in the Solana side of the same wallet shows here, once that side is connected
-  await page.locator('#solConnect').click();
+  // the SOL in the Solana side of the same wallet shows here: an empty account came to deposit, so the wallet
+  // is asked for its Solana side right away, with no button to find
   const bal = page.locator('#solBal');
   await expect(bal).toContainText('Phantom, Solana');
   await expect(bal).toContainText('7xKX…gAsU');
@@ -220,4 +220,31 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   await page.locator('#walletBtn').click();
   await page.locator('#depositBtn').click();
   await expect(page).toHaveURL(/\/portfolio#deposit$/);
+});
+
+test('Bitget: its older Solana provider is found, asked once, and its SOL shows in Deposit', async ({
+  page,
+}) => {
+  await mockHyperliquid(page, { empty: true });
+  await fakeWallet(page, {
+    address: ADDRESS,
+    name: 'Bitget Wallet',
+    rdns: 'com.bitget.web3',
+    solana: SOL_ADDRESS,
+    legacySolana: 'bitkeep',
+  });
+  await page.goto('/portfolio');
+  await page.locator('#connect').click();
+  await page.locator('#wl button[data-wallet="com.bitget.web3"]').click();
+  const bal = page.locator('#solBal');
+  await expect(bal).toContainText('Bitget Wallet, Solana');
+  await expect(bal).toContainText('0.2');
+  const prompts = () =>
+    page.evaluate(() => (window as unknown as { __solanaPrompts?: number }).__solanaPrompts);
+  expect(await prompts()).toBe(1);
+
+  // a reload reconnects the wallet it remembers, asking only "if trusted": no second prompt
+  await page.reload();
+  await expect(page.locator('#solBal')).toContainText('0.2');
+  expect(await prompts()).toBeUndefined();
 });

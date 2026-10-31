@@ -27,7 +27,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const sync = () => {
       account.follow(wallet.address);
       trade.follow(wallet.address);
-      solana.follow(wallet.address, wallet.name);
+      solana.follow(wallet.address, wallet.name, wallet.icon);
     };
     sync();
     const off = wallet.subscribe(sync);

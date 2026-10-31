@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SolanaStore, isSolanaWallet, shortSol, solText, type StdWallet } from './solana';
+import { SolanaStore, isSolanaWallet, legacyWallet, shortSol, solText, type StdWallet } from './solana';
 
 const ADDR = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 
@@ -73,5 +73,26 @@ describe('the Solana side of the wallet', () => {
     await s.connect();
     expect(s.address).toBeNull();
     expect(s.error).toBe('You closed the request in Phantom. Nothing was shared.');
+  });
+
+  it("wraps a wallet's older injected provider (Bitget's window.bitkeep.solana) as a standard wallet", async () => {
+    const pk = { toString: () => ADDR };
+    const connect = vi.fn(async (o?: { onlyIfTrusted?: boolean }) => {
+      if (o?.onlyIfTrusted) throw Object.assign(new Error('not trusted'), { code: 4001 });
+      return { publicKey: pk };
+    });
+    const w = legacyWallet('Bitget Wallet', { connect, publicKey: null });
+    expect(isSolanaWallet(w)).toBe(true);
+    const c = w.features['standard:connect'] as { connect: (i?: { silent?: boolean }) => Promise<unknown> };
+    // silent never opens a prompt: it asks only "if trusted"
+    await expect(c.connect({ silent: true })).rejects.toThrow('not trusted');
+    expect(connect).toHaveBeenLastCalledWith({ onlyIfTrusted: true });
+    expect(await c.connect()).toEqual({ accounts: [{ address: ADDR }] });
+    // an address the wallet already shares is read without calling connect at all
+    const shared = legacyWallet('Phantom', { connect: vi.fn(), publicKey: pk });
+    const sc = shared.features['standard:connect'] as {
+      connect: (i?: { silent?: boolean }) => Promise<unknown>;
+    };
+    expect(await sc.connect({ silent: true })).toEqual({ accounts: [{ address: ADDR }] });
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { szText } from '@/hl/format';
 import { marketHref } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
@@ -109,7 +109,13 @@ function DepositPanel() {
 function SolanaSide() {
   const sol = useSolana();
   const wallet = useWallet();
+  const account = useAccount();
   const hl = useHl();
+  const empty = account.empty();
+  // someone with an empty account came to deposit: ask the wallet for its Solana side once, so the SOL shows
+  useEffect(() => {
+    if (empty) void sol.askOnce();
+  }, [empty, sol]);
   if (!sol.address)
     return (
       <>
@@ -120,8 +126,10 @@ function SolanaSide() {
           <div className="sol-pick" id="solPick">
             {sol.wallets.map((w) => (
               <button key={w.name} type="button" className="btn o" onClick={() => void sol.connect(w.name)}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={w.icon} alt="" width={18} height={18} />
+                {w.icon && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={w.icon} alt="" width={18} height={18} />
+                )}
                 {w.name}
               </button>
             ))}
