@@ -9,7 +9,8 @@ import { M, pct } from '@/lib/format';
 import { shortAddr } from '@/wallet/catalog';
 import { TRADING } from '@/trade/config';
 import { USOL, free } from '@/trade/funds';
-import { useAccount, useTrade, useWallet } from '@/wallet/provider';
+import { useAccount, useSolana, useTrade, useWallet } from '@/wallet/provider';
+import { LAMPORTS_PER_SOL, shortSol, solText } from '@/wallet/solana';
 import { Price, SideChip } from '../ui';
 import { CoinTok } from './CoinTok';
 import { CancelButton, CloseButton } from './Trading';
@@ -74,10 +75,7 @@ function DepositPanel() {
       <ol className="fsteps">
         <li>
           <b>Send SOL from your Solana wallet</b>
-          <p>
-            Your own deposit address shows here, checked before it&apos;s shown so SOL can only reach your
-            account. Deposits are switching on now.
-          </p>
+          <SolanaSide />
         </li>
         <li>
           <b>Move it to your trading balance</b>
@@ -104,6 +102,79 @@ function DepositPanel() {
         </li>
       </ol>
     </Panel>
+  );
+}
+
+/** Step 1 of Deposit: the Solana side of the person's wallet, where their SOL is, and its balance. */
+function SolanaSide() {
+  const sol = useSolana();
+  const wallet = useWallet();
+  const hl = useHl();
+  if (!sol.address)
+    return (
+      <>
+        <p>
+          Connect the Solana side of {wallet.name || 'your wallet'} to see your SOL and deposit it from here.
+        </p>
+        {sol.picking ? (
+          <div className="sol-pick" id="solPick">
+            {sol.wallets.map((w) => (
+              <button key={w.name} type="button" className="btn o" onClick={() => void sol.connect(w.name)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={w.icon} alt="" width={18} height={18} />
+                {w.name}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            className="btn w"
+            type="button"
+            id="solConnect"
+            disabled={sol.connecting}
+            onClick={() => void sol.connect()}
+          >
+            {sol.connecting ? `Check ${sol.match()?.name ?? 'your wallet'}` : 'Connect Solana wallet'}
+          </button>
+        )}
+        {sol.error && (
+          <p className="omsg" role="alert">
+            {sol.error}
+          </p>
+        )}
+      </>
+    );
+  const px = hl.byName.SOL?.px ?? 0;
+  const usd = sol.lamports !== null && px > 0 ? (Number(sol.lamports) / Number(LAMPORTS_PER_SOL)) * px : null;
+  return (
+    <>
+      <dl className="fbal" id="solBal">
+        <div>
+          <dt>{sol.name}, Solana</dt>
+          <dd>{shortSol(sol.address)}</dd>
+        </div>
+        <div>
+          <dt>SOL</dt>
+          <dd>{sol.lamports !== null ? solText(sol.lamports) : sol.balanceFailed ? '—' : '…'}</dd>
+        </div>
+        <div>
+          <dt>Value</dt>
+          <dd>{usd !== null ? `≈ ${usd2(usd)}` : '…'}</dd>
+        </div>
+      </dl>
+      {sol.balanceFailed && sol.lamports === null && (
+        <p className="omsg" role="status">
+          Couldn&apos;t read your SOL balance just now. It retries on its own.
+        </p>
+      )}
+      <p>
+        Your deposit address shows here once it has been checked, so SOL can only reach your account. The
+        Deposit button switches on with it.
+      </p>
+      <button className="btn w" type="button" id="solDeposit" disabled>
+        Deposit SOL
+      </button>
+    </>
   );
 }
 

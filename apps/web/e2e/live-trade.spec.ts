@@ -5,6 +5,8 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { ADDRESS } from './hl-fixtures';
+
+const SOL_ADDRESS = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 import { mockHyperliquid, type HlMock } from './hl-mock';
 import { fakeWallet, type FakeWallet } from './wallet-mock';
 
@@ -161,7 +163,7 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
 }) => {
   // Hyperliquid refuses every action, approving a trading key too, from an address that has never deposited
   const hl = await mockHyperliquid(page, { empty: true });
-  await fakeWallet(page, { address: ADDRESS });
+  await fakeWallet(page, { address: ADDRESS, solana: SOL_ADDRESS });
   await page.goto('/trade/SOL');
   await page.locator('#connect').click();
   await page.locator('#wl button[data-wallet="app.phantom"]').click();
@@ -177,6 +179,18 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   await expect(page.locator('#moveBtn')).toHaveText('Nothing to move yet');
   await expect(page.locator('#moveBtn')).toBeDisabled();
   expect(hl.exchange).toHaveLength(0);
+
+  // the SOL in the Solana side of the same wallet shows here, once that side is connected
+  await page.locator('#solConnect').click();
+  const bal = page.locator('#solBal');
+  await expect(bal).toContainText('Phantom, Solana');
+  await expect(bal).toContainText('7xKX…gAsU');
+  await expect(bal).toContainText('0.2');
+  await expect(bal).toContainText('≈ $37.45');
+  await expect(page.locator('#solDeposit')).toBeDisabled();
+  // a reload reconnects it without asking again
+  await page.reload();
+  await expect(page.locator('#solBal')).toContainText('0.2');
 
   // SOL lands as USOL (and some USDC): enable trading, then one click makes it tradable
   hl.fund(ADDRESS);

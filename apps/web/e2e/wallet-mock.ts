@@ -23,15 +23,17 @@ export interface FakeWallet {
 
 export async function fakeWallet(
   page: Page,
-  { address, name = 'Phantom', rdns = 'app.phantom', icon = PHANTOM_ICON } = {} as {
+  { address, name = 'Phantom', rdns = 'app.phantom', icon = PHANTOM_ICON, solana } = {} as {
     address: string;
     name?: string;
     rdns?: string;
     icon?: string;
+    /** Also a Solana account with this address, announced over the Wallet Standard as real wallets do. */
+    solana?: string;
   },
 ): Promise<FakeWallet> {
   await page.addInitScript(
-    ({ address, name, rdns, icon }) => {
+    ({ address, name, rdns, icon, solana }) => {
       const listeners: Record<string, Array<(v: unknown) => void>> = {};
       const w = window as unknown as Record<string, unknown>;
       let current = address;
@@ -73,8 +75,43 @@ export async function fakeWallet(
       const announce = () => window.dispatchEvent(new CustomEvent('eip6963:announceProvider', { detail }));
       window.addEventListener('eip6963:requestProvider', announce);
       announce();
+
+      if (solana) {
+        const accounts: Array<{ address: string }> = [];
+        const std = {
+          version: '1.0.0',
+          name,
+          icon,
+          chains: ['solana:mainnet'],
+          get accounts() {
+            return accounts;
+          },
+          features: {
+            'standard:connect': {
+              version: '1.0.0',
+              async connect(input?: { silent?: boolean }) {
+                const allowed = localStorage.getItem('fake-solana-allowed');
+                if (input?.silent && !allowed) return { accounts: [] };
+                if (w.__rejectNext) {
+                  w.__rejectNext = false;
+                  throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
+                }
+                localStorage.setItem('fake-solana-allowed', '1');
+                if (!accounts.length) accounts.push({ address: solana });
+                return { accounts };
+              },
+            },
+            'standard:events': { version: '1.0.0', on: () => () => {} },
+          },
+        };
+        const register = (api: { register: (w: unknown) => void }) => api.register(std);
+        window.addEventListener('wallet-standard:app-ready', (e) =>
+          register((e as CustomEvent).detail as { register: (w: unknown) => void }),
+        );
+        window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', { detail: register }));
+      }
     },
-    { address, name, rdns, icon },
+    { address, name, rdns, icon, solana },
   );
   return {
     reject: () =>

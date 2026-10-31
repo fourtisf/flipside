@@ -505,6 +505,11 @@ dialog .amt{margin-top:16px}
 .fbal dt{font-size:12px;color:var(--t3)}
 .fbal dd{font:500 14px var(--mono);margin-top:2px}
 .fsteps .omsg:empty{display:none}
+.fsteps .btn{margin-top:4px}
+.fsteps p+.btn,.fsteps p+.sol-pick{margin-top:12px}
+.sol-pick{display:flex;flex-wrap:wrap;gap:8px}
+.sol-pick .btn{display:inline-flex;align-items:center;gap:8px}
+.sol-pick img{border-radius:5px}
 .tabbar{display:none}
 
 /* responsive */

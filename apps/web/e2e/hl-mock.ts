@@ -84,6 +84,9 @@ export async function mockHyperliquid(page: Page, { down = false, empty = false 
     mock.push('spotState', { user, spotState: SPOT });
   };
 
+  // our own server's Solana balance route (it reads a Solana RPC node, which tests never reach)
+  await page.route('**/solana/balance/*', (route) => route.fulfill({ json: { lamports: '200000000' } }));
+
   await page.route('**/logos/*', (route) =>
     route.request().url().endsWith(`/${NO_LOGO}`)
       ? route.fulfill({ status: 404, body: '' })

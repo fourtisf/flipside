@@ -22,6 +22,15 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 
 ## An empty account: deposit first (31 Oct 2026)
 
+**The SOL in the person's own wallet shows in Deposit** (ALFA: "website tidak baca isi saldo SOL saya"). Coinside
+read only the Hyperliquid account (the 0x address); the SOL sits in the Solana side of the same wallet (Bitget,
+Phantom and Backpack hold both). Deposit step 1 now connects that side over the Wallet Standard (the Solana
+equivalent of EIP-6963; only its address is shared), picking the Solana wallet with the same name as the
+connected one, and shows its address, SOL balance and value. The balance comes from our own server
+(`GET /solana/balance/<address>`), which calls `getBalance` and nothing else on `SOLANA_RPC_URL` (a Helius mainnet
+URL kept in the server's environment file) or Solana's public node, and keeps each answer 5 seconds. It refreshes
+every 15 seconds while the page is open. The Deposit SOL button stays off until the Unit address check is in.
+
 **No links to Hyperliquid's own site** (ALFA: "hapus view on Hyperliquid"). Removed "View on Hyperliquid" from
 Portfolio and the wallet menu, and "Compare" from the terminal's coin header. Everything a person does stays on
 Coinside; Hyperliquid is named as the exchange underneath, never linked as a place to go.
