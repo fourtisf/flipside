@@ -20,6 +20,32 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## H2: connect a wallet, read the Hyperliquid account (31 Oct 2026)
+
+ALFA: "harus tambahkan fitur connect wallet dan tambahkan beberapa wallet, setiap wallet harus punya logonya
+masing-masing". That answers decision 3 in `PLAN-HYPERLIQUID.md`: connect wallets directly, several of them, with
+no embedded-wallet provider (Privy).
+
+- **Wallets** (`src/wallet/catalog.ts`): Phantom and Backpack first (the Solana wallets our users have, both with an
+  EVM account), then MetaMask, Rabby, OKX Wallet, Coinbase Wallet, Rainbow, Trust Wallet and Zerion. A
+  Hyperliquid account is an EVM address, so Solana-only wallets (Solflare) can't hold one; the dialog says so.
+- **Logos**: each wallet's own mark, from `@web3icons/core` 4.0.58 (MIT), as static files in `public/wallets`.
+  The marks are their owners' trademarks, used only to name each wallet. Any other wallet that announces itself
+  shows its own icon.
+- **Finding wallets**: EIP-6963, the standard that lets every installed wallet announce itself, so two wallets
+  never fight over `window.ethereum`; an old-style `window.ethereum` is the fallback. Installed wallets are listed
+  first and connect; the rest link to their download page, or on a phone open Coinside inside the wallet's app
+  (Phantom, MetaMask, OKX, Coinbase and Trust have documented links for that).
+- **Connecting reads the address only** (`eth_requestAccounts`). Nothing is signed until trading opens (H3). The
+  wallet used last reconnects on the next visit without a prompt (`eth_accounts`), and switching account inside
+  the wallet follows along. Disconnect forgets it on this site.
+- **The account, read only** (`src/wallet/account.ts`): a snapshot from the info API, then live updates over the
+  WebSocket (clearinghouse state, spot balances, open orders, fills). The header shows the account value next to
+  the address; the order forms show what is available; Portfolio shows the account value, withdrawable, unrealized
+  P&L, margin used, open positions, open orders, spot balances and the last 50 trades.
+- **Not yet**: WalletConnect (connecting a phone wallet by QR code) needs a project id from Reown that ALFA would
+  register; until then, phones use the wallet apps' own browsers.
+
 ## H1: live Hyperliquid markets on coinside.fun (30 Oct 2026)
 
 ALFA said to start ("ok mulai semuanya"). H1 is read only, so it needed none of the open decisions in

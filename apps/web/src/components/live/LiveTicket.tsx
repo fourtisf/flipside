@@ -9,6 +9,7 @@ import { LiveSearchBox } from './LiveSearch';
 import { LevButtons, Sides, Summary, levFor } from './OrderBits';
 import { statusText } from './status';
 import { CoinTok } from './CoinTok';
+import { AvailableNote } from './Wallet';
 
 /** The 24h sparkline: 15-minute closes, ending at the live price. */
 function Spark({ name, px }: { name: string; px: number }) {
@@ -106,7 +107,7 @@ export function LiveTicket() {
         <Sides id="tk-side" side={d.side} onPick={(sd) => hl.set((s) => void (s.draft.side = sd))} />
         <div className="fl">
           <label htmlFor="tk-amt">Amount</label>
-          <b>Margin in USDC</b>
+          <AvailableNote />
         </div>
         <div className="amt">
           <input

@@ -6,7 +6,7 @@
 const STEPS: Array<[string, string]> = [
   [
     'Connect your wallet',
-    'Use your Solana wallet. Your Hyperliquid account belongs to it, and only your wallet can move money out.',
+    'Phantom, Backpack, MetaMask, Rabby or another wallet with an EVM account. That address is your Hyperliquid account, and only your wallet can move money out.',
   ],
   [
     'Deposit SOL or USDC',

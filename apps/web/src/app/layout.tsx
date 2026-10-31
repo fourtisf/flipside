@@ -4,9 +4,11 @@ import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Header } from '@/components/Header';
 import { Footer, FundDialog, TabBar, Toasts, WalletDialog } from '@/components/Shell';
+import { ConnectDialog, WalletMenu } from '@/components/live/Wallet';
 import { HlProvider } from '@/hl/provider';
 import { LIVE } from '@/lib/edition';
 import { SimProvider } from '@/mock/provider';
+import { WalletProvider } from '@/wallet/provider';
 import './globals.css';
 
 // Same families as the prototype's Google Fonts link (Inter 400-700, Geist Mono), self-hosted.
@@ -47,10 +49,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {LIVE ? (
           // coinside.fun: live Hyperliquid markets, read only
           <HlProvider>
-            <Header />
-            <main>{children}</main>
-            <Footer />
-            <TabBar />
+            <WalletProvider>
+              <Header />
+              <main>{children}</main>
+              <Footer />
+              <TabBar />
+              <ConnectDialog />
+              <WalletMenu />
+            </WalletProvider>
           </HlProvider>
         ) : (
           <SimProvider>

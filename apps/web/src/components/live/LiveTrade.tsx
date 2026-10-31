@@ -14,6 +14,7 @@ import { LiveChart, TFS, type Tf } from './LiveChart';
 import { LevButtons, Sides, Summary, levFor } from './OrderBits';
 import { statusText } from './status';
 import { CoinTok } from './CoinTok';
+import { AvailableNote } from './Wallet';
 
 function Watchlist({ sel }: { sel: Market }) {
   const hl = useHl();
@@ -119,7 +120,7 @@ function OrderPanel({ m }: { m: Market }) {
       )}
       <div className="fl">
         <label htmlFor="o-amt">Amount</label>
-        <b>Margin in USDC</b>
+        <AvailableNote />
       </div>
       <div className="amt">
         <input

@@ -32,7 +32,7 @@ test('markets: every Hyperliquid market, live prices, trading closed', async ({ 
   const hl = await mockHyperliquid(page);
   await page.goto('/');
 
-  await expect(page.locator('.hdr .soon')).toHaveText('Trading opens soon');
+  await expect(page.locator('#connect')).toHaveText('Connect wallet');
   await expect(page.locator('.status')).toHaveText('Live prices from Hyperliquid');
   await expect(page.getByRole('link', { name: 'Pool' })).toHaveCount(0);
 
@@ -200,7 +200,7 @@ for (const path of ['/pool', '/emergency']) {
 }
 
 for (const [path, heading, state] of [
-  ['/portfolio', 'Portfolio', 'Connecting a wallet comes next'],
+  ['/portfolio', 'Portfolio', 'Connect a wallet to see your account'],
   ['/leaderboard', 'Leaderboard', 'Starts with trading'],
 ] as const) {
   test(`${path}: says what comes, shows nothing simulated`, async ({ page }) => {

@@ -83,6 +83,8 @@ Each phase ends with a report and stops for ALFA, as before.
     every second and the order book twice a second, and 179 of 179 coins have a logo (DECISIONS.md, "H1").
 - **H2. Wallet and account (read only).** Connect, then show the Hyperliquid balances, positions, open orders
   and fills of the connected account.
+  - **Status (31 Oct 2026):** built. Nine wallets with their own logos, connect and reconnect, and the account
+    in the header, the order forms and Portfolio (DECISIONS.md, "H2").
 - **H3. Trading on Hyperliquid testnet.**
   - **Scope:** approve the builder fee and the agent key; market, limit, take profit / stop loss; close;
     leverage; clear error messages; Hyperliquid's rate limits.
@@ -109,7 +111,8 @@ fees on about $37B of volume in under a year. As an illustration, $1M of daily v
 2. **Builder wallet.** An EVM address that ALFA controls, ideally a hardware wallet. Hyperliquid requires the
    builder to hold at least 100 USDC in its perps account and to use the standard account mode. Fees are
    claimed through Hyperliquid's referral reward claim.
-3. **Wallets.**
+3. **Wallets.** Decided 31 Oct 2026: connect wallets directly, several of them (Phantom, Backpack, MetaMask,
+   Rabby, OKX, Coinbase, Rainbow, Trust, Zerion), no Privy. What follows was the question.
    - **Option A:** at first, only wallets that also have an EVM address (Phantom, Backpack). No third party.
    - **Option B:** an embedded wallet provider such as Privy, so any Solana wallet works. Costs money and
      adds a vendor.

@@ -10,6 +10,7 @@ import { LIVE } from '@/lib/edition';
 import { shortA, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';
 import { LiveSearchBox } from './live/LiveSearch';
+import { WalletButton } from './live/Wallet';
 import { tradeHref, useOpenTrade } from './nav';
 import { SearchBox } from './Search';
 import { LogoMark, SearchIcon } from './ui';
@@ -114,7 +115,7 @@ function HeaderFrame({ search, children }: { search: (kbd: ReactNode) => ReactNo
   );
 }
 
-/** coinside.fun: search Hyperliquid's markets; trading isn't open yet. */
+/** coinside.fun: search Hyperliquid's markets and connect a wallet; trading isn't open yet. */
 function LiveHeader() {
   const router = useRouter();
   return (
@@ -132,7 +133,7 @@ function LiveHeader() {
       )}
     >
       <div id="walletbox" style={{ display: 'flex', gap: 8 }}>
-        <span className="soon">Trading opens soon</span>
+        <WalletButton />
       </div>
     </HeaderFrame>
   );

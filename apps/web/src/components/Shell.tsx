@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { fixed, shortA, sol } from '@/lib/format';
 import { useSim } from '@/mock/provider';
 import { navKey, useNavHrefs, type NavKey } from './Header';
 import { LIVE } from '@/lib/edition';
+import { useDialog } from './dialog';
 import { LogoMark } from './ui';
 
 export function Footer() {
@@ -205,29 +206,6 @@ export function TabBar() {
       ))}
     </nav>
   );
-}
-
-/** Open/close a native <dialog> from state, and report its returnValue on close. */
-function useDialog(open: boolean, onClose: (value: string) => void) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const cb = useRef(onClose);
-  cb.current = onClose;
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    const handler = () => cb.current(d.returnValue);
-    d.addEventListener('close', handler);
-    return () => d.removeEventListener('close', handler);
-  }, []);
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) {
-      d.returnValue = '';
-      d.showModal();
-    } else if (!open && d.open) d.close();
-  }, [open]);
-  return ref;
 }
 
 export function WalletDialog() {

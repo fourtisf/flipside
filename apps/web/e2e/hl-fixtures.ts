@@ -5,8 +5,12 @@
  */
 import type {
   CandleSnapshotResponse,
+  ClearinghouseStateResponse,
+  FrontendOpenOrdersResponse,
   L2BookResponse,
   MetaAndAssetCtxsResponse,
+  SpotClearinghouseStateResponse,
+  UserFillsResponse,
 } from '@nktkas/hyperliquid/api/info';
 
 interface Row {
@@ -184,3 +188,117 @@ export function trades(coin: string, n = 30, now = Date.now()) {
     users: ['0x' + '1'.repeat(40), '0x' + '2'.repeat(40)] as [string, string],
   }));
 }
+
+/* ---------- an account (H2) ---------- */
+
+export const ADDRESS = '0x1234567890abcdef1234567890abcdef12345678';
+
+const summary = {
+  accountValue: '1234.56',
+  totalNtlPos: '2937.16',
+  totalRawUsd: '-1702.6',
+  totalMarginUsed: '490.3',
+};
+const funding = { allTime: '0.5', sinceOpen: '0.2', sinceChange: '0.2' };
+
+export const CLEARINGHOUSE: ClearinghouseStateResponse = {
+  marginSummary: summary,
+  crossMarginSummary: summary,
+  crossMaintenanceMarginUsed: '61.2',
+  withdrawable: '744.26',
+  assetPositions: [
+    {
+      type: 'oneWay',
+      position: {
+        coin: 'SOL',
+        szi: '10.5',
+        leverage: { type: 'cross', value: 5 },
+        entryPx: '180.12',
+        positionValue: '1965.92',
+        unrealizedPnl: '74.66',
+        returnOnEquity: '0.1974',
+        liquidationPx: '150.01',
+        marginUsed: '393.18',
+        maxLeverage: 20,
+        cumFunding: funding,
+      },
+    },
+    {
+      type: 'oneWay',
+      position: {
+        coin: 'BTC',
+        szi: '-0.01',
+        leverage: { type: 'isolated', value: 10, rawUsd: '1068.36' },
+        entryPx: '96000',
+        positionValue: '971.24',
+        unrealizedPnl: '-11.24',
+        returnOnEquity: '-0.117',
+        liquidationPx: '105000',
+        marginUsed: '97.12',
+        maxLeverage: 40,
+        cumFunding: funding,
+      },
+    },
+  ],
+  time: 1_793_000_000_000,
+};
+
+export const SPOT: SpotClearinghouseStateResponse = {
+  balances: [
+    { coin: 'USOL', token: 254, total: '1.5', hold: '0.0', entryNtl: '280.5' },
+    { coin: 'USDC', token: 0, total: '500.12', hold: '20.0', entryNtl: '0.0' },
+    { coin: 'PURR', token: 1, total: '0.0', hold: '0.0', entryNtl: '0.0' },
+  ],
+};
+
+export const ORDERS: FrontendOpenOrdersResponse = [
+  {
+    coin: 'SOL',
+    side: 'B',
+    limitPx: '170.5',
+    sz: '2.0',
+    oid: 9001,
+    timestamp: 1_793_000_000_000,
+    origSz: '2.0',
+    triggerCondition: 'N/A',
+    isTrigger: false,
+    triggerPx: '0.0',
+    children: [],
+    isPositionTpsl: false,
+    reduceOnly: false,
+    orderType: 'Limit',
+    tif: 'Gtc',
+    cloid: null,
+  },
+];
+
+const fill = (
+  tid: number,
+  coin: string,
+  side: 'B' | 'A',
+  px: string,
+  sz: string,
+  dir: string,
+  closedPnl: string,
+) => ({
+  coin,
+  px,
+  sz,
+  side,
+  time: 1_793_000_000_000 - tid * 60_000,
+  startPosition: '0.0',
+  dir,
+  closedPnl,
+  hash: `0x${'ab'.repeat(32)}` as const,
+  oid: 8000 + tid,
+  crossed: true,
+  fee: '0.08',
+  tid,
+  feeToken: 'USDC',
+  twapId: null,
+});
+
+export const FILLS: UserFillsResponse = [
+  fill(1, 'SOL', 'B', '180.12', '10.5', 'Open Long', '0.0'),
+  fill(2, 'ETH', 'A', '3500.1', '0.2', 'Close Long', '12.5'),
+];

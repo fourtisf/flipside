@@ -277,6 +277,29 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 #rt{padding:4px 0 8px}
 #ob{padding-bottom:8px}
 .ob-msg{padding:28px 16px;text-align:center;color:var(--t3);font-size:13px}
+/* wallets: the connect dialog's rows are links too (install or open the app), with each wallet's logo */
+.wl{max-height:min(56vh,500px);overflow:auto;scrollbar-width:thin;scrollbar-color:#222 transparent}
+.wl a{display:flex;align-items:center;gap:12px;width:100%;height:52px;padding:0 14px;border:1px solid var(--line2);border-radius:10px;background:var(--s2);font-size:14px;font-weight:500;transition:border-color .15s,background .15s}
+.wl a:hover{border-color:var(--line3);background:var(--s3)}
+.wl img{flex:none;width:28px;height:28px;border-radius:8px}
+.wl button[disabled]{opacity:.6;cursor:progress}
+.wl button small{color:var(--t2)}
+.wbtn{gap:7px}
+.wbtn img{width:18px;height:18px;border-radius:5px}
+.wm-h{display:flex;align-items:center;gap:12px}
+.wm-h img{border-radius:10px}
+.wm-h h3{font-size:17px}
+.wm-h p{margin-top:2px}
+#walletMenu .sum{margin:16px 0 0}
+.wm-a{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+.wm-a .btn{padding:0 8px}
+/* portfolio tables */
+.t-hp{grid-template-columns:minmax(110px,1.2fr) 84px .9fr .9fr .9fr .9fr 1.2fr}
+.t-ho{grid-template-columns:minmax(110px,1.2fr) 64px 1.4fr 1fr .9fr .9fr}
+.t-hs{grid-template-columns:minmax(110px,1.2fr) 1fr 1fr}
+.t-hf{grid-template-columns:minmax(110px,1.1fr) 1.1fr .9fr .9fr .8fr 1fr .9fr}
+.tr .tk{gap:9px}
+.tr .tk b{font-size:13px}
 
 /* live + wins */
 .cols2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;padding-bottom:96px}
@@ -503,6 +526,13 @@ dialog .amt{margin-top:16px}
   .t-pos .c3,.t-pos .c4,.t-pos .c5,.t-pos .c6{display:none}
   .t-hist,#tv-pos .t-hist{grid-template-columns:1.2fr 1fr 1fr}
   .t-hist .c3,.t-hist .c4,.t-hist .c6,.t-hist .c7{display:none}
+  .t-hp{grid-template-columns:1.2fr 84px 1.2fr}
+  .t-hp .c3,.t-hp .c4,.t-hp .c5,.t-hp .c6{display:none}
+  .t-ho{grid-template-columns:1.2fr 56px 1fr}
+  .t-ho .c3,.t-ho .c5,.t-ho .c6{display:none}
+  .t-hf{grid-template-columns:1.1fr 1.2fr .9fr}
+  .t-hf .c3,.t-hf .c4,.t-hf .c5,.t-hf .c6{display:none}
+  .wm-a{grid-template-columns:1fr}
   .t-lead{grid-template-columns:32px 1.3fr 1fr 80px}
   .t-lead .c3,.t-lead .c4,.t-lead .c6{display:none}
   .steps{grid-template-columns:1fr 1fr}

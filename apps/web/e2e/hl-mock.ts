@@ -5,7 +5,17 @@
  */
 import { deflateRawSync } from 'node:zlib';
 import type { Page, WebSocketRoute } from '@playwright/test';
-import { META_AND_CTXS, book, candles, mids, trades } from './hl-fixtures';
+import {
+  CLEARINGHOUSE,
+  FILLS,
+  META_AND_CTXS,
+  ORDERS,
+  SPOT,
+  book,
+  candles,
+  mids,
+  trades,
+} from './hl-fixtures';
 
 /** fastAssetCtxs arrives as base64 of raw-DEFLATE JSON, as Hyperliquid sends it. */
 const packed = (data: unknown) => deflateRawSync(Buffer.from(JSON.stringify(data))).toString('base64');
@@ -18,6 +28,7 @@ const ICON =
 interface Info {
   type: string;
   coin?: string;
+  user?: string;
   req?: { coin: string; interval: string; startTime: number; endTime?: number };
 }
 
@@ -63,6 +74,15 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
         return route.fulfill({ json: trades(body.coin!) });
       case 'l2Book':
         return route.fulfill({ json: book(body.coin!) });
+      // the account of whoever connects (any address gets the fixture account)
+      case 'clearinghouseState':
+        return route.fulfill({ json: CLEARINGHOUSE });
+      case 'spotClearinghouseState':
+        return route.fulfill({ json: SPOT });
+      case 'frontendOpenOrders':
+        return route.fulfill({ json: ORDERS });
+      case 'userFills':
+        return route.fulfill({ json: FILLS });
       default:
         return route.fulfill({ status: 422, body: `unexpected info request ${body.type}` });
     }
@@ -102,6 +122,12 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
         const i = META_AND_CTXS[0].universe.findIndex((u) => u.name === coin);
         send('activeAssetCtx', { coin, ctx: META_AND_CTXS[1][i] });
       }
+      const user = String(s.user ?? '');
+      if (s.type === 'clearinghouseState')
+        send('clearinghouseState', { dex: '', user, clearinghouseState: CLEARINGHOUSE });
+      if (s.type === 'spotState') send('spotState', { user, spotState: SPOT });
+      if (s.type === 'openOrders') send('openOrders', { dex: '', user, orders: ORDERS });
+      if (s.type === 'userFills') send('userFills', { user, fills: FILLS, isSnapshot: true });
       if (s.type === 'candle') {
         const now = Date.now();
         send('candle', candles(coin, String(s.interval), now - 60_000, now).at(-1));
