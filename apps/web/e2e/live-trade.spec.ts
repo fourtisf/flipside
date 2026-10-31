@@ -248,3 +248,17 @@ test('Bitget: its older Solana provider is found, asked once, and its SOL shows 
   await expect(page.locator('#solBal')).toContainText('0.2');
   expect(await prompts()).toBeUndefined();
 });
+
+test('one Connect wallet covers both accounts: the 0x one, then the Solana one with the SOL', async ({
+  page,
+}) => {
+  await mockHyperliquid(page);
+  await fakeWallet(page, { address: ADDRESS, solana: SOL_ADDRESS });
+  await page.goto('/trade/SOL');
+  await page.locator('#connect').click();
+  await page.locator('#wl button[data-wallet="app.phantom"]').click();
+  await expect(page.locator('#walletBtn')).toBeVisible();
+  // a funded account (no Deposit prompt of its own): the SOL is already there when Portfolio opens
+  await page.goto('/portfolio');
+  await expect(page.locator('#solBal')).toContainText('0.2');
+});

@@ -216,11 +216,18 @@ export class SolanaStore {
     this.emit();
   }
 
-  /** The Solana wallet that goes with the connected wallet: same name, or the only one there is. */
+  /**
+   * The Solana side of the connected wallet: the Solana wallet with the same name. Never another brand's wallet
+   * (Phantom installed next to Bitget must not stand in for Bitget); with no match the person picks.
+   */
   match(): StdWallet | null {
     const key = firstWord(this.evmName);
-    const named = key ? this.wallets.find((w) => firstWord(w.name) === key) : undefined;
-    return named ?? (this.wallets.length === 1 ? this.wallets[0]! : null);
+    return (key && this.wallets.find((w) => firstWord(w.name) === key)) || null;
+  }
+
+  /** Every wallet there is, the older injected ones included (they may not have been looked for yet). */
+  private look() {
+    if (typeof window !== 'undefined') this.addLegacy();
   }
 
   /**
@@ -236,6 +243,7 @@ export class SolanaStore {
       saved = null;
     }
     // a wallet connected before; else the matching one, if it can be asked without any chance of a prompt
+    this.look();
     const matched = this.match();
     const w =
       (saved && this.wallets.find((x) => x.name === saved.name)) ||
@@ -248,6 +256,7 @@ export class SolanaStore {
    * the account is empty, so the SOL shows without hunting for a button. Never asks twice in a session.
    */
   async askOnce() {
+    await this.settled();
     if (!this.owner || this.address || this.connecting) return;
     try {
       if (sessionStorage.getItem(ASKED)) return;
@@ -255,16 +264,49 @@ export class SolanaStore {
     } catch {
       return;
     }
-    if (!this.wallets.length) this.addLegacy();
-    if (this.match()) await this.connect();
+    await this.connectMatching();
   }
+
+  /**
+   * Right after the person connects their wallet: ask for its Solana side in the same go, so one "Connect wallet"
+   * covers both accounts of a wallet like Bitget or Phantom. Nothing happens for a wallet with no Solana side.
+   */
+  async connectMatching() {
+    await this.settled();
+    if (!this.owner || this.address || this.connecting) return;
+    try {
+      sessionStorage.setItem(ASKED, '1');
+    } catch {
+      // asked anyway
+    }
+    this.look();
+    const w = this.match();
+    if (w) await this.connect(w.name);
+  }
+
+  /** Wait for a connect already under way (a silent reconnect on load), so a prompt never races it. */
+  private async settled() {
+    while (this.pending) await this.pending.catch(() => {});
+  }
+
+  private pending: Promise<void> | null = null;
 
   /** Connect a Solana wallet (by name, or the one that matches). Only its address is shared. */
   async connect(name?: string, silent = false) {
-    if (!this.wallets.length && typeof window !== 'undefined') this.addLegacy();
+    const run = this.connectNow(name, silent);
+    this.pending = run;
+    try {
+      await run;
+    } finally {
+      if (this.pending === run) this.pending = null;
+    }
+  }
+
+  private async connectNow(name?: string, silent = false) {
+    this.look();
     const w = name ? this.wallets.find((x) => x.name === name) : this.match();
     if (!w) {
-      this.picking = this.wallets.length > 1;
+      this.picking = this.wallets.length > 0;
       this.error = this.wallets.length
         ? ''
         : 'No Solana wallet found in this browser. Open Phantom, Bitget or Backpack and try again.';

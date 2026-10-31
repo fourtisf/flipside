@@ -46,6 +46,18 @@ being looked for:
 - **A wallet that doesn't answer** a connect request within 90 seconds gets a plain message instead of a stuck
   button.
 
+Then ALFA: "ini udah connect wallet padahal": connecting the wallet should be enough.
+
+- **One Connect covers both accounts.** Right after the person connects their wallet, Coinside asks the same
+  wallet for its Solana side, so Bitget or Phantom shows its two approvals in one go. A wallet with no Solana side
+  is left alone.
+- **Never another brand's wallet.** The Solana side must be the wallet with the same name; Phantom installed next
+  to Bitget no longer stands in for it. With no match, the person picks.
+- **Fixed a race:** the silent reconnect that runs on load could still be in flight when the automatic ask came,
+  and the ask then gave up for good. Both asks now wait for it to finish.
+- The panel says why the wallet asks: the SOL sits in its Solana account, next to the 0x account Hyperliquid
+  uses. The button reads "Show my SOL".
+
 **No links to Hyperliquid's own site** (ALFA: "hapus view on Hyperliquid"). Removed "View on Hyperliquid" from
 Portfolio and the wallet menu, and "Compare" from the terminal's coin header. Everything a person does stays on
 Coinside; Hyperliquid is named as the exchange underneath, never linked as a place to go.

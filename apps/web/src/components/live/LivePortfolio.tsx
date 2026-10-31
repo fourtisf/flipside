@@ -120,7 +120,8 @@ function SolanaSide() {
     return (
       <>
         <p>
-          Connect the Solana side of {wallet.name || 'your wallet'} to see your SOL and deposit it from here.
+          Your SOL sits in the Solana account of {wallet.name || 'your wallet'}, next to the 0x account
+          Hyperliquid uses. {wallet.name || 'Your wallet'} asks once to share it, then your SOL shows here.
         </p>
         {sol.picking ? (
           <div className="sol-pick" id="solPick">
@@ -142,7 +143,7 @@ function SolanaSide() {
             disabled={sol.connecting}
             onClick={() => void sol.connect()}
           >
-            {sol.connecting ? `Check ${sol.match()?.name ?? 'your wallet'}` : 'Connect Solana wallet'}
+            {sol.connecting ? `Check ${sol.match()?.name ?? 'your wallet'}` : 'Show my SOL'}
           </button>
         )}
         {sol.error && (

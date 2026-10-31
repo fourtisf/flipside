@@ -52,11 +52,13 @@ describe('the Solana side of the wallet', () => {
     expect(s.address).toBeNull();
   });
 
-  it('asks the person to pick when no wallet matches, and says so when there is none', async () => {
+  it("never stands in another brand's wallet: with no match the person picks, and says so when there is none", async () => {
     const s = new SolanaStore();
-    s.wallets = [stdWallet('Phantom'), stdWallet('Backpack')];
-    s.follow('0xe614', 'MetaMask');
+    s.wallets = [stdWallet('Phantom')];
+    s.follow('0xe614', 'Bitget Wallet');
+    expect(s.match()).toBeNull();
     await s.connect();
+    expect(s.address).toBeNull();
     expect(s.picking).toBe(true);
     s.wallets = [];
     await s.connect();

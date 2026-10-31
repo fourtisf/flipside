@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { shortAddr } from '@/wallet/catalog';
-import { useAccount, useTrade, useWallet } from '@/wallet/provider';
+import { useAccount, useSolana, useTrade, useWallet } from '@/wallet/provider';
 import type { WalletOption } from '@/wallet/store';
 import { useDialog } from '../dialog';
 
@@ -60,9 +60,15 @@ export function WalletButton() {
 
 function OptionRow({ o, busy, mobile }: { o: WalletOption; busy: boolean; mobile: boolean }) {
   const wallet = useWallet();
+  const solana = useSolana();
+  // one Connect covers both accounts of a wallet like Bitget: then its Solana side, where the SOL is
+  const connect = async () => {
+    await wallet.connect(o.key);
+    if (wallet.status === 'connected') await solana.connectMatching();
+  };
   if (o.installed)
     return (
-      <button type="button" data-wallet={o.key} disabled={busy} onClick={() => void wallet.connect(o.key)}>
+      <button type="button" data-wallet={o.key} disabled={busy} onClick={() => void connect()}>
         <WalletIcon icon={o.icon} name={o.name} />
         {o.name}
         <small>Detected</small>
