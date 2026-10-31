@@ -156,7 +156,7 @@ test('a closed wallet prompt during setup says so; the wallet menu turns trading
   await expect(page.locator('#o-cta')).toHaveText('Enable trading');
 });
 
-test('an empty account is asked to deposit first, and can trade once the deposit arrives', async ({
+test('an empty account is sent to Deposit in its own Coinside account, and trades once funds arrive', async ({
   page,
 }) => {
   // Hyperliquid refuses every action, approving a trading key too, from an address that has never deposited
@@ -167,21 +167,42 @@ test('an empty account is asked to deposit first, and can trade once the deposit
   await page.locator('#wl button[data-wallet="app.phantom"]').click();
   await expect(page.locator('#o-cta')).toHaveText('Deposit first');
   await page.locator('#o-cta').click();
-  const dialog = page.locator('#deposit');
-  await expect(dialog).toContainText('Your account is empty');
-  await expect(dialog).toContainText('Deposits open on Coinside soon');
-  // deposits happen on Coinside: the dialog never sends anyone to another site
-  await expect(dialog.locator('a')).toHaveCount(0);
-  await page.keyboard.press('Escape');
+
+  // the person's own account on Coinside, at its Deposit panel: never another site
+  await expect(page).toHaveURL(/\/portfolio#deposit$/);
+  const panel = page.locator('#deposit');
+  await expect(panel).toContainText('Your account is empty');
+  await expect(panel.locator('a')).toHaveCount(0);
+  await expect(page.locator('#moveBtn')).toHaveText('Nothing to move yet');
+  await expect(page.locator('#moveBtn')).toBeDisabled();
   expect(hl.exchange).toHaveLength(0);
 
-  // a deposit lands in the account: the button moves on by itself
+  // SOL lands as USOL (and some USDC): enable trading, then one click makes it tradable
   hl.fund(ADDRESS);
-  await expect(page.locator('#o-cta')).toHaveText('Enable trading');
+  await expect(panel).not.toContainText('Your account is empty');
+  await expect(panel).toContainText('1.5');
+  await expect(page.locator('#moveBtn')).toHaveText('Enable trading first');
+  await page.locator('#moveBtn').click();
+  await page.locator('#ack').check();
+  await page.locator('#enableGo').click();
+  await expect(page.locator('#enable')).toBeHidden();
+  await expect(page.locator('#moveBtn')).toHaveText('Move to trading balance');
+  await page.locator('#moveBtn').click();
+  await expect(page.locator('#moveMsg')).toHaveText('Moved $480.12 to your trading balance.');
+  // the USOL is sold on USOL/USDC (spot asset 10000 + 156) with the trading key...
+  expect(hl.exchange.find((e) => e.action.type === 'order')!.action).toMatchObject({
+    grouping: 'na',
+    orders: [{ a: 10156, b: false, p: '185.22', s: '1.5', r: false, t: { limit: { tif: 'Ioc' } } }],
+  });
+  // ...and the free spot USDC moves to perps, signed by the wallet
+  expect(hl.exchange.find((e) => e.action.type === 'usdClassTransfer')!.action).toMatchObject({
+    amount: '480.12',
+    toPerp: true,
+  });
 
-  // the wallet menu opens the same help
+  // the wallet menu goes to the same place
+  await page.goto('/trade/SOL');
   await page.locator('#walletBtn').click();
   await page.locator('#depositBtn').click();
-  await expect(dialog).toBeVisible();
-  await expect(dialog).not.toContainText('Your account is empty');
+  await expect(page).toHaveURL(/\/portfolio#deposit$/);
 });

@@ -493,6 +493,18 @@ dialog h3{font-size:18px;font-weight:600;letter-spacing:-.02em}
 dialog p{font-size:13.5px;color:var(--t2);margin-top:6px}
 dialog .amt{margin-top:16px}
 .dlg-a{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+#deposit{scroll-margin-top:76px}
+.dep-lead{padding:14px 18px 0;font-size:13.5px;color:var(--t1)}
+.fsteps{list-style:none;counter-reset:f}
+.fsteps>li{counter-increment:f;position:relative;padding:16px 18px 16px 52px;border-top:1px solid var(--line)}
+.fsteps>li:first-child{border-top:0}
+.fsteps>li::before{content:counter(f,decimal-leading-zero);position:absolute;left:18px;top:17px;font:500 12px var(--mono);color:var(--t3)}
+.fsteps b{display:block;font-weight:550;font-size:14px;letter-spacing:-.01em}
+.fsteps p{font-size:13px;color:var(--t2);margin-top:4px;max-width:62ch}
+.fbal{display:flex;gap:28px;margin:12px 0 10px}
+.fbal dt{font-size:12px;color:var(--t3)}
+.fbal dd{font:500 14px var(--mono);margin-top:2px}
+.fsteps .omsg:empty{display:none}
 .tabbar{display:none}
 
 /* responsive */

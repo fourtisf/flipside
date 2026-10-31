@@ -3,9 +3,10 @@ import { createL1ActionHash } from '@nktkas/hyperliquid/signing';
 import { privateKeyToAccount } from 'viem/accounts';
 import { recoverTypedDataAddress } from 'viem';
 import { describe, expect, it } from 'vitest';
-import { META_AND_CTXS } from '../../e2e/hl-fixtures';
+import { META_AND_CTXS, SPOT, SPOT_META } from '../../e2e/hl-fixtures';
 import { toMarkets } from '@/hl/markets';
-import type { PositionRow } from '@/wallet/account';
+import { toSpot, type PositionRow } from '@/wallet/account';
+import { free, planSellUsol, usdcToMove, usolMarket } from './funds';
 import type { Eip1193 } from '@/wallet/store';
 import { describe as describeFill, explain, planClose, planOpen, through, triggerAt } from './orders';
 import { agentSigner, newAgent, typedDataJson, walletSigner } from './signer';
@@ -82,6 +83,39 @@ describe('planOpen', () => {
   it('uses isolated margin on isolated-only markets', () => {
     const r = planOpen({ m: markets.POPCAT!, side: 'long', margin: 10, lev: 2, type: 'market' });
     expect(r.ok && r.plan.leverage.isCross).toBe(false);
+  });
+});
+
+describe('moving a deposit to the trading balance', () => {
+  const m = usolMarket(SPOT_META)!;
+  const spot = toSpot(SPOT); // 1.5 USOL, 500.12 USDC with 20 held by orders
+
+  it('finds USOL/USDC and its price', () => {
+    expect(m).toEqual({ pair: '@156', asset: 10156, szDecimals: 2, px: 187.1 });
+    expect(usolMarket([{ ...SPOT_META[0], tokens: [] }, []])).toBeNull();
+  });
+
+  it('sells all free USOL 1% under the mid, immediate or cancel', () => {
+    expect(planSellUsol(spot, m)).toEqual({
+      ok: true,
+      size: '1.5',
+      order: { a: 10156, b: false, p: '185.22', s: '1.5', r: false, t: { limit: { tif: 'Ioc' } } },
+    });
+    // nothing to sell, too little to sell, no price
+    expect(planSellUsol([], m)).toBeNull();
+    expect(planSellUsol([{ coin: 'USOL', total: 0.05, hold: 0 }], m)).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining('less than $10'),
+    });
+    expect(planSellUsol(spot, { ...m, px: 0 })).toMatchObject({ ok: false });
+  });
+
+  it('moves the free USDC, rounded down to the cent', () => {
+    expect(free(spot, 'USDC')).toBeCloseTo(480.12);
+    expect(usdcToMove(spot)).toBe('480.12');
+    expect(usdcToMove([{ coin: 'USDC', total: 480.11999999, hold: 0 }])).toBe('480.11');
+    expect(usdcToMove([{ coin: 'USDC', total: 0.004, hold: 0 }])).toBeNull();
+    expect(usdcToMove(null)).toBeNull();
   });
 });
 

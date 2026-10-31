@@ -28,10 +28,17 @@ refuses every action, approving a trading key too, from an address that has neve
 - **The order button says so before anyone signs:** once the account is read and has nothing in it (no perps
   value, no positions, no spot balance), the button reads "Deposit first" instead of "Enable trading". It moves
   on by itself when the deposit arrives over the socket. While the account isn't read yet, nothing is blocked.
-- **Deposits stay on Coinside (ALFA: "jangan diarahkan ke Hyperliquid, harus ke Coinside aja depositnya").** A first
-  version linked to Hyperliquid's own Deposit page; ALFA rejected it. "Deposit first" (and Deposit in the wallet
-  menu) now opens a dialog that says deposits from Solana open on Coinside soon, with no link elsewhere. Until H4
-  ships, an empty account can't trade.
+- **Deposits stay on Coinside, in the person's own account (ALFA: "jangan diarahkan ke Hyperliquid, harus ke
+  Coinside aja depositnya" and "harusnya diarahkan ke akunnya lewat Coinside").** A first version linked to
+  Hyperliquid's Deposit page; ALFA rejected it. "Deposit first" and Deposit in the wallet menu now go to
+  `/portfolio#deposit`: a Deposit panel in the person's Portfolio, with no link to any other site.
+- **The Deposit panel (H4, part 1):** step 1 is the personal SOL deposit address from Unit, which shows only after
+  the guardian signatures on it are checked; that check needs Unit's published keys and message format, so step 1
+  waits for `docs.hyperunit.xyz` to be reachable from the build environment. Step 2 works now: SOL arrives as
+  USOL, and "Move to trading balance" sells the free USOL on USOL/USDC (immediate or cancel, 1% under the mid,
+  signed by the trading key) and moves the free spot USDC to perps (`usdClassTransfer`, signed by the wallet),
+  rounded down to the cent. Trading has to be enabled first when there is USOL to sell, since orders are signed
+  by the trading key.
 - Hyperliquid's message, if it still comes, reads "Your account is empty. Deposit first, then enable trading."
 
 ## Coinside charges no fee (ALFA, 31 Oct 2026)

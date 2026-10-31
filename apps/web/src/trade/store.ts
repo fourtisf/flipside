@@ -6,12 +6,15 @@ import {
   cancel,
   order,
   updateLeverage,
+  usdClassTransfer,
 } from '@nktkas/hyperliquid/api/exchange';
+import * as info from '@nktkas/hyperliquid/api/info';
 import { httpConfig } from '@/hl/client';
 import type { Market } from '@/hl/markets';
-import type { OrderRow, PositionRow } from '@/wallet/account';
+import { toSpot, type OrderRow, type PositionRow, type SpotRow } from '@/wallet/account';
 import type { WalletStore } from '@/wallet/store';
 import { TRADING } from './config';
+import { planSellUsol, usdcToMove, usolMarket } from './funds';
 import { describe, explain, planClose, planOpen, type OpenInput } from './orders';
 import { agentSigner, forgetAgent, loadAgent, newAgent, saveAgent, walletSigner, type Agent } from './signer';
 
@@ -45,8 +48,6 @@ export class TradeStore {
   /** The person has accepted the risk notice on this device. */
   accepted = false;
   dialog = false;
-  /** The "how to deposit" dialog is open. */
-  deposit = false;
   busy: string | null = null;
   msg: { text: string; ok: boolean; at: number } | null = null;
 
@@ -196,6 +197,45 @@ export class TradeStore {
     try {
       await cancel(this.agentConfig(), { cancels: [{ a: m.asset, o: o.oid }] });
       this.set((s) => s.say(`Cancelled your ${o.coin} order.`, true));
+    } catch (e) {
+      this.checkKey(e);
+      this.set((s) => s.say(errorText(e, this.wallet.name), false));
+    } finally {
+      this.set((s) => void (s.busy = null));
+    }
+  }
+
+  /**
+   * Make a deposit tradable: sell the free USOL for USDC (trading key), then move the spot USDC to perps (one
+   * wallet signature). Either step is skipped when there is nothing for it.
+   */
+  async moveToTrading(spot: SpotRow[] | null) {
+    const provider = this.wallet.provider();
+    const owner = this.wallet.address;
+    if (!TRADING || !provider || !owner || this.busy) return;
+    this.set((s) => {
+      s.busy = 'move';
+      s.msg = null;
+    });
+    try {
+      let current = spot;
+      const sell = planSellUsol(current, usolMarket(await info.spotMetaAndAssetCtxs(httpConfig())));
+      if (sell && !sell.ok) return this.set((s) => s.say(sell.reason, false));
+      if (sell) {
+        if (!this.ready()) return this.set((s) => s.say('Enable trading first, then move your SOL.', false));
+        const res = await order(this.agentConfig(), { orders: [sell.order], grouping: 'na' });
+        const st = res.response.data.statuses[0];
+        if (!(st && typeof st === 'object' && 'filled' in st))
+          return this.set((s) => s.say("The SOL sale didn't fill. Nothing moved. Try again.", false));
+        current = toSpot(await info.spotClearinghouseState(httpConfig(), { user: owner }));
+      }
+      const amount = usdcToMove(current);
+      if (!amount) return this.set((s) => s.say('There is nothing to move yet.', false));
+      await usdClassTransfer(
+        { ...httpConfig(), wallet: walletSigner(provider, owner) },
+        { amount, toPerp: true },
+      );
+      this.set((s) => s.say(`Moved $${amount} to your trading balance.`, true));
     } catch (e) {
       this.checkKey(e);
       this.set((s) => s.say(errorText(e, this.wallet.name), false));

@@ -10,6 +10,7 @@ import type {
   L2BookResponse,
   MetaAndAssetCtxsResponse,
   SpotClearinghouseStateResponse,
+  SpotMetaAndAssetCtxsResponse,
   UserFillsResponse,
 } from '@nktkas/hyperliquid/api/info';
 
@@ -262,6 +263,39 @@ export const EMPTY_CLEARINGHOUSE: ClearinghouseStateResponse = {
   time: 1_793_000_000_000,
 };
 export const EMPTY_SPOT: SpotClearinghouseStateResponse = { balances: [] };
+
+/** Spot markets: just enough for USOL/USDC ("@156"), where a SOL deposit is sold for USDC. */
+const token = (name: string, index: number, szDecimals: number) => ({
+  name,
+  szDecimals,
+  weiDecimals: 8,
+  index,
+  tokenId: `0x${index.toString(16).padStart(32, '0')}` as `0x${string}`,
+  isCanonical: true,
+  evmContract: null,
+  fullName: null,
+  deployerTradingFeeShare: '0.0',
+});
+const spotCtx = (coin: string, px: string) => ({
+  coin,
+  prevDayPx: px,
+  dayNtlVlm: '1000000.0',
+  markPx: px,
+  midPx: px,
+  circulatingSupply: '1000000.0',
+  totalSupply: '1000000.0',
+  dayBaseVlm: '5000.0',
+});
+export const SPOT_META: SpotMetaAndAssetCtxsResponse = [
+  {
+    tokens: [token('USDC', 0, 8), token('PURR', 1, 0), token('USOL', 254, 2)],
+    universe: [
+      { tokens: [1, 0], name: 'PURR/USDC', index: 0, isCanonical: true },
+      { tokens: [254, 0], name: '@156', index: 156, isCanonical: false },
+    ],
+  },
+  [spotCtx('PURR/USDC', '0.21'), spotCtx('@156', '187.1')],
+];
 
 export const ORDERS: FrontendOpenOrdersResponse = [
   {

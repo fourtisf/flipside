@@ -13,6 +13,7 @@ import {
   META_AND_CTXS,
   ORDERS,
   SPOT,
+  SPOT_META,
   book,
   candles,
   mids,
@@ -140,6 +141,8 @@ export async function mockHyperliquid(page: Page, { down = false, empty = false 
         return route.fulfill({ json: empty ? [] : ORDERS });
       case 'userFills':
         return route.fulfill({ json: empty ? [] : FILLS });
+      case 'spotMetaAndAssetCtxs':
+        return route.fulfill({ json: SPOT_META });
       default:
         return route.fulfill({ status: 422, body: `unexpected info request ${body.type}` });
     }

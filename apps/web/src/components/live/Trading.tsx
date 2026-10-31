@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import type { Market } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
 import type { Draft } from '@/hl/store';
@@ -26,13 +27,14 @@ export function inputFrom(m: Market, d: Draft, lev: number, available?: number):
 }
 
 /**
- * The order button: Connect wallet, Deposit first (an empty account, which Hyperliquid won't act for), Enable
- * trading, then Long or Short. Says why an order can't go yet, and what happened to the last one.
+ * The order button: Connect wallet, Deposit first (an empty account, which Hyperliquid won't act for: it goes to
+ * the Deposit panel in Portfolio), Enable trading, then Long or Short. Says why an order can't go yet, and what happened to the last one.
  */
 export function TradeButton({ id, m, d, lev }: { id: string; m: Market; d: Draft; lev: number }) {
   const wallet = useWallet();
   const account = useAccount();
   const trade = useTrade();
+  const router = useRouter();
   const side = d.side === 'long' ? 'Long' : 'Short';
 
   let label = `${side} ${m.name}`;
@@ -51,7 +53,7 @@ export function TradeButton({ id, m, d, lev }: { id: string; m: Market; d: Draft
   } else if (account.empty()) {
     label = 'Deposit first';
     cls = 'w';
-    onClick = () => trade.set((s) => void (s.deposit = true));
+    onClick = () => router.push('/portfolio#deposit');
   } else if (!trade.ready()) {
     label = 'Enable trading';
     cls = 'w';
@@ -77,35 +79,6 @@ export function TradeButton({ id, m, d, lev }: { id: string; m: Market; d: Draft
         {label}
       </button>
     </>
-  );
-}
-
-/**
- * Deposit, on Coinside itself: never a hand-off to another site (ALFA, 31 Oct 2026). Deposits from Solana are
- * H4; until they open, this says so, and an empty account can't trade yet.
- */
-export function DepositDialog() {
-  const trade = useTrade();
-  const account = useAccount();
-  const ref = useDialog(trade.deposit, () => trade.set((s) => void (s.deposit = false)));
-  return (
-    <dialog id="deposit" aria-labelledby="depT" ref={ref}>
-      <form method="dialog">
-        <h3 id="depT">{account.empty() ? 'Deposit first' : 'Deposit'}</h3>
-        {account.empty() && (
-          <p>Your account is empty. Hyperliquid needs a deposit before it accepts orders or a trading key.</p>
-        )}
-        <p>
-          Deposits open on Coinside soon. You&apos;ll send SOL from your Solana wallet, right here, and it
-          lands in your account ready to trade.
-        </p>
-        <div className="dlg-a">
-          <button className="btn w" value="close">
-            OK
-          </button>
-        </div>
-      </form>
-    </dialog>
   );
 }
 

@@ -95,6 +95,9 @@ Each phase ends with a report and stops for ALFA, as before.
   - **Scope:** Unit (SOL) and Across (USDC), with status tracking, limits, and handling when a transfer is
     late or fails.
   - **Done when:** it works with small real amounts on mainnet (the bridges may have no testnet).
+  - **Status (31 Oct 2026):** part 1 built. Deposit lives in the person's Portfolio on Coinside; "Move to trading
+    balance" turns USOL into USDC in perps. The SOL deposit address (Unit, with its guardian signature check)
+    waits for Unit's docs to be reachable (DECISIONS.md, "An empty account: deposit first").
 - **H5. Mainnet launch.**
   - **Prerequisites:** geo-blocking, terms and a plain risk disclosure, and monitoring.
   - **Rollout:** a small beta first.

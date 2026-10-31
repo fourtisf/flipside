@@ -7,7 +7,9 @@ import { marketHref } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
 import { M, pct } from '@/lib/format';
 import { shortAddr } from '@/wallet/catalog';
-import { useAccount, useWallet } from '@/wallet/provider';
+import { TRADING } from '@/trade/config';
+import { USOL, free } from '@/trade/funds';
+import { useAccount, useTrade, useWallet } from '@/wallet/provider';
 import { Price, SideChip } from '../ui';
 import { CoinTok } from './CoinTok';
 import { CancelButton, CloseButton } from './Trading';
@@ -40,6 +42,68 @@ function Panel({
       </div>
       {children}
     </div>
+  );
+}
+
+/**
+ * Deposit, in the person's own account on Coinside (ALFA: deposits happen here, never on another site). Step 1
+ * is the personal SOL deposit address from Unit, which switches on with H4's address check; step 2 turns what
+ * arrived (USOL) into USDC in the trading balance.
+ */
+function DepositPanel() {
+  const account = useAccount();
+  const trade = useTrade();
+  const wallet = useWallet();
+  const usol = free(account.spot, USOL);
+  const usdc = free(account.spot, 'USDC');
+  const busy = trade.busy === 'move';
+  let label = 'Move to trading balance';
+  let disabled = !TRADING || busy || !(usol > 0 || usdc >= 0.01);
+  let onClick: () => void = () => void trade.moveToTrading(account.spot);
+  if (busy) label = `Check ${wallet.name || 'your wallet'}`;
+  else if (!(usol > 0 || usdc >= 0.01)) label = 'Nothing to move yet';
+  else if (usol > 0 && !trade.ready()) {
+    label = 'Enable trading first';
+    disabled = !TRADING;
+    onClick = () => trade.set((s) => void (s.dialog = true));
+  }
+  const msg = trade.msg && Date.now() - trade.msg.at < 60_000 ? trade.msg : null;
+  return (
+    <Panel id="deposit" title="Deposit" note="from Solana">
+      {account.empty() && <p className="dep-lead">Your account is empty. Deposit to start trading.</p>}
+      <ol className="fsteps">
+        <li>
+          <b>Send SOL from your Solana wallet</b>
+          <p>
+            Your own deposit address shows here, checked before it&apos;s shown so SOL can only reach your
+            account. Deposits are switching on now.
+          </p>
+        </li>
+        <li>
+          <b>Move it to your trading balance</b>
+          <p>
+            SOL arrives as USOL. One click sells it for USDC and moves it to your trading balance; your wallet
+            signs once.
+          </p>
+          <dl className="fbal">
+            <div>
+              <dt>USOL</dt>
+              <dd>{usol.toLocaleString('en-US', { maximumFractionDigits: 4 })}</dd>
+            </div>
+            <div>
+              <dt>Spot USDC</dt>
+              <dd>{usd2(usdc)}</dd>
+            </div>
+          </dl>
+          <p className={`omsg${msg?.ok ? ' ok' : ''}`} id="moveMsg" role="status">
+            {msg?.text ?? ''}
+          </p>
+          <button className="btn w" type="button" id="moveBtn" disabled={disabled} onClick={onClick}>
+            {label}
+          </button>
+        </li>
+      </ol>
+    </Panel>
   );
 }
 
@@ -235,6 +299,9 @@ export function LivePortfolio() {
           </p>
         </div>
         <div className="acts2">
+          <a className="btn w" href="#deposit">
+            Deposit
+          </a>
           <a className="btn o" href={explorerUrl(wallet.address)} target="_blank" rel="noopener noreferrer">
             View on Hyperliquid
           </a>
@@ -264,6 +331,7 @@ export function LivePortfolio() {
         </div>
       </dl>
       <div className="stack">
+        <DepositPanel />
         <PositionsPanel id="pf-pos" />
         <OrdersPanel id="pf-orders" />
         <Panel id="pf-spot" title="Balances" note="spot">
