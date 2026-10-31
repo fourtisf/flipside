@@ -58,6 +58,11 @@ Then ALFA: "ini udah connect wallet padahal": connecting the wallet should be en
 - The panel says why the wallet asks: the SOL sits in its Solana account, next to the 0x account Hyperliquid
   uses. The button reads "Show my SOL".
 
+**While a wallet connects, Coinside says what to expect in it.** ALFA's Bitget put its own "Deposit: Add Ethereum
+assets" offer (and a "Current network not supported" notice) on top of the connect request, which read as if
+Coinside wanted ETH. The connect dialog now says, while the wallet is open: approve the connection on the account
+that holds your SOL, and close any offer to add Ethereum assets or switch network, since Coinside needs no ETH.
+
 **Sending SOL from the wallet, ready for the deposit address.** Deposit now has a SOL amount field with Max
 (leaving 0.002 SOL for the network fee), and the store can send: it builds a plain SOL transfer by hand
 (`src/wallet/solana-tx.ts`, checked byte for byte against @solana/web3.js, which is a dev dependency only, since

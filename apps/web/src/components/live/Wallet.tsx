@@ -121,6 +121,13 @@ export function ConnectDialog() {
             <OptionRow key={o.key} o={o} busy={busy} mobile={mobile} />
           ))}
         </div>
+        {busy && (
+          // wallets like Bitget put their own offers on top of the connect request
+          <p className="omsg ok" id="wWait" role="status">
+            Approve the connection in your wallet, on the account that holds your SOL. If the wallet offers to
+            add Ethereum assets or switch network, close that offer (Cancel): Coinside needs no ETH.
+          </p>
+        )}
         <p className="omsg" id="wErr" role="alert">
           {wallet.error}
         </p>
