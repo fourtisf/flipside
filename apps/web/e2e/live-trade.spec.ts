@@ -176,7 +176,7 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   await expect(page).toHaveURL(/\/portfolio#deposit$/);
   const panel = page.locator('#deposit');
   await expect(panel).toContainText('Your account is empty');
-  await expect(panel.locator('a')).toHaveCount(0);
+  await expect(panel.locator('a[href*="hyperliquid"]')).toHaveCount(0);
   await expect(page.locator('main a[href*="hyperliquid.xyz"]')).toHaveCount(0);
   await expect(page.locator('#moveBtn')).toHaveText('Nothing to move yet');
   await expect(page.locator('#moveBtn')).toBeDisabled();
@@ -338,5 +338,25 @@ test('a Solana sign-in the person closes says so, and nothing is opened', async 
   await wallet.rejectSign();
   await page.locator('#swl button[data-sol="Phantom"]').click();
   await expect(page.locator('#wErr')).toHaveText('You closed the request in Phantom. Nothing was signed.');
+  await expect(page.locator('#walletBtn')).toHaveCount(0);
+});
+
+test('a Solana account with no SOL shows its full address, and another account is one click away', async ({
+  page,
+}) => {
+  const sol = testSolanaWallet();
+  await mockHyperliquid(page, { empty: true, solLamports: '0' });
+  await fakeWallet(page, { address: ADDRESS, solana: sol.address, solanaSignature: sol.signature });
+  await page.goto('/portfolio');
+  await page.locator('#connect').click();
+  await page.locator('#swl button[data-sol="Phantom"]').click();
+  await expect(page.locator('#solAddr')).toHaveText(sol.address);
+  await expect(page.locator('#solEmpty')).toContainText('Solana shows no SOL at this address');
+  await expect(page.locator('.sol-addr a')).toHaveAttribute(
+    'href',
+    `https://solscan.io/account/${sol.address}`,
+  );
+  await page.locator('#solOther').click();
+  await expect(page.locator('#wallets')).toBeVisible();
   await expect(page.locator('#walletBtn')).toHaveCount(0);
 });

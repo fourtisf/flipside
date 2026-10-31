@@ -177,11 +177,48 @@ function SolanaSide() {
           <dd>{usd !== null ? `≈ ${usd2(usd)}` : '…'}</dd>
         </div>
       </dl>
+      {/* the full address, so the person can check it against the wallet and on an explorer */}
+      <div className="sol-addr">
+        <code id="solAddr">{sol.address}</code>
+        <button
+          type="button"
+          className="lnk"
+          onClick={() => void navigator.clipboard?.writeText(sol.address ?? '').catch(() => {})}
+        >
+          Copy
+        </button>
+        <a
+          className="lnk"
+          href={`https://solscan.io/account/${sol.address}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Check on Solscan
+        </a>
+        <button type="button" className="lnk" id="solRefresh" onClick={() => void sol.refresh()}>
+          Refresh
+        </button>
+      </div>
       {sol.lamports === 0n && (
-        <p className="omsg ok" id="solEmpty" role="status">
-          No SOL in this account ({shortSol(sol.address)}). If your SOL is in another account of {sol.name},
-          switch to it in {sol.name} and Coinside follows.
-        </p>
+        <div className="omsg ok" id="solEmpty" role="status">
+          <p>
+            Solana shows no SOL at this address. {sol.name} gave Coinside the account it has selected; if your
+            SOL is in another account, open {sol.name}, pick that account, then use it here.
+          </p>
+          <button
+            type="button"
+            className="btn o"
+            id="solOther"
+            onClick={() => {
+              const kind = wallet.kind;
+              if (kind === 'solana') wallet.disconnect();
+              else sol.disconnect();
+              wallet.set((s) => void (s.dialog = kind === 'solana' ? 'connect' : s.dialog));
+            }}
+          >
+            Use another account
+          </button>
+        </div>
       )}
       {sol.balanceFailed && sol.lamports === null && (
         <p className="omsg" role="status">

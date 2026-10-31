@@ -58,7 +58,10 @@ export interface HlMock {
 }
 
 /** `empty`: the connected wallet has never deposited, as every new address on Hyperliquid. */
-export async function mockHyperliquid(page: Page, { down = false, empty = false } = {}): Promise<HlMock> {
+export async function mockHyperliquid(
+  page: Page,
+  { down = false, empty = false, solLamports = '200000000' } = {},
+): Promise<HlMock> {
   const mock: HlMock = {
     info: [],
     exchange: [],
@@ -85,7 +88,7 @@ export async function mockHyperliquid(page: Page, { down = false, empty = false 
   };
 
   // our own server's Solana balance route (it reads a Solana RPC node, which tests never reach)
-  await page.route('**/solana/balance/*', (route) => route.fulfill({ json: { lamports: '200000000' } }));
+  await page.route('**/solana/balance/*', (route) => route.fulfill({ json: { lamports: solLamports } }));
 
   await page.route('**/logos/*', (route) =>
     route.request().url().endsWith(`/${NO_LOGO}`)
