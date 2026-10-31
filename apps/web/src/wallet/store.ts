@@ -102,7 +102,21 @@ export class WalletStore {
   private active: Eip1193 | null = null;
   private master: { key: `0x${string}`; at: number } | null = null;
 
-  constructor(private readonly solana: SolanaStore | null = null) {}
+  constructor(private readonly solana: SolanaStore | null = null) {
+    // a Solana sign-in belongs to one Solana address: if the person switches account in the wallet, sign out and
+    // ask them to connect again, so the account shown and traded is always the one the wallet now uses
+    if (solana)
+      solana.onSwitch = (next) => {
+        if (this.kind !== 'solana') return false;
+        const name = this.name;
+        this.disconnect();
+        this.set((s) => {
+          s.error = `${name} switched to another account${next ? ` (${shortSol(next)})` : ''}. Connect again to use it.`;
+          s.dialog = 'connect';
+        });
+        return true;
+      };
+  }
 
   subscribe = (l: () => void) => {
     this.listeners.add(l);

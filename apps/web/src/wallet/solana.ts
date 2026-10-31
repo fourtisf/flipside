@@ -75,7 +75,13 @@ interface LegacySol {
   connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey?: { toString(): string } } | void>;
   publicKey?: { toString(): string } | null;
   signMessage?: (message: Uint8Array, display?: string) => Promise<{ signature: Uint8Array } | Uint8Array>;
+  on?: (event: string, fn: (pk: { toString(): string } | null) => void) => void;
+  removeListener?: (event: string, fn: (pk: { toString(): string } | null) => void) => void;
+  off?: (event: string, fn: (pk: { toString(): string } | null) => void) => void;
 }
+
+type ChangeListener = (p: { accounts?: readonly StdAccount[] }) => void;
+type EventsFeature = { on: (event: 'change', fn: ChangeListener) => () => void };
 
 /** Where wallets put their older injected Solana provider, for wallets that don't announce over the standard. */
 type Injected = Record<string, { solana?: unknown; isSolflare?: boolean } | undefined>;
@@ -104,6 +110,16 @@ export function legacyWallet(name: string, p: LegacySol, icon = ''): StdWallet {
     return { accounts: pk ? [{ address: pk }] : [] };
   };
   const features: Record<string, unknown> = { 'standard:connect': { connect }, 'coinside:legacy': true };
+  // Phantom's older API says "accountChanged" when the person switches account in the wallet
+  if (typeof p.on === 'function')
+    features['standard:events'] = {
+      on: (_event: 'change', fn: ChangeListener) => {
+        const h = (pk: { toString(): string } | null) =>
+          fn({ accounts: pk ? [{ address: pk.toString() }] : [] });
+        p.on!('accountChanged', h);
+        return () => (p.removeListener ?? p.off)?.call(p, 'accountChanged', h);
+      },
+    };
   if (typeof p.signMessage === 'function')
     features['solana:signMessage'] = {
       signMessage: async ({ message }: { message: Uint8Array }) => {
@@ -138,6 +154,12 @@ export class SolanaStore {
   picking = false;
   error = '';
 
+  /**
+   * Set by the wallet store: told when the person switches account in the wallet. Returns true when it handled
+   * the switch itself (a Solana sign-in, whose trading account belongs to the old address).
+   */
+  onSwitch: ((next: string | null) => boolean) | null = null;
+  private offChange: (() => void) | null = null;
   private owner: string | null = null;
   private evmName = '';
   private evmIcon = '';
@@ -232,6 +254,8 @@ export class SolanaStore {
   }
 
   private reset() {
+    this.offChange?.();
+    this.offChange = null;
     this.address = null;
     this.account = null;
     this.wallet = null;
@@ -362,6 +386,7 @@ export class SolanaStore {
       this.name = w.name;
       this.picking = false;
       this.remember();
+      this.listen(w);
       this.startPolling();
       void this.refresh();
     } catch (e) {
@@ -379,6 +404,31 @@ export class SolanaStore {
       this.connecting = false;
       this.emit();
     }
+  }
+
+  /** Follow the person switching account inside the wallet, so the SOL shown is always the account in use. */
+  private listen(w: StdWallet) {
+    this.offChange?.();
+    const ev = w.features['standard:events'] as EventsFeature | undefined;
+    if (typeof ev?.on !== 'function') return;
+    this.offChange = ev.on('change', ({ accounts }) => {
+      if (!accounts || this.wallet !== w) return;
+      const next = accounts[0] ?? null;
+      if (next?.address === this.address) return;
+      this.switched(next);
+    });
+  }
+
+  /** The wallet now uses another account (or none). */
+  switched(next: StdAccount | null) {
+    if (this.onSwitch?.(next?.address ?? null)) return;
+    if (!next) return this.reset();
+    this.address = next.address;
+    this.account = next;
+    this.lamports = null;
+    this.balanceFailed = false;
+    this.emit();
+    void this.refresh();
   }
 
   disconnect() {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SolanaStore, isSolanaWallet, legacyWallet, shortSol, solText, type StdWallet } from './solana';
+import { WalletStore } from './store';
 
 const ADDR = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 
@@ -129,6 +130,48 @@ describe('the Solana side of the wallet', () => {
     // a closed prompt says so, and nothing is sent
     send.mockRejectedValueOnce(Object.assign(new Error('User rejected the request.'), { code: 4001 }));
     await expect(s.send(to, 1n)).rejects.toThrow('You closed the request in Phantom. Nothing was sent.');
+    s.disconnect();
+  });
+
+  it('follows the person switching account inside the wallet', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ lamports: '5' }))),
+    );
+    const OTHER = '4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZAMdL4VZHirAn';
+    let fire: (p: { accounts?: readonly { address: string }[] }) => void = () => {};
+    const w = stdWallet('Bitget Wallet');
+    (w.features as Record<string, unknown>)['standard:events'] = {
+      on: (_e: string, fn: typeof fire) => {
+        fire = fn;
+        return () => {};
+      },
+    };
+    const s = new SolanaStore();
+    s.wallets = [w];
+    s.follow('0xe614', 'Bitget Wallet');
+    await s.connect();
+    expect(s.address).toBe(ADDR);
+    fire({ accounts: [{ address: OTHER }] });
+    expect(s.address).toBe(OTHER);
+    expect(s.lamports).toBeNull();
+
+    // a Solana sign-in belongs to one address: switching signs out and asks to connect again
+    const wallet = new WalletStore(s);
+    (wallet as unknown as { attachSolana: (...a: unknown[]) => void }).attachSolana(
+      'Bitget Wallet',
+      '',
+      OTHER,
+      '0x1234567890abcdef1234567890abcdef12345678',
+    );
+    expect(wallet.kind).toBe('solana');
+    fire({ accounts: [{ address: ADDR }] });
+    expect(wallet.status).toBe('idle');
+    expect(wallet.address).toBeNull();
+    expect(wallet.dialog).toBe('connect');
+    expect(wallet.error).toBe(
+      'Bitget Wallet switched to another account (7xKX…gAsU). Connect again to use it.',
+    );
     s.disconnect();
   });
 });

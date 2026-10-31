@@ -177,6 +177,12 @@ function SolanaSide() {
           <dd>{usd !== null ? `≈ ${usd2(usd)}` : '…'}</dd>
         </div>
       </dl>
+      {sol.lamports === 0n && (
+        <p className="omsg ok" id="solEmpty" role="status">
+          No SOL in this account ({shortSol(sol.address)}). If your SOL is in another account of {sol.name},
+          switch to it in {sol.name} and Coinside follows.
+        </p>
+      )}
       {sol.balanceFailed && sol.lamports === null && (
         <p className="omsg" role="status">
           Couldn&apos;t read your SOL balance just now. It retries on its own.

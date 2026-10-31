@@ -45,6 +45,10 @@ on any device, and Coinside never stores or sees the key. The pattern dYdX used 
   the same connection, so Deposit shows the SOL balance right away.
 - **The risk to say plainly to users:** a phishing site that gets someone to sign this exact message gets their
   account. The message text and the docs warn about it.
+- **Switching account inside the wallet** (ALFA's Bitget has several accounts, each with its own Solana address,
+  and the one connected had no SOL): Coinside follows the wallet's change event. For a Solana sign-in it signs out
+  and asks to connect again, since the trading account belongs to the old address; otherwise the SOL shown
+  follows the new account. An account with no SOL says so, and says to switch to the one that holds it.
 
 ## An empty account: deposit first (31 Oct 2026)
 
