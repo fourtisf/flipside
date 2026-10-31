@@ -12,8 +12,6 @@ export const usd2 = (v: number) =>
   `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Where a Hyperliquid account can be looked up. */
-export const explorerUrl = (address: string) => `https://app.hyperliquid.xyz/explorer/address/${address}`;
-
 /** A wallet's logo, or its first letter if it has none. */
 export function WalletIcon({ icon, name, size = 28 }: { icon: string; name: string; size?: number }) {
   if (!icon) return <i aria-hidden="true">{name[0]}</i>;
@@ -183,9 +181,6 @@ export function WalletMenu() {
               >
                 {copied ? 'Copied' : 'Copy address'}
               </button>
-              <a className="btn o" href={explorerUrl(a)} target="_blank" rel="noopener noreferrer">
-                View on Hyperliquid
-              </a>
               <Link
                 className="btn o"
                 id="depositBtn"

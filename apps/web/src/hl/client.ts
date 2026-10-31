@@ -22,7 +22,3 @@ export function wsConfig() {
   ws ??= new WebSocketTransport({ isTestnet: TESTNET, timeout: 15_000 });
   return { transport: ws };
 }
-
-/** Where to see the same market on Hyperliquid, for the "Compare on Hyperliquid" link. */
-export const hlTradeUrl = (name: string) =>
-  `https://app.hyperliquid${TESTNET ? '-testnet' : ''}.xyz/trade/${encodeURIComponent(name)}`;

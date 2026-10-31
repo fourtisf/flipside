@@ -13,7 +13,7 @@ import { useAccount, useTrade, useWallet } from '@/wallet/provider';
 import { Price, SideChip } from '../ui';
 import { CoinTok } from './CoinTok';
 import { CancelButton, CloseButton } from './Trading';
-import { explorerUrl, usd2 } from './Wallet';
+import { usd2 } from './Wallet';
 
 const two = (n: number) => String(n).padStart(2, '0');
 const when = (ms: number) => {
@@ -301,9 +301,6 @@ export function LivePortfolio() {
         <div className="acts2">
           <a className="btn w" href="#deposit">
             Deposit
-          </a>
-          <a className="btn o" href={explorerUrl(wallet.address)} target="_blank" rel="noopener noreferrer">
-            View on Hyperliquid
           </a>
         </div>
       </div>

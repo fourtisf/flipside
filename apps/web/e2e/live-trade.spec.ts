@@ -173,6 +173,7 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   const panel = page.locator('#deposit');
   await expect(panel).toContainText('Your account is empty');
   await expect(panel.locator('a')).toHaveCount(0);
+  await expect(page.locator('main a[href*="hyperliquid.xyz"]')).toHaveCount(0);
   await expect(page.locator('#moveBtn')).toHaveText('Nothing to move yet');
   await expect(page.locator('#moveBtn')).toBeDisabled();
   expect(hl.exchange).toHaveLength(0);

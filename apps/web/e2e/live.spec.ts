@@ -113,6 +113,8 @@ test('terminal: chart, order book, trades and stats for one market', async ({ pa
   await expect(page).toHaveURL(/\/trade\/SOL$/);
   await expect(page.locator('#th-title')).toHaveText('SOL-USD');
   await expect(page).toHaveTitle(/SOL-USD/);
+  // no links out to Hyperliquid's own site
+  await expect(page.locator('main a[href*="hyperliquid.xyz"]')).toHaveCount(0);
   await expect(page.locator('.th-px b')).toHaveText('$187.23');
   await expect(page.locator('#th-chg')).toHaveText('+5.3% 24h');
   await expect(page.locator('#th-stats')).toContainText('Max leverage20x');

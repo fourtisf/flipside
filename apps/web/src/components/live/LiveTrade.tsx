@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { hlTradeUrl } from '@/hl/client';
 import { fundingCountdown, fundingText, pxText } from '@/hl/format';
 import { change24h, findMarket, marketHref, pair, unitNote, type Market } from '@/hl/markets';
 import { useActiveCtx, useHl } from '@/hl/provider';
@@ -247,12 +246,6 @@ function Terminal({ m }: { m: Market }) {
               <span id="th-venue">
                 Perpetual on Hyperliquid{unitNote(m.name) ? `, ${unitNote(m.name)}` : ''}
               </span>
-              <a className="copyb" href={hlTradeUrl(m.name)} target="_blank" rel="noopener noreferrer">
-                Compare
-                <svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M6 3h7v7M13 3L4 12" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-              </a>
             </small>
           </div>
         </div>

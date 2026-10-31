@@ -22,6 +22,10 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 
 ## An empty account: deposit first (31 Oct 2026)
 
+**No links to Hyperliquid's own site** (ALFA: "hapus view on Hyperliquid"). Removed "View on Hyperliquid" from
+Portfolio and the wallet menu, and "Compare" from the terminal's coin header. Everything a person does stays on
+Coinside; Hyperliquid is named as the exchange underneath, never linked as a place to go.
+
 The first real try on coinside.fun: Enable trading answered "Must deposit before performing actions". Hyperliquid
 refuses every action, approving a trading key too, from an address that has never deposited.
 

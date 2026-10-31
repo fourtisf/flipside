@@ -124,10 +124,8 @@ test('the wallet menu copies, links and disconnects; a reload reconnects without
   const menu = page.locator('#walletMenu');
   await expect(menu).toContainText('Connected with Phantom');
   await expect(menu).toContainText('$744.26');
-  await expect(menu.getByRole('link', { name: 'View on Hyperliquid' })).toHaveAttribute(
-    'href',
-    `https://app.hyperliquid.xyz/explorer/address/${ADDRESS}`,
-  );
+  // Coinside never sends anyone to Hyperliquid's own site
+  await expect(menu.locator('a[href*="hyperliquid.xyz"]')).toHaveCount(0);
   await menu.getByRole('button', { name: 'Copy address' }).click();
   await expect(menu.getByRole('button', { name: 'Copied' })).toBeVisible();
   await page.locator('#disconnect').click();
