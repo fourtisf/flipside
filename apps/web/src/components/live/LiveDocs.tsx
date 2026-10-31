@@ -6,7 +6,7 @@
 const STEPS: Array<[string, string]> = [
   [
     'Connect your wallet',
-    'Phantom, Backpack, MetaMask, Rabby or another wallet with an EVM account. That address is your Hyperliquid account, and only your wallet can move money out.',
+    'Phantom, Backpack, MetaMask, Rabby or another wallet with an EVM account. Hyperliquid accounts use Ethereum-style addresses, so your wallet may say Ethereum, but no ETH is needed. Only your wallet can move money out.',
   ],
   [
     'Deposit SOL or USDC',

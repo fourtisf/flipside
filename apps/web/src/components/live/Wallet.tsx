@@ -108,8 +108,9 @@ export function ConnectDialog() {
       <form method="dialog">
         <h3 id="wT">Connect a wallet</h3>
         <p>
-          Your wallet&apos;s EVM address is your Hyperliquid account. Connecting only reads that address:
-          nothing is signed or sent.
+          Hyperliquid accounts use Ethereum-style addresses (0x…), so your wallet may say Ethereum. No ETH is
+          needed and nothing happens on Ethereum: you deposit and withdraw in SOL. Connecting only reads your
+          address.
         </p>
         <div className="wl" id="wl">
           {options.map((o) => (
