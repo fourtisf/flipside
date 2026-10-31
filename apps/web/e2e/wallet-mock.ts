@@ -15,6 +15,10 @@ export interface FakeWallet {
   reject: () => Promise<void>;
   /** Switch account inside the wallet. */
   switchTo: (address: string) => Promise<void>;
+  /** The typed data the wallet was asked to sign, in order. */
+  signed: () => Promise<
+    Array<{ primaryType: string; domain: { chainId: number }; message: Record<string, unknown> }>
+  >;
 }
 
 export async function fakeWallet(
@@ -32,7 +36,7 @@ export async function fakeWallet(
       const w = window as unknown as Record<string, unknown>;
       let current = address;
       const provider = {
-        async request({ method }: { method: string }) {
+        async request({ method, params }: { method: string; params?: unknown[] }) {
           if (method === 'eth_requestAccounts') {
             if (w.__rejectNext) {
               w.__rejectNext = false;
@@ -42,6 +46,16 @@ export async function fakeWallet(
             return [current];
           }
           if (method === 'eth_accounts') return localStorage.getItem('fake-wallet-allowed') ? [current] : [];
+          if (method === 'eth_chainId') return '0xa4b1';
+          if (method === 'eth_signTypedData_v4') {
+            if (w.__rejectNext) {
+              w.__rejectNext = false;
+              throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
+            }
+            ((w.__signed as unknown[]) ??= []).push(JSON.parse(String(params?.[1])));
+            // a well-formed signature; the pretend Hyperliquid doesn't check it
+            return '0x' + '11'.repeat(32) + '22'.repeat(32) + '1b';
+          }
           throw Object.assign(new Error(`${method} is not supported in tests`), { code: 4200 });
         },
         on(event: string, fn: (v: unknown) => void) {
@@ -65,6 +79,8 @@ export async function fakeWallet(
   return {
     reject: () =>
       page.evaluate(() => void ((window as unknown as Record<string, unknown>).__rejectNext = true)),
+    signed: () =>
+      page.evaluate(() => ((window as unknown as { __signed?: never[] }).__signed ?? []) as never),
     switchTo: (a) =>
       page.evaluate(
         (a) => (window as unknown as { __switchAccount: (a: string) => void }).__switchAccount(a),

@@ -89,6 +89,8 @@ Each phase ends with a report and stops for ALFA, as before.
   - **Scope:** approve the builder fee and the agent key; market, limit, take profit / stop loss; close;
     leverage; clear error messages; Hyperliquid's rate limits.
   - **Done when:** a scripted end-to-end run on testnet passes and the builder fee shows on the fills.
+  - **Status (31 Oct 2026):** built for mainnet, as ALFA asked, with a $1,000 cap per order and a switch to turn it
+    off. The builder fee waits for decisions 1 and 2 (DECISIONS.md, "H3").
 - **H4. Deposits and withdrawals from Solana.**
   - **Scope:** Unit (SOL) and Across (USDC), with status tracking, limits, and handling when a transfer is
     late or fails.

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { shortAddr } from '@/wallet/catalog';
-import { useAccount, useWallet } from '@/wallet/provider';
+import { useAccount, useTrade, useWallet } from '@/wallet/provider';
 import type { WalletOption } from '@/wallet/store';
 import { useDialog } from '../dialog';
 
@@ -137,6 +137,7 @@ export function ConnectDialog() {
 export function WalletMenu() {
   const wallet = useWallet();
   const account = useAccount();
+  const trade = useTrade();
   const [copied, setCopied] = useState(false);
   const ref = useDialog(wallet.dialog === 'menu', () =>
     wallet.set((s) => {
@@ -194,6 +195,14 @@ export function WalletMenu() {
               </Link>
             </div>
           </>
+        )}
+        {trade.agent && (
+          <p className="hint">
+            Trading is on in this browser.{' '}
+            <button type="button" className="lnk" id="tradingOff" onClick={() => trade.turnOff()}>
+              Turn it off
+            </button>
+          </p>
         )}
         <div className="dlg-a">
           <button type="button" className="btn o" id="disconnect" onClick={() => wallet.disconnect()}>

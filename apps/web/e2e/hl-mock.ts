@@ -32,9 +32,18 @@ interface Info {
   req?: { coin: string; interval: string; startTime: number; endTime?: number };
 }
 
+export interface Sent {
+  action: { type: string } & Record<string, unknown>;
+  nonce: number;
+}
+
 export interface HlMock {
   /** Every info request the page made, in order. */
   info: Info[];
+  /** Every signed action the page sent to /exchange, in order. */
+  exchange: Sent[];
+  /** Answer the next order with this error, as Hyperliquid does. */
+  failNext: (message: string) => void;
   /** Every subscription the page asked for. */
   subs: Array<Record<string, unknown>>;
   /** Push a message to every open socket, as Hyperliquid would. */
@@ -44,7 +53,16 @@ export interface HlMock {
 }
 
 export async function mockHyperliquid(page: Page, { down = false } = {}): Promise<HlMock> {
-  const mock: HlMock = { info: [], subs: [], push: () => {}, pushMids: () => {} };
+  const mock: HlMock = {
+    info: [],
+    exchange: [],
+    subs: [],
+    push: () => {},
+    pushMids: () => {},
+    failNext: () => {},
+  };
+  let fail: string | null = null;
+  mock.failNext = (m) => void (fail = m);
   const sockets: WebSocketRoute[] = [];
   mock.push = (channel, data) => sockets.forEach((ws) => ws.send(JSON.stringify({ channel, data })));
   mock.pushMids = (m) =>
@@ -58,6 +76,33 @@ export async function mockHyperliquid(page: Page, { down = false } = {}): Promis
       ? route.fulfill({ status: 404, body: '' })
       : route.fulfill({ contentType: 'image/svg+xml', body: ICON }),
   );
+
+  // signed actions: record them and answer as Hyperliquid would
+  await page.route('https://api.hyperliquid.xyz/exchange', async (route) => {
+    if (down) return route.abort('connectionrefused');
+    const body = route.request().postDataJSON() as Sent;
+    mock.exchange.push(body);
+    const ok = (response: unknown) => route.fulfill({ json: { status: 'ok', response } });
+    switch (body.action.type) {
+      case 'order': {
+        if (fail) {
+          const message = fail;
+          fail = null;
+          return ok({ type: 'order', data: { statuses: [{ error: message }] } });
+        }
+        const o = (body.action.orders as Array<{ s: string; p: string; t: { limit?: { tif: string } } }>)[0]!;
+        const status =
+          o.t.limit?.tif === 'Gtc'
+            ? { resting: { oid: 7001 } }
+            : { filled: { totalSz: o.s, avgPx: '187.25', oid: 7002 } };
+        return ok({ type: 'order', data: { statuses: [status] } });
+      }
+      case 'cancel':
+        return ok({ type: 'cancel', data: { statuses: ['success'] } });
+      default:
+        return ok({ type: 'default' });
+    }
+  });
 
   await page.route('https://api.hyperliquid.xyz/info', async (route) => {
     if (down) return route.abort('connectionrefused');

@@ -20,6 +20,37 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## H3: trading on mainnet (31 Oct 2026)
+
+ALFA: "saya ingin ke mainnet bisa trading". The plan had H3 on testnet first; ALFA chose mainnet. To keep that
+safe:
+
+- **A trading key, approved once.** Enable trading makes a key in the browser and the wallet signs one
+  `approveAgent` (Hyperliquid's API-wallet mechanism), on the wallet's own chain. Orders, cancels and leverage
+  changes are then signed by that key, with no pop-up each time. Hyperliquid never lets such a key withdraw or
+  transfer funds. The key is stored in this browser per wallet; the wallet menu turns it off. A key Hyperliquid no
+  longer knows is forgotten, and the button asks to enable again.
+- **A risk notice before the first trade**: a checkbox that the person understands leveraged trading can lose the
+  whole margin and is allowed to trade perpetual futures where they live, naming that Hyperliquid isn't available
+  in the United States. This is not geo-blocking (decision 4 is still open) and needs legal review.
+- **Orders** (`src/trade/orders.ts`): market orders are immediate-or-cancel limit orders 1% through the price;
+  limit orders rest (good till cancelled); take profit and stop loss are reduce-only market triggers grouped with
+  the order. Prices and sizes use the SDK's `formatPrice` and `formatSize` (5 significant figures, the market's tick
+  and lot, truncated). Leverage is set before each order (cross margin, isolated where a market requires it).
+  Close is a reduce-only immediate-or-cancel order for the whole position; Cancel cancels by order id. Hyperliquid's
+  error messages come back in plain words.
+- **Limits while trading is new**: one order can open at most a $1,000 position (`NEXT_PUBLIC_MAX_ORDER_USD`), and
+  Hyperliquid's own $10 minimum is checked before sending. `NEXT_PUBLIC_TRADING=off` turns trading off at the next
+  deploy.
+- **Builder fee: off until ALFA sets it.** With `NEXT_PUBLIC_BUILDER_ADDRESS` and `NEXT_PUBLIC_BUILDER_FEE` set,
+  Enable trading also asks the wallet to approve the fee, and every order carries the builder code. Unset, orders
+  carry none and Coinside earns nothing (decisions 1 and 2 are still open).
+- **Checked without the network**: the trading key's signature on an order recovers to the key under Hyperliquid's
+  L1 scheme, and the wallet's `approveAgent` signature (made through `eth_signTypedData_v4`) recovers to the
+  wallet, in unit tests with real keys. The e2e suite drives the whole flow with a pretend wallet and a pretend
+  Hyperliquid that records every signed action. Not yet run against the real exchange: the first real trades
+  should be small.
+
 ## H2: connect a wallet, read the Hyperliquid account (31 Oct 2026)
 
 ALFA: "harus tambahkan fitur connect wallet dan tambahkan beberapa wallet, setiap wallet harus punya logonya

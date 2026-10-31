@@ -8,6 +8,7 @@ import { useSim } from '@/mock/provider';
 import { navKey, useNavHrefs, type NavKey } from './Header';
 import { LIVE } from '@/lib/edition';
 import { useDialog } from './dialog';
+import { TRADING } from '@/trade/config';
 import { LogoMark } from './ui';
 
 export function Footer() {
@@ -96,7 +97,9 @@ export function Footer() {
           </span>
           <span>
             {LIVE
-              ? 'Prices are live from Hyperliquid. Trading is not open yet.'
+              ? TRADING
+                ? 'Prices are live from Hyperliquid. Trading is in beta: start small.'
+                : 'Prices are live from Hyperliquid. Trading is not open yet.'
               : 'Prototype with simulated prices, trades and wallets. Nothing here moves real SOL.'}
           </span>
         </div>

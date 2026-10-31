@@ -15,6 +15,9 @@ import { LevButtons, Sides, Summary, levFor } from './OrderBits';
 import { statusText } from './status';
 import { CoinTok } from './CoinTok';
 import { AvailableNote } from './Wallet';
+import { TradeButton } from './Trading';
+import { OrdersPanel, PositionsPanel } from './LivePortfolio';
+import { useAccount, useWallet } from '@/wallet/provider';
 
 function Watchlist({ sel }: { sel: Market }) {
   const hl = useHl();
@@ -178,13 +181,24 @@ function OrderPanel({ m }: { m: Market }) {
       <dl className="sum" id="o-sum">
         <Summary m={m} d={d} lev={lev} />
       </dl>
-      <button className="cta w" id="o-cta" type="button" disabled>
-        Trading opens soon
-      </button>
+      <TradeButton id="o-cta" m={m} d={d} lev={lev} />
       <p className="ogd">
         <Shield c="#6E6E6E" s={13} style={{ flex: 'none', marginTop: 3 }} />
         Orders go straight to Hyperliquid&apos;s order book. Your funds stay in your own Hyperliquid account.
       </p>
+    </div>
+  );
+}
+
+/** The connected account's positions and orders, above the order book, once there are any. */
+function MyTrades() {
+  const wallet = useWallet();
+  const account = useAccount();
+  if (wallet.status !== 'connected' || (!account.positions.length && !account.orders?.length)) return null;
+  return (
+    <div className="stack mine">
+      {account.positions.length > 0 && <PositionsPanel id="tv-mypos" />}
+      {!!account.orders?.length && <OrdersPanel id="tv-myorders" />}
     </div>
   );
 }
@@ -302,9 +316,12 @@ function Terminal({ m }: { m: Market }) {
           </div>
         </div>
         <OrderPanel m={m} />
-        <div className="ptab hlbt">
-          <OrderBook m={m} />
-          <RecentTrades m={m} />
+        <div className="ptab">
+          <MyTrades />
+          <div className="hlbt">
+            <OrderBook m={m} />
+            <RecentTrades m={m} />
+          </div>
         </div>
       </div>
     </section>

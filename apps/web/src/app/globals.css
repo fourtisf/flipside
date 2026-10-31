@@ -294,8 +294,15 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .wm-a{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
 .wm-a .btn{padding:0 8px}
 /* portfolio tables */
-.t-hp{grid-template-columns:minmax(110px,1.2fr) 84px .9fr .9fr .9fr .9fr 1.2fr}
-.t-ho{grid-template-columns:minmax(110px,1.2fr) 64px 1.4fr 1fr .9fr .9fr}
+.t-hp{grid-template-columns:minmax(110px,1.2fr) 84px .9fr .9fr .9fr .9fr 1.2fr 84px}
+.t-ho{grid-template-columns:minmax(110px,1.2fr) 64px 1.4fr 1fr .9fr .9fr 84px}
+/* trading: result line under the order button, the risk notice, Close and Cancel */
+.omsg.ok{color:var(--t2)}
+.ack{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px;border:1px solid var(--line2);border-radius:10px;background:var(--s2);font-size:13px;color:var(--t2);line-height:1.5;cursor:pointer}
+.ack input{flex:none;width:16px;height:16px;margin-top:2px;accent-color:#EDEDED}
+.sb[disabled]{opacity:.5;cursor:progress}
+.lnk{color:var(--t1);text-decoration:underline;text-underline-offset:2px;font-size:inherit}
+.mine{margin-bottom:12px}
 .t-hs{grid-template-columns:minmax(110px,1.2fr) 1fr 1fr}
 .t-hf{grid-template-columns:minmax(110px,1.1fr) 1.1fr .9fr .9fr .8fr 1fr .9fr}
 .tr .tk{gap:9px}
@@ -526,9 +533,9 @@ dialog .amt{margin-top:16px}
   .t-pos .c3,.t-pos .c4,.t-pos .c5,.t-pos .c6{display:none}
   .t-hist,#tv-pos .t-hist{grid-template-columns:1.2fr 1fr 1fr}
   .t-hist .c3,.t-hist .c4,.t-hist .c6,.t-hist .c7{display:none}
-  .t-hp{grid-template-columns:1.2fr 84px 1.2fr}
+  .t-hp{grid-template-columns:1.2fr 84px 1.2fr 76px}
   .t-hp .c3,.t-hp .c4,.t-hp .c5,.t-hp .c6{display:none}
-  .t-ho{grid-template-columns:1.2fr 56px 1fr}
+  .t-ho{grid-template-columns:1.2fr 56px 1fr 76px}
   .t-ho .c3,.t-ho .c5,.t-ho .c6{display:none}
   .t-hf{grid-template-columns:1.1fr 1.2fr .9fr}
   .t-hf .c3,.t-hf .c4,.t-hf .c5,.t-hf .c6{display:none}

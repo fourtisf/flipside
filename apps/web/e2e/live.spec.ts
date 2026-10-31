@@ -27,7 +27,9 @@ const rowPrice = (page: Page, name: string) =>
     .locator('[role="cell"]')
     .nth(1);
 
-test('markets: every Hyperliquid market, live prices, trading closed', async ({ page }) => {
+test('markets: every Hyperliquid market, live prices, and an order button that asks for a wallet', async ({
+  page,
+}) => {
   const errors = watchErrors(page);
   const hl = await mockHyperliquid(page);
   await page.goto('/');
@@ -76,8 +78,8 @@ test('markets: every Hyperliquid market, live prices, trading closed', async ({ 
   await expect(page.locator('#tk-lev button')).toHaveText(['2x', '5x', '10x', '20x']);
   await expect(page.locator('#tk-sum')).toContainText('$500.00'); // 100 USDC at 5x
   await expect(page.locator('#tk-sum')).toContainText('2.67 SOL');
-  await expect(page.locator('#tk-cta')).toHaveText('Trading opens soon');
-  await expect(page.locator('#tk-cta')).toBeDisabled();
+  await expect(page.locator('#tk-cta')).toHaveText('Connect wallet');
+  await expect(page.locator('#tk-mode')).toHaveText('Market order');
   await page.locator('#tk-side [data-side="short"]').click();
   await expect(page.locator('#tk-side [data-side="short"]')).toHaveAttribute('aria-pressed', 'true');
 
@@ -144,8 +146,10 @@ test('terminal: chart, order book, trades and stats for one market', async ({ pa
   await page.locator('#o-tp').fill('50');
   await expect(page.locator('#o-sum')).toContainText('Take profit at');
   const cta = page.locator('#o-cta');
-  await expect(cta).toHaveText('Trading opens soon');
-  await expect(cta).toBeDisabled();
+  await expect(cta).toHaveText('Connect wallet');
+  await cta.click();
+  await expect(page.locator('#wallets')).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
 
   // switching market from the watchlist (desktop) moves every panel to it
   if ((page.viewportSize()?.width ?? 0) > 1200) {

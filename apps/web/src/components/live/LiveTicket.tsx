@@ -10,6 +10,8 @@ import { LevButtons, Sides, Summary, levFor } from './OrderBits';
 import { statusText } from './status';
 import { CoinTok } from './CoinTok';
 import { AvailableNote } from './Wallet';
+import { TradeButton } from './Trading';
+import { TRADING } from '@/trade/config';
 
 /** The 24h sparkline: 15-minute closes, ending at the live price. */
 function Spark({ name, px }: { name: string; px: number }) {
@@ -68,7 +70,7 @@ export function LiveTicket() {
       <div className="tk-head">
         <b>Quick trade</b>
         <span className="t3" id="tk-mode">
-          Preview
+          {TRADING ? 'Market order' : 'Preview'}
         </span>
       </div>
       <div className="tk-body">
@@ -135,9 +137,13 @@ export function LiveTicket() {
             </dl>
           </>
         )}
-        <button className="cta w" id="tk-cta" type="submit" disabled>
-          Trading opens soon
-        </button>
+        {m ? (
+          <TradeButton id="tk-cta" m={m} d={{ ...d, type: 'market', tpsl: false }} lev={levFor(m, d.lev)} />
+        ) : (
+          <button className="cta w" id="tk-cta" type="button" disabled>
+            {TRADING ? 'Loading markets' : 'Trading opens soon'}
+          </button>
+        )}
         <div className="tk-foot">
           <span>Fills on Hyperliquid&apos;s order book</span>
           <button

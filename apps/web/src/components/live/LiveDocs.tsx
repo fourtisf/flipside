@@ -1,3 +1,5 @@
+import { MAX_ORDER_USD } from '@/trade/config';
+
 /**
  * How Coinside works as a Hyperliquid builder (PLAN-HYPERLIQUID.md). Every claim here is either Hyperliquid's
  * or Unit's documented behavior, or a rule Coinside sets before launch; nothing promises a number ALFA has not
@@ -80,8 +82,8 @@ export function LiveDocs() {
         <div>
           <h1 id="h-docs">How Coinside works</h1>
           <p>
-            Coinside lets you trade on Hyperliquid from your Solana wallet. Trading opens soon; these are the
-            rules it opens with.
+            Coinside lets you trade on Hyperliquid from your Solana wallet. Trading is in beta, so one order
+            can open at most a ${MAX_ORDER_USD.toLocaleString('en-US')} position for now.
           </p>
         </div>
       </div>

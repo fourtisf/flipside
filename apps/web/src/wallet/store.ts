@@ -157,6 +157,11 @@ export class WalletStore {
     });
   }
 
+  /** The connected wallet's provider, for signing (trading). */
+  provider(): Eip1193 | null {
+    return this.active;
+  }
+
   private detach() {
     this.active?.removeListener?.('accountsChanged', this.onAccounts as never);
     this.active = null;

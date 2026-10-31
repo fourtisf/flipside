@@ -1,0 +1,155 @@
+/**
+ * Trading from Coinside (H3) in the live edition: enable trading once (the wallet approves a trading key), then
+ * orders, take profit and stop loss, close and cancel go to Hyperliquid signed by that key. Hyperliquid is the
+ * fixture mock, which records every signed action; the wallet is pretend.
+ */
+import { expect, test, type Page } from '@playwright/test';
+import { ADDRESS } from './hl-fixtures';
+import { mockHyperliquid, type HlMock } from './hl-mock';
+import { fakeWallet, type FakeWallet } from './wallet-mock';
+
+async function connected(page: Page): Promise<{ hl: HlMock; wallet: FakeWallet }> {
+  const hl = await mockHyperliquid(page);
+  const wallet = await fakeWallet(page, { address: ADDRESS });
+  await page.goto('/trade/SOL');
+  await page.locator('#connect').click();
+  await page.locator('#wl button[data-wallet="app.phantom"]').click();
+  await expect(page.locator('#walletBtn')).toBeVisible();
+  return { hl, wallet };
+}
+
+async function enable(page: Page) {
+  await expect(page.locator('#o-cta')).toHaveText('Enable trading');
+  await page.locator('#o-cta').click();
+  const dialog = page.locator('#enable');
+  await expect(dialog).toContainText('can never withdraw or move your funds');
+  await expect(page.locator('#enableGo')).toBeDisabled();
+  await page.locator('#ack').check();
+  await page.locator('#enableGo').click();
+  await expect(dialog).toBeHidden();
+}
+
+const orders = (hl: HlMock) => hl.exchange.filter((e) => e.action.type === 'order');
+
+test('enable trading once, then a market long goes to Hyperliquid signed by the trading key', async ({
+  page,
+}) => {
+  const { hl, wallet } = await connected(page);
+  await enable(page);
+
+  // the wallet signed one thing: approving the trading key, on its own chain, with no pop-up per order after that
+  const signed = await wallet.signed();
+  expect(signed).toHaveLength(1);
+  expect(signed[0]!.primaryType).toBe('HyperliquidTransaction:ApproveAgent');
+  expect(signed[0]!.domain.chainId).toBe(42161);
+  expect(hl.exchange[0]!.action).toMatchObject({
+    type: 'approveAgent',
+    agentName: 'coinside',
+    signatureChainId: '0xa4b1',
+  });
+
+  await expect(page.locator('#o-cta')).toHaveText('Long SOL');
+  await page.locator('#o-amt').fill('100');
+  await page.locator('#o-lev button[data-lev="5"]').click();
+  await page.locator('#o-cta').click();
+  await expect(page.locator('#o-cta-msg')).toHaveText('Filled 2.67 SOL at $187.25.');
+
+  const lev = hl.exchange.find((e) => e.action.type === 'updateLeverage')!;
+  expect(lev.action).toMatchObject({ asset: 2, isCross: true, leverage: 5 });
+  expect(orders(hl)[0]!.action).toMatchObject({
+    grouping: 'na',
+    orders: [{ a: 2, b: true, p: '189.1', s: '2.67', r: false, t: { limit: { tif: 'Ioc' } } }],
+  });
+  // no builder fee is configured in this build
+  expect(orders(hl)[0]!.action.builder).toBeUndefined();
+  expect(await wallet.signed()).toHaveLength(1);
+
+  // a reload keeps trading on: the key stays in this browser
+  await page.reload();
+  await expect(page.locator('#o-cta')).toHaveText('Long SOL');
+});
+
+test('short with take profit and stop loss, a limit order, and plain reasons when an order cannot go', async ({
+  page,
+}) => {
+  const { hl } = await connected(page);
+  await enable(page);
+  await page.locator('#o-side [data-side="short"]').click();
+  await page.locator('#o-amt').fill('2');
+  await page.locator('#o-lev button[data-lev="2"]').click();
+  await expect(page.locator('#o-cta')).toBeDisabled();
+  await expect(page.locator('#o-cta-msg')).toContainText('at least $10');
+
+  await page.locator('#o-amt').fill('50');
+  await page.locator('#o-lev button[data-lev="10"]').click();
+  await page.locator('#o-tpsl').click();
+  await page.locator('#o-tp').fill('30');
+  await page.locator('#o-sl').fill('20');
+  await expect(page.locator('#o-cta')).toHaveText('Short SOL');
+  await page.locator('#o-cta').click();
+  await expect(page.locator('#o-cta-msg')).toContainText('Filled');
+  const o = orders(hl).at(-1)!.action as unknown as {
+    grouping: string;
+    orders: Array<Record<string, unknown>>;
+  };
+  expect(o.grouping).toBe('normalTpsl');
+  expect(o.orders).toHaveLength(3);
+  expect(o.orders[1]).toMatchObject({ b: true, r: true, t: { trigger: { tpsl: 'tp' } } });
+  expect(o.orders[2]).toMatchObject({ b: true, r: true, t: { trigger: { tpsl: 'sl' } } });
+
+  // a limit order rests on the book
+  await page.locator('#o-tpsl').click();
+  await page.locator('#o-type button', { hasText: 'Limit' }).click();
+  await page.locator('#o-px').fill('195');
+  await page.locator('#o-cta').click();
+  await expect(page.locator('#o-cta-msg')).toHaveText('Order placed. It fills when the price gets there.');
+  expect(orders(hl).at(-1)!.action).toMatchObject({
+    orders: [{ b: false, p: '195', t: { limit: { tif: 'Gtc' } } }],
+  });
+
+  // Hyperliquid's errors come back in plain words
+  hl.failNext('Insufficient margin to place order. asset=2');
+  await page.locator('#o-cta').click();
+  await expect(page.locator('#o-cta-msg')).toHaveText(
+    'Not enough margin for this order. Lower the amount or the leverage.',
+  );
+});
+
+test('close a position and cancel an order from the terminal and from Portfolio', async ({ page }) => {
+  const { hl } = await connected(page);
+  await enable(page);
+  // the account's positions and orders show above the order book
+  await expect(page.locator('#tv-mypos')).toContainText('SOL');
+  await page.locator('#tv-mypos [data-close="SOL"]').click();
+  await expect(page.locator('#o-cta-msg')).toHaveText('Closed your SOL long.');
+  expect(orders(hl).at(-1)!.action).toMatchObject({
+    orders: [{ a: 2, b: false, s: '10.5', r: true, t: { limit: { tif: 'Ioc' } } }],
+  });
+
+  await page.goto('/portfolio');
+  await page.locator('#pf-orders [data-cancel="9001"]').click();
+  await expect
+    .poll(() => hl.exchange.find((e) => e.action.type === 'cancel')?.action)
+    .toMatchObject({
+      cancels: [{ a: 2, o: 9001 }],
+    });
+});
+
+test('a closed wallet prompt during setup says so; the wallet menu turns trading off', async ({ page }) => {
+  const { wallet } = await connected(page);
+  await page.locator('#o-cta').click();
+  await page.locator('#ack').check();
+  await wallet.reject();
+  await page.locator('#enableGo').click();
+  await expect(page.locator('#enable')).toContainText(
+    'You closed the request in Phantom. Nothing was signed.',
+  );
+  await page.locator('#enableGo').click();
+  await expect(page.locator('#enable')).toBeHidden();
+  await expect(page.locator('#o-cta')).toHaveText('Long SOL');
+
+  await page.locator('#walletBtn').click();
+  await page.locator('#tradingOff').click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#o-cta')).toHaveText('Enable trading');
+});
