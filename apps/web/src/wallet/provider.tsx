@@ -16,8 +16,9 @@ const Ctx = createContext<{
 /** The connected wallet and its Hyperliquid account, for the whole live edition. */
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [stores] = useState(() => {
-    const wallet = new WalletStore();
-    return { wallet, account: new AccountStore(), trade: new TradeStore(wallet), solana: new SolanaStore() };
+    const solana = new SolanaStore();
+    const wallet = new WalletStore(solana);
+    return { wallet, account: new AccountStore(), trade: new TradeStore(wallet), solana };
   });
   useEffect(() => stores.wallet.start(), [stores]);
   useEffect(() => stores.solana.start(), [stores]);

@@ -16,7 +16,7 @@ import type { WalletStore } from '@/wallet/store';
 import { TRADING } from './config';
 import { planSellUsol, usdcToMove, usolMarket } from './funds';
 import { describe, explain, planClose, planOpen, type OpenInput } from './orders';
-import { agentSigner, forgetAgent, loadAgent, newAgent, saveAgent, walletSigner, type Agent } from './signer';
+import { agentSigner, forgetAgent, loadAgent, newAgent, saveAgent, type Agent } from './signer';
 
 const ACCEPTED = (owner: string) => `coinside.risk.${owner.toLowerCase()}`;
 
@@ -100,9 +100,8 @@ export class TradeStore {
 
   /** The wallet approves a new trading key: one signature, and no fee to approve (Coinside charges none). */
   async enable() {
-    const provider = this.wallet.provider();
     const owner = this.wallet.address;
-    if (!provider || !owner || this.busy) return;
+    if (!this.wallet.canSign() || !owner || this.busy) return;
     if (!this.accepted)
       return this.set((s) => s.say('Tick the box to confirm you understand the risks.', false));
     const agent = newAgent();
@@ -111,7 +110,7 @@ export class TradeStore {
       s.msg = null;
     });
     try {
-      const config = { ...httpConfig(), wallet: walletSigner(provider, owner) };
+      const config = { ...httpConfig(), wallet: await this.wallet.signer() };
       await approveAgent(config, { agentAddress: agent.address, agentName: 'coinside' });
       saveAgent(owner, agent);
       this.set((s) => {
@@ -210,9 +209,8 @@ export class TradeStore {
    * wallet signature). Either step is skipped when there is nothing for it.
    */
   async moveToTrading(spot: SpotRow[] | null) {
-    const provider = this.wallet.provider();
     const owner = this.wallet.address;
-    if (!TRADING || !provider || !owner || this.busy) return;
+    if (!TRADING || !this.wallet.canSign() || !owner || this.busy) return;
     this.set((s) => {
       s.busy = 'move';
       s.msg = null;
@@ -232,7 +230,7 @@ export class TradeStore {
       const amount = usdcToMove(current);
       if (!amount) return this.set((s) => s.say('There is nothing to move yet.', false));
       await usdClassTransfer(
-        { ...httpConfig(), wallet: walletSigner(provider, owner) },
+        { ...httpConfig(), wallet: await this.wallet.signer() },
         { amount, toPerp: true },
       );
       this.set((s) => s.say(`Moved $${amount} to your trading balance.`, true));

@@ -20,6 +20,32 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Sign in with a Solana wallet alone (ALFA, 31 Oct 2026)
+
+ALFA: "kenapa harus connect wallet EVM, kenapa tidak langsung wallet SOL aja, biar gampang", then chose the derived
+key over keeping the 0x connection or Privy. This changes decision 3 in `PLAN-HYPERLIQUID.md`.
+
+Hyperliquid only accepts secp256k1 (0x) signatures and Solana wallets sign with ed25519, so the account key is
+derived: the Solana wallet signs one fixed message, and the key is keccak256 of a domain tag and that signature
+(`src/wallet/derive.ts`). Ed25519 signatures are deterministic, so the same wallet always opens the same account,
+on any device, and Coinside never stores or sees the key. The pattern dYdX used for its STARK keys.
+
+- **Guards:** the signature is verified against the Solana address before anything is derived (a wallet that
+  can't sign messages, like a Ledger through some wallets, is told so); the first time the wallet signs twice and
+  both must match, since a wallet that signed differently each time would open a different account each time; the
+  message says to sign it only on coinside.fun, because anyone holding that signature holds the account.
+- **The key lives in memory for two minutes at most.** Connecting remembers only the account's public address on
+  the device, so reloading needs no signature. Account actions (approving the trading key, moving USDC to perps,
+  and withdrawals later) ask the wallet to sign the message again, re-derive the key and check it matches the
+  account. Orders keep using the trade-only trading key, as before.
+- **The connect dialog lists Solana wallets first** (Wallet Standard ones and older injected providers). "Already
+  trade on Hyperliquid? Use its 0x wallet instead" keeps the 0x path for people with an existing account; with no
+  Solana wallet installed, the 0x list shows directly.
+- **The header shows the Solana address**; the wallet menu shows the trading account under it. The Solana side is
+  the same connection, so Deposit shows the SOL balance right away.
+- **The risk to say plainly to users:** a phishing site that gets someone to sign this exact message gets their
+  account. The message text and the docs warn about it.
+
 ## An empty account: deposit first (31 Oct 2026)
 
 **The SOL in the person's own wallet shows in Deposit** (ALFA: "website tidak baca isi saldo SOL saya"). Coinside

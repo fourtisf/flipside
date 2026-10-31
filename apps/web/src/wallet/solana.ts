@@ -74,6 +74,7 @@ export function discover(onRegister: (ws: StdWallet[]) => void): () => void {
 interface LegacySol {
   connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey?: { toString(): string } } | void>;
   publicKey?: { toString(): string } | null;
+  signMessage?: (message: Uint8Array, display?: string) => Promise<{ signature: Uint8Array } | Uint8Array>;
 }
 
 /** Where wallets put their older injected Solana provider, for wallets that don't announce over the standard. */
@@ -102,13 +103,16 @@ export function legacyWallet(name: string, p: LegacySol, icon = ''): StdWallet {
     if (pk && !accounts.length) accounts.push({ address: pk });
     return { accounts: pk ? [{ address: pk }] : [] };
   };
-  return {
-    name,
-    icon,
-    chains: ['solana:mainnet'],
-    features: { 'standard:connect': { connect }, 'coinside:legacy': true },
-    accounts,
-  };
+  const features: Record<string, unknown> = { 'standard:connect': { connect }, 'coinside:legacy': true };
+  if (typeof p.signMessage === 'function')
+    features['solana:signMessage'] = {
+      signMessage: async ({ message }: { message: Uint8Array }) => {
+        const r = await p.signMessage!(message, 'utf8');
+        const signature = r instanceof Uint8Array ? r : r?.signature;
+        return [{ signedMessage: message, signature: Uint8Array.from(signature ?? []) }];
+      },
+    };
+  return { name, icon, chains: ['solana:mainnet'], features, accounts };
 }
 
 const firstWord = (s: string) => s.toLowerCase().split(' ')[0] ?? '';
@@ -182,7 +186,10 @@ export class SolanaStore {
       this.emit();
       void this.restore();
     });
-    // wallets that only inject an older provider: look once the standard ones have had their turn
+    // wallets that only inject an older provider (injected before this page's code runs), now and again once
+    // slower standard wallets have had their turn; a standard wallet that registers later replaces the older entry
+    this.addLegacy();
+    this.emit();
     const later = setTimeout(() => {
       this.addLegacy();
       this.emit();
@@ -206,8 +213,22 @@ export class SolanaStore {
     this.evmIcon = evmIcon;
     if (owner === this.owner) return;
     this.owner = owner;
+    // the same wallet, now with its account known (a Solana sign-in): keep the connection, remember it
+    if (owner && this.address && firstWord(this.name) === firstWord(evmName)) {
+      this.remember();
+      return this.emit();
+    }
     this.reset();
     void this.restore();
+  }
+
+  private remember() {
+    try {
+      if (this.owner && this.name)
+        localStorage.setItem(REMEMBER(this.owner), JSON.stringify({ name: this.name }));
+    } catch {
+      // remembered for this visit only
+    }
   }
 
   private reset() {
@@ -340,11 +361,7 @@ export class SolanaStore {
       this.wallet = w;
       this.name = w.name;
       this.picking = false;
-      try {
-        if (this.owner) localStorage.setItem(REMEMBER(this.owner), JSON.stringify({ name: w.name }));
-      } catch {
-        // remembered for this visit only
-      }
+      this.remember();
       this.startPolling();
       void this.refresh();
     } catch (e) {
@@ -387,6 +404,29 @@ export class SolanaStore {
       if (address === this.address) this.balanceFailed = true;
     }
     this.emit();
+  }
+
+  /** The connected wallet can sign a message (for the Solana sign-in). */
+  canSignMessage(): boolean {
+    return !!this.wallet && 'solana:signMessage' in this.wallet.features;
+  }
+
+  /** The connected wallet signs `message`; the person approves it in the wallet. Returns the 64-byte signature. */
+  async signMessage(message: Uint8Array): Promise<Uint8Array> {
+    const w = this.wallet;
+    if (!w || !this.account) throw new Error('Connect your Solana wallet first.');
+    const feature = w.features['solana:signMessage'] as
+      | {
+          signMessage: (
+            ...inputs: Array<{ account: StdAccount; message: Uint8Array }>
+          ) => Promise<ReadonlyArray<{ signature: Uint8Array }>>;
+        }
+      | undefined;
+    if (!feature) throw new Error(`${w.name} can't sign messages. Update ${w.name} or try Phantom.`);
+    const out = await feature.signMessage({ account: this.account, message });
+    const sig = out[0]?.signature;
+    if (!sig) throw new Error(`${w.name} returned no signature.`);
+    return Uint8Array.from(sig);
   }
 
   /** The connected wallet can sign and send a transaction from Coinside (the standard's signAndSendTransaction). */

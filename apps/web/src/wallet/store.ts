@@ -1,6 +1,11 @@
 'use client';
 
-import { WALLETS, walletByRdns, walletFromFlags, type WalletInfo } from './catalog';
+import type { AbstractViemJsonRpcAccount } from '@nktkas/hyperliquid/signing';
+import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
+import { walletSigner } from '@/trade/signer';
+import { WALLETS, shortAddr, walletByRdns, walletFromFlags, type WalletInfo } from './catalog';
+import { deriveKey, keyAddress, signInBytes, signInProblem } from './derive';
+import { shortSol, type SolanaStore } from './solana';
 
 /** The part of an EIP-1193 provider (an injected wallet) that Coinside uses. */
 export interface Eip1193 {
@@ -28,12 +33,17 @@ export interface WalletOption {
 
 export type Address = `0x${string}`;
 const SAVED = 'coinside.wallet';
+/** The Hyperliquid address derived for a Solana wallet (public; the key itself is never stored). */
+const DERIVED = (sol: string) => `coinside.hl.${sol}`;
+/** How long the derived account key stays in memory after the wallet signs for it. */
+const KEY_TTL_MS = 120_000;
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 
 /** What to tell someone when their wallet says no, in words that say what happened and what to do. */
 export function connectError(name: string, e: unknown): string {
   const code = (e as { code?: number } | null)?.code;
-  if (code === 4001) return `You closed the request in ${name}. Try again when you're ready.`;
+  if (code === 4001 || /reject|denied|cancel/i.test(String((e as Error | null)?.message)))
+    return `You closed the request in ${name}. Try again when you're ready.`;
   if (code === -32002) return `${name} is already asking you to connect. Open ${name} to answer.`;
   return `${name} couldn't connect. Unlock it and try again, or pick another wallet.`;
 }
@@ -69,7 +79,14 @@ const safeStorage = {
  */
 export class WalletStore {
   status: 'idle' | 'connecting' | 'connected' = 'idle';
+  /** The Hyperliquid account: the 0x wallet's own address, or the one derived for a Solana wallet. */
   address: Address | null = null;
+  /** How the account is held: a 0x wallet, or a Solana wallet through a derived key. */
+  kind: 'evm' | 'solana' | null = null;
+  /** The Solana wallet's address, when the account comes from one. */
+  solAddress: string | null = null;
+  /** While connecting a Solana wallet: what the wallet is being asked for. */
+  step: 'connect' | 'sign' | 'check' | null = null;
   /** The connected wallet's name and icon. */
   name = '';
   icon = '';
@@ -83,6 +100,9 @@ export class WalletStore {
   version = 0;
   private listeners = new Set<() => void>();
   private active: Eip1193 | null = null;
+  private master: { key: `0x${string}`; at: number } | null = null;
+
+  constructor(private readonly solana: SolanaStore | null = null) {}
 
   subscribe = (l: () => void) => {
     this.listeners.add(l);
@@ -142,8 +162,26 @@ export class WalletStore {
     else this.disconnect();
   };
 
+  /** Installed Solana wallets, for signing in with Solana alone. */
+  solanaOptions(): WalletOption[] {
+    return (this.solana?.wallets ?? []).map((w) => {
+      const known = WALLETS.find(
+        (c) => c.name.toLowerCase().split(' ')[0] === w.name.toLowerCase().split(' ')[0],
+      );
+      return { key: `sol:${w.name}`, name: w.name, icon: w.icon || known?.logo || '', installed: true };
+    });
+  }
+
+  /** What the header shows: the Solana address for a Solana sign-in, else the 0x address. */
+  label(): string {
+    if (this.kind === 'solana' && this.solAddress) return shortSol(this.solAddress);
+    return this.address ? shortAddr(this.address) : '';
+  }
+
   private attach(key: string, p: { provider: Eip1193; name: string; icon: string }, address: Address) {
     this.detach();
+    this.kind = 'evm';
+    this.solAddress = null;
     this.active = p.provider;
     p.provider.on?.('accountsChanged', this.onAccounts as never);
     safeStorage.set(SAVED, key);
@@ -157,9 +195,101 @@ export class WalletStore {
     });
   }
 
+  private attachSolana(name: string, icon: string, sol: string, address: Address) {
+    this.detach();
+    safeStorage.set(SAVED, `sol:${name}`);
+    this.set((s) => {
+      s.kind = 'solana';
+      s.status = 'connected';
+      s.address = address;
+      s.solAddress = sol;
+      s.name = name;
+      s.icon = icon;
+      s.error = '';
+      s.step = null;
+      s.dialog = null;
+    });
+  }
+
   /** The connected wallet's provider, for signing (trading). */
   provider(): Eip1193 | null {
     return this.active;
+  }
+
+  /** The account can sign actions now: a 0x wallet, or a Solana wallet that can sign messages. */
+  canSign(): boolean {
+    if (!this.address) return false;
+    return this.kind === 'solana' ? !!this.solana?.canSignMessage() : !!this.active;
+  }
+
+  /**
+   * The signer for account actions (approve a trading key, move funds). A 0x wallet signs them itself; for a
+   * Solana sign-in, the Solana wallet signs the sign-in message again (one prompt) and the account key is derived
+   * from it, checked against the account's address, and kept in memory for two minutes only.
+   */
+  async signer(): Promise<AbstractViemJsonRpcAccount | PrivateKeyAccount> {
+    if (!this.address) throw new Error('Connect a wallet first.');
+    if (this.kind !== 'solana') {
+      if (!this.active) throw new Error('Connect a wallet first.');
+      return walletSigner(this.active, this.address);
+    }
+    if (this.master && Date.now() - this.master.at < KEY_TTL_MS) return privateKeyToAccount(this.master.key);
+    if (!this.solana || !this.solAddress) throw new Error('Connect your Solana wallet first.');
+    const sig = await this.solana.signMessage(signInBytes());
+    const problem = signInProblem(this.solAddress, sig);
+    if (problem) throw new Error(problem);
+    const key = deriveKey(sig);
+    if (keyAddress(key) !== this.address)
+      throw new Error(
+        `${this.name} signed differently than when this account was opened, so it can't act for it. Sign in again.`,
+      );
+    this.master = { key, at: Date.now() };
+    return privateKeyToAccount(key);
+  }
+
+  /**
+   * Sign in with a Solana wallet alone: connect it (its prompt), then, the first time, sign the sign-in message
+   * twice (two prompts) to derive this wallet's Hyperliquid account and check the wallet signs the same way each
+   * time. After that, the account's address is remembered on this device and reconnecting needs no signature.
+   */
+  private async connectSolana(name: string) {
+    const sol = this.solana;
+    if (!sol) return;
+    this.set((s) => {
+      s.status = 'connecting';
+      s.step = 'connect';
+      s.error = '';
+    });
+    const fail = (error: string) =>
+      this.set((s) => {
+        s.status = 'idle';
+        s.step = null;
+        s.error = error;
+      });
+    await sol.connect(name);
+    const solAddress = sol.address;
+    const w = sol.wallets.find((x) => x.name === name);
+    const icon = w?.icon || this.solanaOptions().find((o) => o.key === `sol:${name}`)?.icon || '';
+    if (!solAddress) return fail(sol.error || `${name} couldn't connect. Unlock it and try again.`);
+    const saved = safeStorage.get(DERIVED(solAddress));
+    if (saved && ADDRESS.test(saved)) return this.attachSolana(name, icon, solAddress, saved as Address);
+    try {
+      this.set((s) => void (s.step = 'sign'));
+      const first = await sol.signMessage(signInBytes());
+      const bad = signInProblem(solAddress, first);
+      if (bad) return fail(bad);
+      this.set((s) => void (s.step = 'check'));
+      const second = await sol.signMessage(signInBytes());
+      const differs = signInProblem(solAddress, first, second);
+      if (differs) return fail(differs);
+      const key = deriveKey(first);
+      const address = keyAddress(key);
+      safeStorage.set(DERIVED(solAddress), address);
+      this.master = { key, at: Date.now() };
+      this.attachSolana(name, icon, solAddress, address);
+    } catch (e) {
+      fail(connectError(name, e).replace("Try again when you're ready.", 'Nothing was signed.'));
+    }
   }
 
   private detach() {
@@ -169,6 +299,7 @@ export class WalletStore {
 
   /** Ask the wallet for its address (the wallet shows its own prompt). */
   async connect(key: string) {
+    if (key.startsWith('sol:')) return this.connectSolana(key.slice(4));
     const p = this.providerFor(key);
     if (!p) return;
     this.set((s) => {
@@ -190,9 +321,14 @@ export class WalletStore {
   /** Forget the wallet on this site. (The wallet's own permission stays until revoked in the wallet.) */
   disconnect() {
     this.detach();
+    if (this.kind === 'solana') this.solana?.disconnect();
+    this.master = null;
     safeStorage.set(SAVED, null);
     this.set((s) => {
       s.status = 'idle';
+      s.kind = null;
+      s.solAddress = null;
+      s.step = null;
       s.address = null;
       s.name = '';
       s.icon = '';
@@ -203,6 +339,18 @@ export class WalletStore {
   /** Reconnect the wallet used last time, without a prompt, if it still allows this site. */
   async restore() {
     const key = safeStorage.get(SAVED);
+    if (key?.startsWith('sol:') && this.solana && this.status === 'idle') {
+      // a Solana sign-in: reconnect the wallet silently, and use the account address remembered on this device
+      const name = key.slice(4);
+      await this.solana.connect(name, true);
+      const sol = this.solana.address;
+      const saved = sol ? safeStorage.get(DERIVED(sol)) : null;
+      if (sol && saved && ADDRESS.test(saved) && this.status === 'idle') {
+        const icon = this.solanaOptions().find((o) => o.key === key)?.icon ?? '';
+        this.attachSolana(name, icon, sol, saved as Address);
+      }
+      return;
+    }
     const p = key ? this.providerFor(key) : null;
     if (!key || !p || this.status !== 'idle') return;
     try {

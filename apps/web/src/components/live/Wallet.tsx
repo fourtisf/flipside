@@ -11,7 +11,6 @@ import { useDialog } from '../dialog';
 export const usd2 = (v: number) =>
   `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-/** Where a Hyperliquid account can be looked up. */
 /** A wallet's logo, or its first letter if it has none. */
 export function WalletIcon({ icon, name, size = 28 }: { icon: string; name: string; size?: number }) {
   if (!icon) return <i aria-hidden="true">{name[0]}</i>;
@@ -52,7 +51,7 @@ export function WalletButton() {
         onClick={() => wallet.set((s) => void (s.dialog = 'menu'))}
       >
         <WalletIcon icon={wallet.icon} name={wallet.name} size={18} />
-        {shortAddr(wallet.address)}
+        {wallet.label()}
       </button>
     </>
   );
@@ -103,7 +102,11 @@ export function ConnectDialog() {
     }),
   );
   const options = wallet.options();
+  const solOptions = wallet.solanaOptions();
   const busy = wallet.status === 'connecting';
+  const [evm, setEvm] = useState(false);
+  // with no Solana wallet installed, the 0x list is all there is
+  const showEvm = evm || solOptions.length === 0;
   // known only in the browser, so the first render matches the server's
   const [mobile, setMobile] = useState(false);
   useEffect(() => setMobile(isMobile()), []);
@@ -111,28 +114,60 @@ export function ConnectDialog() {
     <dialog id="wallets" aria-labelledby="wT" ref={ref}>
       <form method="dialog">
         <h3 id="wT">Connect a wallet</h3>
-        <p>
-          Hyperliquid accounts use Ethereum-style addresses (0x…), so your wallet may say Ethereum. No ETH is
-          needed and nothing happens on Ethereum: you deposit and withdraw in SOL. Connecting only reads your
-          address.
-        </p>
-        <div className="wl" id="wl">
-          {options.map((o) => (
-            <OptionRow key={o.key} o={o} busy={busy} mobile={mobile} />
-          ))}
-        </div>
+        {solOptions.length > 0 && (
+          <>
+            <p>
+              Use your Solana wallet. The first time, it signs a message twice to open your Coinside trading
+              account; nothing is sent and it costs nothing.
+            </p>
+            <div className="wl" id="swl">
+              {solOptions.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  data-sol={o.name}
+                  disabled={busy}
+                  onClick={() => void wallet.connect(o.key)}
+                >
+                  <WalletIcon icon={o.icon} name={o.name} />
+                  {o.name}
+                  <small>Solana</small>
+                </button>
+              ))}
+            </div>
+            {!showEvm && (
+              <button type="button" className="lnk" id="evmToggle" onClick={() => setEvm(true)}>
+                Already trade on Hyperliquid? Use its 0x wallet instead
+              </button>
+            )}
+          </>
+        )}
+        {showEvm && (
+          <>
+            <p>
+              Hyperliquid accounts use Ethereum-style addresses (0x…), so your wallet may say Ethereum. No ETH
+              is needed and nothing happens on Ethereum: you deposit and withdraw in SOL. Connecting only
+              reads your address.
+            </p>
+            <div className="wl" id="wl">
+              {options.map((o) => (
+                <OptionRow key={o.key} o={o} busy={busy} mobile={mobile} />
+              ))}
+            </div>
+          </>
+        )}
         {busy && (
           // wallets like Bitget put their own offers on top of the connect request
           <p className="omsg ok" id="wWait" role="status">
-            Approve the connection in your wallet, on the account that holds your SOL. If the wallet offers to
-            add Ethereum assets or switch network, close that offer (Cancel): Coinside needs no ETH.
+            {wallet.step === 'sign'
+              ? 'Sign the message in your wallet to open your Coinside account.'
+              : wallet.step === 'check'
+                ? 'Sign once more: this checks your wallet makes the same account every time.'
+                : 'Approve the connection in your wallet, on the account that holds your SOL. If the wallet offers to add Ethereum assets or switch network, close that offer (Cancel): Coinside needs no ETH.'}
           </p>
         )}
         <p className="omsg" id="wErr" role="alert">
           {wallet.error}
-        </p>
-        <p className="hint">
-          Solana-only wallets such as Solflare can&apos;t hold a Hyperliquid account yet.
         </p>
         <div className="dlg-a">
           <button className="btn o" value="cancel">
@@ -166,9 +201,17 @@ export function WalletMenu() {
               <WalletIcon icon={wallet.icon} name={wallet.name} size={36} />
               <div>
                 <h3 id="wmT" className="n">
-                  {shortAddr(a)}
+                  {wallet.label()}
                 </h3>
-                <p>Connected with {wallet.name}</p>
+                <p>
+                  {wallet.kind === 'solana' ? (
+                    <>
+                      {wallet.name}, Solana. Trading account <span className="n">{shortAddr(a)}</span>
+                    </>
+                  ) : (
+                    <>Connected with {wallet.name}</>
+                  )}
+                </p>
               </div>
             </div>
             <dl className="sum">
@@ -187,7 +230,7 @@ export function WalletMenu() {
                 className="btn o"
                 onClick={() =>
                   navigator.clipboard
-                    ?.writeText(a)
+                    ?.writeText(wallet.kind === 'solana' && wallet.solAddress ? wallet.solAddress : a)
                     .then(() => setCopied(true))
                     .catch(() => {})
                 }

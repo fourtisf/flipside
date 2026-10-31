@@ -3,6 +3,25 @@
  * two requests Coinside makes (eth_requestAccounts to connect, eth_accounts to reconnect). It never signs.
  */
 import type { Page } from '@playwright/test';
+import { ed25519 } from '@noble/curves/ed25519';
+import { SIGN_IN_MESSAGE, deriveKey, keyAddress, signInBytes } from '../src/wallet/derive';
+import { base58Encode } from '../src/wallet/solana-tx';
+
+/**
+ * A Solana test wallet with a real ed25519 key: its address, its signature over Coinside's sign-in message (what
+ * the pretend wallet answers, since ed25519 always signs a message the same way), and the Hyperliquid account
+ * Coinside derives from it.
+ */
+export function testSolanaWallet(seedByte = 7) {
+  const seed = new Uint8Array(32).fill(seedByte);
+  const address = base58Encode(ed25519.getPublicKey(seed));
+  const sig = ed25519.sign(signInBytes(), seed);
+  return {
+    address,
+    signature: Buffer.from(sig).toString('hex'),
+    account: keyAddress(deriveKey(sig)),
+  };
+}
 
 export const PHANTOM_ICON =
   'data:image/svg+xml,' +
@@ -11,6 +30,10 @@ export const PHANTOM_ICON =
   );
 
 export interface FakeWallet {
+  /** How many times the Solana side signed a message on this page. */
+  solanaSigns: () => Promise<number>;
+  /** Make the next Solana message signature fail as if the person closed the prompt. */
+  rejectSign: () => Promise<void>;
   /** Make the next connect request fail as if the person closed the prompt. */
   reject: () => Promise<void>;
   /** Switch account inside the wallet. */
@@ -23,7 +46,15 @@ export interface FakeWallet {
 
 export async function fakeWallet(
   page: Page,
-  { address, name = 'Phantom', rdns = 'app.phantom', icon = PHANTOM_ICON, solana, legacySolana } = {} as {
+  {
+    address,
+    name = 'Phantom',
+    rdns = 'app.phantom',
+    icon = PHANTOM_ICON,
+    solana,
+    legacySolana,
+    solanaSignature = '',
+  } = {} as {
     address: string;
     name?: string;
     rdns?: string;
@@ -32,10 +63,22 @@ export async function fakeWallet(
     solana?: string;
     /** Instead, only an older injected provider at window[legacySolana].solana, as Bitget's window.bitkeep. */
     legacySolana?: string;
+    /** Hex signature the Solana side answers for Coinside's sign-in message (see testSolanaWallet). */
+    solanaSignature?: string;
   },
 ): Promise<FakeWallet> {
   await page.addInitScript(
-    ({ address, name, rdns, icon, solana, legacySolana }) => {
+    ({ address, name, rdns, icon, solana, legacySolana, solanaSignature, message }) => {
+      const signMessage = async (m: Uint8Array) => {
+        if (w.__rejectSign) {
+          w.__rejectSign = false;
+          throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
+        }
+        w.__solSigns = ((w.__solSigns as number) ?? 0) + 1;
+        if (new TextDecoder().decode(m) !== message || !solanaSignature)
+          throw new Error('unexpected message');
+        return Uint8Array.from(solanaSignature.match(/../g)!.map((h) => parseInt(h, 16)));
+      };
       const listeners: Record<string, Array<(v: unknown) => void>> = {};
       const w = window as unknown as Record<string, unknown>;
       let current = address;
@@ -85,8 +128,10 @@ export async function fakeWallet(
         const p: {
           publicKey: typeof pk | null;
           connect: (o?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: typeof pk }>;
+          signMessage: (m: Uint8Array) => Promise<{ signature: Uint8Array }>;
         } = {
           publicKey: null,
+          signMessage: async (m: Uint8Array) => ({ signature: await signMessage(m) }),
           async connect(o) {
             const allowed = !!localStorage.getItem('fake-solana-allowed');
             if (o?.onlyIfTrusted && !allowed)
@@ -124,6 +169,12 @@ export async function fakeWallet(
               },
             },
             'standard:events': { version: '1.0.0', on: () => () => {} },
+            'solana:signMessage': {
+              version: '1.0.0',
+              async signMessage({ message: m }: { message: Uint8Array }) {
+                return [{ signedMessage: m, signature: await signMessage(m) }];
+              },
+            },
           },
         };
         const register = (api: { register: (w: unknown) => void }) => api.register(std);
@@ -133,9 +184,13 @@ export async function fakeWallet(
         window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', { detail: register }));
       }
     },
-    { address, name, rdns, icon, solana, legacySolana },
+    { address, name, rdns, icon, solana, legacySolana, solanaSignature, message: SIGN_IN_MESSAGE },
   );
   return {
+    rejectSign: () =>
+      page.evaluate(() => void ((window as unknown as Record<string, unknown>).__rejectSign = true)),
+    solanaSigns: () =>
+      page.evaluate(() => ((window as unknown as { __solSigns?: number }).__solSigns ?? 0) as number),
     reject: () =>
       page.evaluate(() => void ((window as unknown as Record<string, unknown>).__rejectNext = true)),
     signed: () =>

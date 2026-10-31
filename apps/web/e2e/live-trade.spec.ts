@@ -8,7 +8,7 @@ import { ADDRESS } from './hl-fixtures';
 
 const SOL_ADDRESS = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 import { mockHyperliquid, type HlMock } from './hl-mock';
-import { fakeWallet, type FakeWallet } from './wallet-mock';
+import { fakeWallet, testSolanaWallet, type FakeWallet } from './wallet-mock';
 
 async function connected(page: Page): Promise<{ hl: HlMock; wallet: FakeWallet }> {
   const hl = await mockHyperliquid(page);
@@ -166,6 +166,8 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   await fakeWallet(page, { address: ADDRESS, solana: SOL_ADDRESS });
   await page.goto('/trade/SOL');
   await page.locator('#connect').click();
+  // this person already has a 0x Hyperliquid account: the 0x list is one click away
+  await page.locator('#evmToggle').click();
   await page.locator('#wl button[data-wallet="app.phantom"]').click();
   await expect(page.locator('#o-cta')).toHaveText('Deposit first');
   await page.locator('#o-cta').click();
@@ -238,6 +240,7 @@ test('Bitget: its older Solana provider is found, asked once, and its SOL shows 
   });
   await page.goto('/portfolio');
   await page.locator('#connect').click();
+  await page.locator('#evmToggle').click();
   await page.locator('#wl button[data-wallet="com.bitget.web3"]').click();
   const bal = page.locator('#solBal');
   await expect(bal).toContainText('Bitget Wallet, Solana');
@@ -259,9 +262,81 @@ test('one Connect wallet covers both accounts: the 0x one, then the Solana one w
   await fakeWallet(page, { address: ADDRESS, solana: SOL_ADDRESS });
   await page.goto('/trade/SOL');
   await page.locator('#connect').click();
+  await page.locator('#evmToggle').click();
   await page.locator('#wl button[data-wallet="app.phantom"]').click();
   await expect(page.locator('#walletBtn')).toBeVisible();
   // a funded account (no Deposit prompt of its own): the SOL is already there when Portfolio opens
   await page.goto('/portfolio');
   await expect(page.locator('#solBal')).toContainText('0.2');
+});
+
+test('sign in with a Solana wallet alone: two signatures open a Hyperliquid account, then trade', async ({
+  page,
+}) => {
+  const sol = testSolanaWallet();
+  const hl = await mockHyperliquid(page);
+  const wallet = await fakeWallet(page, {
+    address: ADDRESS,
+    solana: sol.address,
+    solanaSignature: sol.signature,
+  });
+  await page.goto('/trade/SOL');
+  await page.locator('#connect').click();
+  // Solana wallets come first; no 0x wallet is involved
+  await expect(page.locator('#wl')).toBeHidden();
+  await page.locator('#swl button[data-sol="Phantom"]').click();
+  const short = `${sol.address.slice(0, 4)}…${sol.address.slice(-4)}`;
+  await expect(page.locator('#walletBtn')).toHaveText(short);
+  // signed twice the first time (the second checks the wallet signs the same way); no 0x signature at all
+  expect(await wallet.solanaSigns()).toBe(2);
+  expect(await wallet.signed()).toHaveLength(0);
+  // the account read is the one derived from the Solana signature
+  await expect
+    .poll(() => hl.info.some((i) => i.type === 'clearinghouseState' && i.user === sol.account))
+    .toBe(true);
+
+  // a reload reconnects with no signature: the account address is remembered on this device
+  await page.reload();
+  await expect(page.locator('#walletBtn')).toHaveText(short);
+  expect(await wallet.solanaSigns()).toBe(0);
+
+  // enabling trading asks the Solana wallet to sign once more; the derived key approves the trading key
+  await page.locator('#o-cta').click();
+  await page.locator('#ack').check();
+  await page.locator('#enableGo').click();
+  await expect(page.locator('#enable')).toBeHidden();
+  expect(await wallet.solanaSigns()).toBe(1);
+  expect(hl.exchange.find((e) => e.action.type === 'approveAgent')!.action).toMatchObject({
+    agentName: 'coinside',
+  });
+  await page.locator('#o-amt').fill('100');
+  await page.locator('#o-cta').click();
+  await expect(page.locator('#o-cta-msg')).toContainText('Filled');
+  expect(await wallet.signed()).toHaveLength(0);
+
+  // the wallet menu shows the Solana address and the trading account under it
+  await page.locator('#walletBtn').click();
+  await expect(page.locator('#walletMenu')).toContainText('Phantom, Solana');
+  await expect(page.locator('#walletMenu')).toContainText(sol.account.slice(0, 6));
+});
+
+test('a Solana sign-in the person closes says so, and nothing is opened', async ({ page }) => {
+  const sol = testSolanaWallet();
+  await mockHyperliquid(page);
+  const wallet = await fakeWallet(page, {
+    address: ADDRESS,
+    solana: sol.address,
+    solanaSignature: sol.signature,
+  });
+  await page.goto('/trade/SOL');
+  await page.locator('#connect').click();
+  // closing the connect prompt
+  await wallet.reject();
+  await page.locator('#swl button[data-sol="Phantom"]').click();
+  await expect(page.locator('#wErr')).toContainText('You closed the request in Phantom');
+  // connecting, then closing the signature prompt
+  await wallet.rejectSign();
+  await page.locator('#swl button[data-sol="Phantom"]').click();
+  await expect(page.locator('#wErr')).toHaveText('You closed the request in Phantom. Nothing was signed.');
+  await expect(page.locator('#walletBtn')).toHaveCount(0);
 });

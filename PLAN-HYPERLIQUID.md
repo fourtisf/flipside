@@ -121,8 +121,10 @@ to approve it with one more wallet signature.
 2. **Builder wallet.** Not needed while there is no fee. It was to be an EVM address ALFA controls, holding at
    least 100 USDC in its perps account. Without a builder code Hyperliquid publishes no "Coinside volume", so the
    leaderboard, referrals and competition (H6) will need their own way to know which trades came from Coinside.
-3. **Wallets.** Decided 31 Oct 2026: connect wallets directly, several of them (Phantom, Backpack, MetaMask,
-   Rabby, OKX, Coinbase, Rainbow, Trust, Zerion), no Privy. What follows was the question.
+3. **Wallets.** Decided 31 Oct 2026, then changed the same day: sign in with a Solana wallet alone; the
+   Hyperliquid account key is derived from a signature by that wallet (DECISIONS.md, "Sign in with a Solana wallet
+   alone"). 0x wallets stay as a second path for existing Hyperliquid accounts. No Privy. What follows was the
+   question.
    - **Option A:** at first, only wallets that also have an EVM address (Phantom, Backpack). No third party.
    - **Option B:** an embedded wallet provider such as Privy, so any Solana wallet works. Costs money and
      adds a vendor.

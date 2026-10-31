@@ -8,7 +8,7 @@ import { MAX_ORDER_USD } from '@/trade/config';
 const STEPS: Array<[string, string]> = [
   [
     'Connect your wallet',
-    'Phantom, Backpack, MetaMask, Rabby or another wallet with an EVM account. Hyperliquid accounts use Ethereum-style addresses, so your wallet may say Ethereum, but no ETH is needed. Only your wallet can move money out.',
+    'Phantom, Bitget, Backpack, Solflare or another Solana wallet. The first time, it signs a message twice to open your Coinside trading account, which only your wallet can unlock. No ETH and no 0x wallet needed.',
   ],
   [
     'Deposit SOL or USDC',
