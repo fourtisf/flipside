@@ -54,12 +54,14 @@ test('markets: every listed perp, at Hyperliquid prices, updating live', async (
     expect(Math.abs(shown / real - 1), name).toBeLessThan(0.005);
   }
 
-  // price updates keep arriving: at least one fast message a second over 5 seconds
+  // price updates keep arriving on the fast feed, about once a second. Hyperliquid's cadence jitters (a 5 s
+  // window once caught only 4), so count over 10 s and allow for it: 7 or more is still several times allMids
+  // (one message every ~5 s), which is what the page would fall back to if the fast feed stopped.
   const from = Date.now();
-  await page.waitForTimeout(5_000);
+  await page.waitForTimeout(10_000);
   const n = fast.filter((t) => t >= from).length;
-  console.log(`fastAssetCtxs messages in 5 s: ${n} (allMids: ${slow.filter((t) => t >= from).length})`);
-  expect(n).toBeGreaterThanOrEqual(5);
+  console.log(`fastAssetCtxs messages in 10 s: ${n} (allMids: ${slow.filter((t) => t >= from).length})`);
+  expect(n).toBeGreaterThanOrEqual(7);
 });
 
 test('logos: every coin has its icon', async ({ page, request }) => {
