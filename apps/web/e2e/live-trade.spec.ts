@@ -168,13 +168,14 @@ test('an empty account is asked to deposit first, and can trade once the deposit
   await expect(page.locator('#o-cta')).toHaveText('Deposit first');
   await page.locator('#o-cta').click();
   const dialog = page.locator('#deposit');
-  await expect(dialog).toContainText('Your Hyperliquid account is empty');
-  await expect(dialog).toContainText('0x1234…5678');
-  await expect(page.locator('#depGo')).toHaveAttribute('href', 'https://app.hyperliquid.xyz/portfolio');
+  await expect(dialog).toContainText('Your account is empty');
+  await expect(dialog).toContainText('Deposits open on Coinside soon');
+  // deposits happen on Coinside: the dialog never sends anyone to another site
+  await expect(dialog.locator('a')).toHaveCount(0);
   await page.keyboard.press('Escape');
   expect(hl.exchange).toHaveLength(0);
 
-  // the deposit lands (on Hyperliquid, same account): the button moves on by itself
+  // a deposit lands in the account: the button moves on by itself
   hl.fund(ADDRESS);
   await expect(page.locator('#o-cta')).toHaveText('Enable trading');
 
@@ -182,5 +183,5 @@ test('an empty account is asked to deposit first, and can trade once the deposit
   await page.locator('#walletBtn').click();
   await page.locator('#depositBtn').click();
   await expect(dialog).toBeVisible();
-  await expect(dialog).not.toContainText('Your Hyperliquid account is empty');
+  await expect(dialog).not.toContainText('Your account is empty');
 });

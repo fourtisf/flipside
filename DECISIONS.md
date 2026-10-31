@@ -28,12 +28,11 @@ refuses every action, approving a trading key too, from an address that has neve
 - **The order button says so before anyone signs:** once the account is read and has nothing in it (no perps
   value, no positions, no spot balance), the button reads "Deposit first" instead of "Enable trading". It moves
   on by itself when the deposit arrives over the socket. While the account isn't read yet, nothing is blocked.
-- **Deposit help, until H4:** "Deposit first" (and Deposit in the wallet menu) opens a dialog: deposit on
-  Hyperliquid with the same wallet (same account, so the balance shows on Coinside), check Hyperliquid's minimum,
-  and turn USOL into USDC in Perps to trade. It links to Hyperliquid's Portfolio page, where its Deposit button
-  is. Coinside's own deposits from Solana replace this in H4.
-- Hyperliquid's message, if it still comes, reads "Your Hyperliquid account is empty. Deposit first, then enable
-  trading."
+- **Deposits stay on Coinside (ALFA: "jangan diarahkan ke Hyperliquid, harus ke Coinside aja depositnya").** A first
+  version linked to Hyperliquid's own Deposit page; ALFA rejected it. "Deposit first" (and Deposit in the wallet
+  menu) now opens a dialog that says deposits from Solana open on Coinside soon, with no link elsewhere. Until H4
+  ships, an empty account can't trade.
+- Hyperliquid's message, if it still comes, reads "Your account is empty. Deposit first, then enable trading."
 
 ## Coinside charges no fee (ALFA, 31 Oct 2026)
 

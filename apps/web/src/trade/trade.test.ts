@@ -126,7 +126,7 @@ describe('results and errors', () => {
     expect(explain('Insufficient margin to place order. asset=5')).toMatch(/Not enough margin/);
     expect(explain('User or API Wallet 0xabc does not exist.')).toMatch(/Deposit first/);
     expect(explain('Must deposit before performing actions. User: 0xe614')).toBe(
-      'Your Hyperliquid account is empty. Deposit first, then enable trading.',
+      'Your account is empty. Deposit first, then enable trading.',
     );
     expect(explain('Something new')).toBe('Something new');
   });

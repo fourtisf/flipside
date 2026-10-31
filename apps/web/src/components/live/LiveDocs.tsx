@@ -12,7 +12,7 @@ const STEPS: Array<[string, string]> = [
   ],
   [
     'Deposit SOL or USDC',
-    'Hyperliquid needs a deposit before your first trade. Deposits from Solana are coming to Coinside; until then, deposit on Hyperliquid with the same wallet and the balance shows here.',
+    'Send SOL from your Solana wallet into your account, right here on Coinside. Deposits open soon; Hyperliquid needs one before your first trade.',
   ],
   [
     'Choose a side',

@@ -1,13 +1,11 @@
 'use client';
 
-import { hlPortfolioUrl } from '@/hl/client';
 import type { Market } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
 import type { Draft } from '@/hl/store';
 import { MAX_ORDER_USD, TRADING } from '@/trade/config';
 import { planOpen, type OpenInput } from '@/trade/orders';
 import type { OrderRow, PositionRow } from '@/wallet/account';
-import { shortAddr } from '@/wallet/catalog';
 import { useAccount, useTrade, useWallet } from '@/wallet/provider';
 import { useDialog } from '../dialog';
 import { amount } from './OrderBits';
@@ -83,56 +81,28 @@ export function TradeButton({ id, m, d, lev }: { id: string; m: Market; d: Draft
 }
 
 /**
- * How to fund the account. Coinside's own deposits from Solana are H4; until then the way in is Hyperliquid's
- * Deposit button with the same wallet, which is the same account, so the balance shows here as it arrives.
+ * Deposit, on Coinside itself: never a hand-off to another site (ALFA, 31 Oct 2026). Deposits from Solana are
+ * H4; until they open, this says so, and an empty account can't trade yet.
  */
 export function DepositDialog() {
   const trade = useTrade();
-  const wallet = useWallet();
   const account = useAccount();
   const ref = useDialog(trade.deposit, () => trade.set((s) => void (s.deposit = false)));
-  const name = wallet.name || 'your wallet';
   return (
     <dialog id="deposit" aria-labelledby="depT" ref={ref}>
       <form method="dialog">
         <h3 id="depT">{account.empty() ? 'Deposit first' : 'Deposit'}</h3>
         {account.empty() && (
-          <p>
-            Your Hyperliquid account is empty. Hyperliquid needs a deposit before it accepts orders or a
-            trading key.
-          </p>
+          <p>Your account is empty. Hyperliquid needs a deposit before it accepts orders or a trading key.</p>
         )}
         <p>
-          Deposits from Solana are coming to Coinside. Until then, deposit on Hyperliquid with this same
-          wallet. It&apos;s the same account, so your balance shows here as soon as it arrives.
+          Deposits open on Coinside soon. You&apos;ll send SOL from your Solana wallet, right here, and it
+          lands in your account ready to trade.
         </p>
-        <ol className="dsteps">
-          <li>
-            Open Hyperliquid and connect {name}
-            {wallet.address ? (
-              <>
-                {' '}
-                with the same address, <span className="n">{shortAddr(wallet.address)}</span>
-              </>
-            ) : null}
-            .
-          </li>
-          <li>
-            Choose Deposit, then SOL to send from your Solana wallet, or USDC. Check the minimum Hyperliquid
-            shows: an amount below it can be lost.
-          </li>
-          <li>
-            Orders use USDC in your perps balance. SOL arrives as USOL: sell it for USDC on Hyperliquid, then
-            move the USDC to Perps.
-          </li>
-        </ol>
         <div className="dlg-a">
-          <button className="btn o" value="cancel">
-            Close
+          <button className="btn w" value="close">
+            OK
           </button>
-          <a className="btn w" id="depGo" href={hlPortfolioUrl} target="_blank" rel="noopener noreferrer">
-            Open Hyperliquid
-          </a>
         </div>
       </form>
     </dialog>
