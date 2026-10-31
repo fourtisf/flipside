@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { szText } from '@/hl/format';
 import { marketHref } from '@/hl/markets';
 import { useHl } from '@/hl/provider';
@@ -106,7 +106,10 @@ function DepositPanel() {
 }
 
 /** Step 1 of Deposit: the Solana side of the person's wallet, where their SOL is, and its balance. */
+const FEE_RESERVE_LAMPORTS = 2_000_000n;
+
 function SolanaSide() {
+  const [amt, setAmt] = useState('');
   const sol = useSolana();
   const wallet = useWallet();
   const account = useAccount();
@@ -153,6 +156,9 @@ function SolanaSide() {
         )}
       </>
     );
+  // Max leaves 0.002 SOL behind for the network fee
+  const maxLamports =
+    sol.lamports !== null && sol.lamports > FEE_RESERVE_LAMPORTS ? sol.lamports - FEE_RESERVE_LAMPORTS : null;
   const px = hl.byName.SOL?.px ?? 0;
   const usd = sol.lamports !== null && px > 0 ? (Number(sol.lamports) / Number(LAMPORTS_PER_SOL)) * px : null;
   return (
@@ -176,6 +182,26 @@ function SolanaSide() {
           Couldn&apos;t read your SOL balance just now. It retries on its own.
         </p>
       )}
+      <div className="amt dep-amt">
+        <input
+          id="solAmt"
+          inputMode="decimal"
+          aria-label="SOL to deposit"
+          placeholder="0.00"
+          value={amt}
+          onChange={(e) => setAmt(e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''))}
+        />
+        <span>SOL</span>
+        <button
+          type="button"
+          className="btn o"
+          id="solMax"
+          disabled={!maxLamports}
+          onClick={() => setAmt(maxLamports ? solText(maxLamports) : '')}
+        >
+          Max
+        </button>
+      </div>
       <p>
         Your deposit address shows here once it has been checked, so SOL can only reach your account. The
         Deposit button switches on with it.

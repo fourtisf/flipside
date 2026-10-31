@@ -1,7 +1,4 @@
-import { SolBalances, isSolAddress } from '@/lib/solana-rpc';
-
-// One per server process; answers are kept for a few seconds (lib/solana-rpc.ts).
-const balances = new SolBalances();
+import { isSolAddress, solanaRpc } from '@/lib/solana-rpc';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +9,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ address
   if (!isSolAddress(address))
     return Response.json({ error: 'not a Solana address' }, { status: 400, headers });
   try {
-    return Response.json({ lamports: await balances.get(address) }, { headers });
+    return Response.json({ lamports: await solanaRpc().get(address) }, { headers });
   } catch {
     return Response.json({ error: "couldn't read the balance" }, { status: 502, headers });
   }

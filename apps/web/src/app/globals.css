@@ -508,6 +508,8 @@ dialog .amt{margin-top:16px}
 .fsteps .btn{margin-top:4px}
 .fsteps p+.btn,.fsteps p+.sol-pick{margin-top:12px}
 .sol-pick{display:flex;flex-wrap:wrap;gap:8px}
+.dep-amt{max-width:360px;margin:6px 0 4px}
+.dep-amt .btn{height:30px;padding:0 10px;font-size:12.5px}
 .sol-pick .btn{display:inline-flex;align-items:center;gap:8px}
 .sol-pick img{border-radius:5px}
 .tabbar{display:none}

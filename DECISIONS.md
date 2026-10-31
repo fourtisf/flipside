@@ -58,6 +58,15 @@ Then ALFA: "ini udah connect wallet padahal": connecting the wallet should be en
 - The panel says why the wallet asks: the SOL sits in its Solana account, next to the 0x account Hyperliquid
   uses. The button reads "Show my SOL".
 
+**Sending SOL from the wallet, ready for the deposit address.** Deposit now has a SOL amount field with Max
+(leaving 0.002 SOL for the network fee), and the store can send: it builds a plain SOL transfer by hand
+(`src/wallet/solana-tx.ts`, checked byte for byte against @solana/web3.js, which is a dev dependency only, since
+its production tree brings known vulnerabilities), fetches a recent blockhash from our server
+(`GET /solana/blockhash`, the same Helius key), and hands it to the wallet's `solana:signAndSendTransaction`. The
+wallet shows the transfer, the person approves it there, and the wallet broadcasts it; Coinside never holds a
+Solana key. Wallets that only have an older provider can show their SOL but not send from Coinside yet. The
+Deposit SOL button stays off until the Unit address and its guardian check are in.
+
 **No links to Hyperliquid's own site** (ALFA: "hapus view on Hyperliquid"). Removed "View on Hyperliquid" from
 Portfolio and the wallet menu, and "Compare" from the terminal's coin header. Everything a person does stays on
 Coinside; Hyperliquid is named as the exchange underneath, never linked as a place to go.

@@ -40,6 +40,24 @@ describe('Solana balance on the server', () => {
     ).rejects.toThrow(/Invalid param/);
   });
 
+  it('reads a recent blockhash for a deposit, and keeps it 10 seconds', async () => {
+    const hash = '4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZAMdL4VZHirAn';
+    const fetcher = answer({
+      result: { context: { slot: 1 }, value: { blockhash: hash, lastValidBlockHeight: 9 } },
+    });
+    let now = 0;
+    const b = new SolBalances('https://rpc.example', fetcher, () => now);
+    expect(await b.blockhash()).toBe(hash);
+    now += 9_000;
+    await b.blockhash();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const [, init] = (fetcher as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0]!;
+    expect(JSON.parse(String(init.body))).toMatchObject({ method: 'getLatestBlockhash' });
+    await expect(new SolBalances('x', answer({ result: { value: {} } })).blockhash()).rejects.toThrow(
+      /no blockhash/,
+    );
+  });
+
   it("uses the server's Helius mainnet key, never a devnet URL, and Solana's public node without one", () => {
     const H = 'https://mainnet.helius-rpc.com/?api-key=k-123';
     expect(rpcUrlFromEnv({ HELIUS_RPC_URL: H, HELIUS_API_KEY: 'k-123' })).toBe(H);

@@ -187,6 +187,9 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   await expect(bal).toContainText('7xKX…gAsU');
   await expect(bal).toContainText('0.2');
   await expect(bal).toContainText('≈ $37.45');
+  // Max leaves 0.002 SOL for the network fee
+  await page.locator('#solMax').click();
+  await expect(page.locator('#solAmt')).toHaveValue('0.198');
   await expect(page.locator('#solDeposit')).toBeDisabled();
   // a reload reconnects it without asking again
   await page.reload();

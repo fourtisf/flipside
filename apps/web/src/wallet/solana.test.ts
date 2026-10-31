@@ -97,4 +97,38 @@ describe('the Solana side of the wallet', () => {
     };
     expect(await sc.connect({ silent: true })).toEqual({ accounts: [{ address: ADDR }] });
   });
+
+  it('sends SOL through the wallet: a transfer it signs and broadcasts, then the signature', async () => {
+    const to = '4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZAMdL4VZHirAn';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.endsWith('/solana/blockhash')
+          ? new Response(JSON.stringify({ blockhash: to }))
+          : new Response(JSON.stringify({ lamports: '1' })),
+      ),
+    );
+    const send = vi.fn(async () => [{ signature: new Uint8Array(64).fill(7) }]);
+    const w = stdWallet('Phantom');
+    (w.features as Record<string, unknown>)['solana:signAndSendTransaction'] = {
+      signAndSendTransaction: send,
+    };
+    const s = new SolanaStore();
+    s.wallets = [w];
+    s.follow('0xe614', 'Phantom');
+    await s.connect();
+    expect(s.canSend()).toBe(true);
+    const sig = await s.send(to, 150_000_000n);
+    expect(sig).toMatch(/^[1-9A-HJ-NP-Za-km-z]{80,90}$/);
+    const input = (
+      send.mock.calls[0] as unknown as [{ chain: string; transaction: Uint8Array; account: unknown }]
+    )[0];
+    expect(input.chain).toBe('solana:mainnet');
+    expect(input.account).toEqual({ address: ADDR });
+    expect(input.transaction.length).toBe(215);
+    // a closed prompt says so, and nothing is sent
+    send.mockRejectedValueOnce(Object.assign(new Error('User rejected the request.'), { code: 4001 }));
+    await expect(s.send(to, 1n)).rejects.toThrow('You closed the request in Phantom. Nothing was sent.');
+    s.disconnect();
+  });
 });

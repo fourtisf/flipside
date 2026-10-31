@@ -1,5 +1,7 @@
 'use client';
 
+import { base58Encode, transferTx } from './solana-tx';
+
 /**
  * The Solana side of the person's wallet, where their SOL is. Phantom, Bitget, Backpack, OKX and most Solana
  * wallets announce themselves over the Wallet Standard (the Solana equivalent of EIP-6963); Coinside finds
@@ -121,6 +123,9 @@ const ASKED = 'coinside.sol.asked';
 export class SolanaStore {
   wallets: StdWallet[] = [];
   address: string | null = null;
+  /** The wallet's account object for that address, which signing requests name. */
+  private account: StdAccount | null = null;
+  private wallet: StdWallet | null = null;
   name = '';
   lamports: bigint | null = null;
   balanceFailed = false;
@@ -207,6 +212,8 @@ export class SolanaStore {
 
   private reset() {
     this.address = null;
+    this.account = null;
+    this.wallet = null;
     this.name = '';
     this.lamports = null;
     this.balanceFailed = false;
@@ -325,9 +332,12 @@ export class SolanaStore {
           timer = setTimeout(() => reject(new Error('timeout')), CONNECT_TIMEOUT_MS);
         }),
       ]).finally(() => clearTimeout(timer));
-      const address = accounts[0]?.address ?? w.accounts[0]?.address;
+      const account = accounts[0] ?? w.accounts[0];
+      const address = account?.address;
       if (!address) throw new Error('no account');
       this.address = address;
+      this.account = account;
+      this.wallet = w;
       this.name = w.name;
       this.picking = false;
       try {
@@ -377,6 +387,53 @@ export class SolanaStore {
       if (address === this.address) this.balanceFailed = true;
     }
     this.emit();
+  }
+
+  /** The connected wallet can sign and send a transaction from Coinside (the standard's signAndSendTransaction). */
+  canSend(): boolean {
+    return !!this.wallet && 'solana:signAndSendTransaction' in this.wallet.features;
+  }
+
+  /**
+   * Send `lamports` of SOL to `to`: the wallet shows the transfer and the person approves it there. Returns the
+   * transaction signature. Coinside never holds a Solana key; the wallet signs and broadcasts.
+   */
+  async send(to: string, lamports: bigint): Promise<string> {
+    const w = this.wallet;
+    const from = this.address;
+    if (!w || !from || !this.account) throw new Error('Connect your Solana wallet first.');
+    const feature = w.features['solana:signAndSendTransaction'] as
+      | {
+          signAndSendTransaction: (
+            ...inputs: Array<{ account: StdAccount; chain: string; transaction: Uint8Array }>
+          ) => Promise<ReadonlyArray<{ signature: Uint8Array }>>;
+        }
+      | undefined;
+    if (!feature) throw new Error(`${w.name} can't send from Coinside. Update ${w.name} and try again.`);
+    const res = await fetch('/solana/blockhash', { cache: 'no-store' });
+    if (!res.ok) throw new Error("Couldn't reach Solana. Try again in a moment.");
+    const { blockhash } = (await res.json()) as { blockhash: string };
+    const transaction = transferTx(from, to, lamports, blockhash);
+    let out: ReadonlyArray<{ signature: Uint8Array }>;
+    try {
+      out = await feature.signAndSendTransaction({
+        account: this.account,
+        chain: 'solana:mainnet',
+        transaction,
+      });
+    } catch (e) {
+      const code = (e as { code?: number })?.code;
+      throw new Error(
+        code === 4001 || /reject|denied|cancel/i.test(String((e as Error)?.message))
+          ? `You closed the request in ${w.name}. Nothing was sent.`
+          : `${w.name} couldn't send it: ${(e as Error)?.message ?? 'unknown error'}`,
+      );
+    }
+    const sig = out[0]?.signature;
+    if (!sig)
+      throw new Error(`${w.name} didn't say whether it sent. Check its activity before trying again.`);
+    void this.refresh();
+    return base58Encode(sig);
   }
 
   private startPolling() {
