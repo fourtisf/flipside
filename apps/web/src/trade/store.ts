@@ -50,6 +50,8 @@ export class TradeStore {
   dialog = false;
   busy: string | null = null;
   msg: { text: string; ok: boolean; at: number } | null = null;
+  /** A notification for the whole app (a toast), for things worth hearing about wherever the person is. */
+  notice: { title: string; body: string; href?: string; link?: string; at: number } | null = null;
 
   version = 0;
   private listeners = new Set<() => void>();
@@ -234,17 +236,31 @@ export class TradeStore {
         current = toSpot(await info.spotClearinghouseState(httpConfig(), { user: owner }));
       }
       const amount = usdcToMove(current);
-      if (!amount) return this.set((s) => s.say('There is nothing to move yet.', false));
+      if (!amount)
+        return this.set((s) => s.say('There is nothing to move yet: less than $1 is waiting.', false));
       await usdClassTransfer(
         { ...httpConfig(), wallet: await this.wallet.signer() },
         { amount, toPerp: true },
       );
-      this.set((s) => s.say(`Moved $${amount} to your trading balance.`, true));
+      this.set((s) => {
+        s.say(`Moved $${amount} to your trading balance. You can trade now.`, true);
+        s.notice = {
+          title: `$${amount} is in your trading balance`,
+          body: 'Your deposit is ready to trade. Orders must be worth at least $10.',
+          href: '/trade/SOL',
+          link: 'Start trading',
+          at: Date.now(),
+        };
+      });
     } catch (e) {
       this.checkKey(e);
       this.set((s) => s.say(errorText(e, this.wallet.name), false));
     } finally {
       this.set((s) => void (s.busy = null));
     }
+  }
+
+  dismissNotice() {
+    this.set((s) => void (s.notice = null));
   }
 }

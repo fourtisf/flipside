@@ -122,6 +122,9 @@ describe('moving a deposit to the trading balance', () => {
       reason: expect.stringContaining("under Hyperliquid's $10 smallest order"),
     });
     expect(planSellUsol(spot, { ...m, px: 0 })).toMatchObject({ ok: false });
+    // a crumb left after a sale (0.0005 USOL) is nothing to sell, not an error
+    expect(planSellUsol([{ coin: 'USOL', total: 0.0005, hold: 0 }], m)).toBeNull();
+    expect(planSellUsol([{ coin: 'USOL', total: 0.004, hold: 0 }], m, 186.9)).toBeNull();
   });
 
   it('moves the free USDC, rounded down to the cent', () => {
@@ -129,6 +132,9 @@ describe('moving a deposit to the trading balance', () => {
     expect(usdcToMove(spot)).toBe('480.12');
     expect(usdcToMove([{ coin: 'USDC', total: 480.11999999, hold: 0 }])).toBe('480.11');
     expect(usdcToMove([{ coin: 'USDC', total: 0.004, hold: 0 }])).toBeNull();
+    // under $1 isn't worth a wallet signature
+    expect(usdcToMove([{ coin: 'USDC', total: 0.99, hold: 0 }])).toBeNull();
+    expect(usdcToMove([{ coin: 'USDC', total: 1, hold: 0 }])).toBe('1.00');
     expect(usdcToMove(null)).toBeNull();
   });
 });

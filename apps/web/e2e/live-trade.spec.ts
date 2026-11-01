@@ -210,7 +210,12 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   await expect(page.locator('#enable')).toBeHidden();
   await expect(page.locator('#moveBtn')).toHaveText('Move to trading balance');
   await page.locator('#moveBtn').click();
-  await expect(page.locator('#moveMsg')).toHaveText('Moved $480.12 to your trading balance.');
+  await expect(page.locator('#moveMsg')).toHaveText(
+    'Moved $480.12 to your trading balance. You can trade now.',
+  );
+  // and a notice says so, with the way to trade
+  await expect(page.locator('#notice')).toContainText('$480.12 is in your trading balance');
+  await expect(page.locator('#notice a')).toHaveAttribute('href', '/trade/SOL');
   // the USOL is sold on USOL/USDC (spot asset 10000 + 156) with the trading key...
   expect(hl.exchange.find((e) => e.action.type === 'order')!.action).toMatchObject({
     grouping: 'na',

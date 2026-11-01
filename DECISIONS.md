@@ -54,6 +54,11 @@ when its docs can be read (they still weren't reachable from the build environme
 - **Selling a small USOL balance:** at the best bid instead of 1% under the mid, and the $10 check is on what
   Hyperliquid checks (the size after rounding down to the lot, times the limit price); an order Hyperliquid
   refuses shows its reason in plain words instead of "didn't fill".
+- **"Ready to trade" is announced, and crumbs don't count** (ALFA, after the first move: "harusnya ada
+  pemberitahuan juga"). A successful Move to trading balance raises a notice on every page ("$10.10 is in your
+  trading balance", with Start trading) and closes the deposit's tracker. USOL or USDC under $1 left in spot after
+  a sale is a crumb: it no longer keeps the button on or shows "too small to sell"; the panel says it stays in the
+  account and joins the next deposit.
 - **The risk ALFA accepted:** without the guardian check, a compromised Unit API could hand out an address that
   isn't Unit's. The 1 SOL cap bounds that while it lasts. The guardian check (keys and message format from
   `docs.hyperunit.xyz/developers/api/generate-address/guardian-signatures`) is the next step.

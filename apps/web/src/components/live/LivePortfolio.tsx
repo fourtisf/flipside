@@ -8,7 +8,7 @@ import { useHl } from '@/hl/provider';
 import { M, pct } from '@/lib/format';
 import { shortAddr } from '@/wallet/catalog';
 import { TRADING } from '@/trade/config';
-import { USOL, free } from '@/trade/funds';
+import { DUST_USD, USOL, free } from '@/trade/funds';
 import { useAccount, useDeposits, useSolana, useTrade, useWallet } from '@/wallet/provider';
 import { DepositStatus } from './DepositStatus';
 import {
@@ -63,15 +63,26 @@ function DepositPanel() {
   const account = useAccount();
   const trade = useTrade();
   const wallet = useWallet();
+  const hl = useHl();
   const usol = free(account.spot, USOL);
   const usdc = free(account.spot, 'USDC');
+  // USOL priced like SOL (USOL is Unit's SOL); under $1 of either is a leftover crumb, not a deposit to move
+  const usolUsd = usol * (hl.byName.SOL?.px ?? 0);
+  const usolWaiting = usol > 0 && (usolUsd >= DUST_USD || !(hl.byName.SOL?.px ?? 0));
+  const waiting = usolWaiting || usdc >= DUST_USD;
+  const crumb = usol > 0 && !usolWaiting;
   const busy = trade.busy === 'move';
   let label = 'Move to trading balance';
-  let disabled = !TRADING || busy || !(usol > 0 || usdc >= 0.01);
-  let onClick: () => void = () => void trade.moveToTrading(account.spot);
+  let disabled = !TRADING || busy || !waiting;
+  const deposits = useDeposits();
+  let onClick: () => void = () =>
+    void trade.moveToTrading(account.spot).then(() => {
+      // moved: the deposit's journey is over, and the "ready to trade" notice takes over
+      if (trade.msg?.ok && deposits.pending?.arrived) deposits.dismiss();
+    });
   if (busy) label = `Check ${wallet.name || 'your wallet'}`;
-  else if (!(usol > 0 || usdc >= 0.01)) label = 'Nothing to move yet';
-  else if (usol > 0 && !trade.ready()) {
+  else if (!waiting) label = 'Nothing to move yet';
+  else if (usolWaiting && !trade.ready()) {
     label = 'Enable trading first';
     disabled = !TRADING;
     onClick = () => trade.set((s) => void (s.dialog = true));
@@ -102,6 +113,13 @@ function DepositPanel() {
               <dd>{usd2(usdc)}</dd>
             </div>
           </dl>
+          {crumb && !msg && (
+            <p className="omsg ok" id="crumb" role="status">
+              {usol.toLocaleString('en-US', { maximumFractionDigits: 4 })} USOL is left over from the last
+              sale: too small to sell (Hyperliquid&apos;s smallest order is $10). It stays in your account and
+              is added to your next deposit.
+            </p>
+          )}
           <p className={`omsg${msg?.ok ? ' ok' : ''}`} id="moveMsg" role="status">
             {msg?.text ?? ''}
           </p>

@@ -71,9 +71,12 @@ export function planSellUsol(
     size = formatSize(amount, m.szDecimals);
     px = formatPrice(bid && bid > 0 ? bid : m.px * (1 - SLIPPAGE), m.szDecimals, 'spot');
   } catch {
-    return { ok: false, reason: 'That amount of SOL is too small to sell.' };
+    // less than one lot: a leftover crumb, not something to sell
+    return null;
   }
   const value = Number(size) * Number(px);
+  // a leftover crumb after a sale (under $1) is not a deposit waiting to move
+  if (value < DUST_USD) return null;
   if (value < MIN_ORDER_USD)
     return {
       ok: false,
@@ -86,8 +89,11 @@ export function planSellUsol(
   };
 }
 
-/** USDC to move from spot to perps, rounded down to the cent, or null when there is none. */
+/** Under this many dollars, USOL or USDC left in spot is a crumb, not worth a signature to move. */
+export const DUST_USD = 1;
+
+/** USDC to move from spot to perps, rounded down to the cent, or null when there is under $1. */
 export function usdcToMove(spot: SpotRow[] | null): string | null {
   const cents = Math.floor(free(spot, 'USDC') * 100 + 1e-9);
-  return cents > 0 ? (cents / 100).toFixed(2) : null;
+  return cents >= DUST_USD * 100 ? (cents / 100).toFixed(2) : null;
 }
