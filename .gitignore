@@ -32,3 +32,8 @@ artifacts/
 
 # OS
 .DS_Store
+
+# promo video: rebuilt from brand/video (capture.spec.ts, then render.mjs)
+brand/video/shots/
+brand/video/still-*.png
+brand/video/*.mp4

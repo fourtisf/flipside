@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Coinside promo</title>
+    <!--
+      The Coinside promo video, 1920x1080. Every frame is render(t) for t in seconds, so render.mjs can step it
+      frame by frame. Screens in shots/ come from the real live edition (apps/web/video/capture.spec.ts).
+    -->
+    <style>
+      :root {
+        --bg: #000;
+        --s1: #0a0a0a;
+        --s2: #111;
+        --line: #1c1c1c;
+        --line2: #2a2a2a;
+        --t1: #ededed;
+        --t2: #a1a1a1;
+        --t3: #6e6e6e;
+        --long: #3dd68c;
+        --short: #ff5f5f;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--t1);
+        font-family: Inter, system-ui, sans-serif;
+        font-feature-settings: 'cv11', 'ss01', 'ss03';
+        -webkit-font-smoothing: antialiased;
+      }
+      .mono {
+        font-family: 'Geist Mono', ui-monospace, monospace;
+      }
+      #stage {
+        position: absolute;
+        inset: 0;
+      }
+      .bg-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(#0c0c0c 1px, transparent 1px), linear-gradient(90deg, #0c0c0c 1px, transparent 1px);
+        background-size: 80px 80px;
+        -webkit-mask-image: radial-gradient(ellipse 70% 65% at 60% 50%, #000 30%, transparent 75%);
+      }
+      .glow {
+        position: absolute;
+        width: 1400px;
+        height: 1000px;
+        left: 620px;
+        top: 40px;
+        background: radial-gradient(closest-side, rgba(255, 255, 255, 0.055), transparent);
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+      }
+      /* intro */
+      .coin {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 220px;
+        height: 220px;
+        margin: -170px 0 0 -110px;
+      }
+      .coin img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .coin .l {
+        clip-path: inset(0 50% 0 0);
+      }
+      .coin .r {
+        clip-path: inset(0 0 0 50%);
+      }
+      .word {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 610px;
+        text-align: center;
+        font-size: 64px;
+        font-weight: 600;
+        letter-spacing: -0.035em;
+      }
+      .tag {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 700px;
+        text-align: center;
+        font-size: 30px;
+        color: var(--t2);
+        letter-spacing: -0.01em;
+      }
+      /* big centered statement */
+      .big {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 92px;
+        font-weight: 600;
+        letter-spacing: -0.045em;
+        line-height: 1.04;
+      }
+      .ln {
+        display: block;
+        overflow: hidden;
+        padding-bottom: 0.08em;
+      }
+      .ln > span {
+        display: inline-block;
+      }
+      .dim {
+        color: var(--t3);
+      }
+      /* feature copy */
+      .copy {
+        position: absolute;
+        left: 120px;
+        top: 0;
+        bottom: 0;
+        width: 560px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .eyebrow {
+        font-family: 'Geist Mono', monospace;
+        font-size: 16px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--t3);
+        margin-bottom: 28px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .eyebrow b {
+        color: var(--t1);
+        font-weight: 500;
+      }
+      .eyebrow i {
+        display: inline-block;
+        width: 40px;
+        height: 1px;
+        background: var(--line2);
+      }
+      .copy h2 {
+        font-size: 66px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        line-height: 1.04;
+        margin-bottom: 28px;
+      }
+      .copy p {
+        font-size: 25px;
+        line-height: 1.45;
+        color: var(--t2);
+        max-width: 520px;
+      }
+      .copy .chips {
+        display: flex;
+        gap: 10px;
+        margin-top: 34px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        font-family: 'Geist Mono', monospace;
+        font-size: 16px;
+        color: var(--t2);
+        border: 1px solid var(--line2);
+        background: var(--s1);
+        border-radius: 8px;
+        padding: 10px 14px;
+      }
+      .chip.free {
+        color: var(--t1);
+      }
+      /* the browser frame */
+      .frame {
+        position: absolute;
+        left: 740px;
+        top: 182px;
+        width: 1080px;
+        height: 715px;
+        border-radius: 16px;
+        border: 1px solid var(--line2);
+        background: var(--s1);
+        overflow: hidden;
+        box-shadow:
+          0 40px 120px rgba(0, 0, 0, 0.7),
+          0 0 0 1px rgba(255, 255, 255, 0.02);
+      }
+      .bar {
+        height: 40px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        gap: 8px;
+        background: #070707;
+      }
+      .bar i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #222;
+      }
+      .bar span {
+        margin: 0 auto;
+        font-family: 'Geist Mono', monospace;
+        font-size: 13px;
+        color: var(--t3);
+        background: var(--s2);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 4px 60px;
+        transform: translateX(-24px);
+      }
+      .view {
+        position: absolute;
+        left: 0;
+        top: 40px;
+        width: 1080px;
+        height: 675px;
+        overflow: hidden;
+        background: #000;
+      }
+      .view img {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1440px;
+        height: 900px;
+        transform-origin: 0 0;
+      }
+      .ring {
+        position: absolute;
+        border: 2px solid var(--t1);
+        border-radius: 12px;
+        box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+      }
+      .cursor {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        opacity: 0;
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+      }
+      .ripple {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        margin: -30px 0 0 -30px;
+        border-radius: 50%;
+        border: 2px solid var(--t1);
+        opacity: 0;
+      }
+      /* fee statement */
+      .fee-row {
+        position: absolute;
+        left: 50%;
+        top: 300px;
+        width: 760px;
+        margin-left: -380px;
+        border: 1px solid var(--line2);
+        background: var(--s1);
+        border-radius: 16px;
+        padding: 30px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 40px;
+      }
+      .fee-row span {
+        color: var(--t2);
+      }
+      .fee-row b {
+        font-family: 'Geist Mono', monospace;
+        font-weight: 500;
+        font-size: 56px;
+      }
+      .trust {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 760px;
+        display: flex;
+        justify-content: center;
+        gap: 18px;
+      }
+      .trust .chip {
+        font-size: 19px;
+        padding: 14px 20px;
+      }
+      /* end card */
+      .phone {
+        position: absolute;
+        left: 1250px;
+        top: 90px;
+        width: 420px;
+        height: 900px;
+        border-radius: 54px;
+        border: 1px solid #333;
+        background: #050505;
+        padding: 14px;
+        box-shadow: 0 50px 140px rgba(0, 0, 0, 0.8);
+      }
+      .phone .scr {
+        width: 100%;
+        height: 100%;
+        border-radius: 42px;
+        overflow: hidden;
+        position: relative;
+        background: #000;
+      }
+      .phone img {
+        width: 100%;
+        display: block;
+      }
+      .phone .notch {
+        position: absolute;
+        left: 50%;
+        top: 12px;
+        width: 110px;
+        height: 30px;
+        margin-left: -55px;
+        border-radius: 20px;
+        background: #000;
+      }
+      .end {
+        position: absolute;
+        left: 160px;
+        top: 0;
+        bottom: 0;
+        width: 1060px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .lock {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        font-size: 44px;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        margin-bottom: 56px;
+      }
+      .lock img {
+        width: 64px;
+        height: 64px;
+      }
+      .end h2 {
+        font-size: 80px;
+        font-weight: 600;
+        letter-spacing: -0.045em;
+        line-height: 1.02;
+      }
+      .url {
+        margin-top: 56px;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      .url .go {
+        font-family: 'Geist Mono', monospace;
+        font-size: 30px;
+        background: var(--t1);
+        color: #000;
+        border-radius: 10px;
+        padding: 16px 26px;
+      }
+      .url .x {
+        font-family: 'Geist Mono', monospace;
+        font-size: 26px;
+        color: var(--t2);
+      }
+      .risk {
+        position: absolute;
+        left: 160px;
+        bottom: 56px;
+        font-size: 17px;
+        color: var(--t3);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <div class="bg-grid"></div>
+      <div class="glow" id="glow"></div>
+
+      <!-- 1. intro -->
+      <section class="scene" id="intro">
+        <div class="coin" id="coin">
+          <img class="l" src="../premium/mark-color.svg" alt="" />
+          <img class="r" src="../premium/mark-color.svg" alt="" />
+        </div>
+        <div class="word" id="word">Coinside</div>
+        <div class="tag" id="tag">Every coin has two sides.</div>
+      </section>
+
+      <!-- 2. the line -->
+      <section class="scene" id="line">
+        <div class="big" style="top: 380px">
+          <span class="ln"><span>Long or short on Hyperliquid.</span></span>
+          <span class="ln dim"><span>Straight from your Solana wallet.</span></span>
+        </div>
+      </section>
+
+      <!-- 3-7. features: built by buildFeature() -->
+      <div id="features"></div>
+
+      <!-- 8. no fee -->
+      <section class="scene" id="fee">
+        <div class="big" style="top: 150px; font-size: 80px">
+          <span class="ln"><span>Coinside takes no fee.</span></span>
+        </div>
+        <div class="fee-row" id="feeRow"><span>Coinside fee</span><b id="feeVal">Free</b></div>
+        <div class="big" style="top: 520px; font-size: 34px; letter-spacing: -0.01em; font-weight: 400">
+          <span class="ln dim" style="color: var(--t2)"
+            ><span>Not on trades. Not on deposits. You pay only Hyperliquid's trading fee.</span></span
+          >
+        </div>
+        <div class="trust" id="trust">
+          <span class="chip">Your account, your key</span>
+          <span class="chip">The trading key can't withdraw</span>
+          <span class="chip">Orders on Hyperliquid's book</span>
+        </div>
+      </section>
+
+      <!-- 9. end card -->
+      <section class="scene" id="end">
+        <div class="end">
+          <div class="lock" id="lock"><img src="../premium/mark.svg" alt="" />Coinside</div>
+          <h2>
+            <span class="ln"><span>Every coin has two sides.</span></span>
+            <span class="ln dim"><span>Pick one.</span></span>
+          </h2>
+          <div class="url" id="url">
+            <span class="go">coinside.fun</span><span class="x">@usecoinside</span>
+          </div>
+        </div>
+        <div class="phone" id="phone">
+          <div class="scr"><img src="shots/phone.png" alt="" /><i class="notch"></i></div>
+        </div>
+        <div class="risk" id="risk">
+          Trading with leverage is risky. Only trade what you can afford to lose.
+        </div>
+      </section>
+    </div>
+
+    <svg width="0" height="0" style="position: absolute">
+      <defs>
+        <symbol id="arrow" viewBox="0 0 24 24">
+          <path
+            d="M4 2.5l15.5 9.2-6.6 1.4 3.9 7.3-2.7 1.4-3.9-7.3-4.7 4.7z"
+            fill="#fff"
+            stroke="#000"
+            stroke-width="1.2"
+            stroke-linejoin="round"
+          />
+        </symbol>
+      </defs>
+    </svg>
+
+    <script>
+      // ---- time helpers ----
+      const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+      const seg = (t, a, b) => clamp((t - a) / (b - a));
+      const outCubic = (x) => 1 - Math.pow(1 - x, 3);
+      const inOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+      const outExpo = (x) => (x === 1 ? 1 : 1 - Math.pow(2, -10 * x));
+      const lerp = (a, b, p) => a + (b - a) * p;
+      /** [[t, {k: v}], ...] → values at time t, eased between keyframes */
+      function keys(t, list) {
+        if (t <= list[0][0]) return list[0][1];
+        for (let i = 1; i < list.length; i++) {
+          const [t1, v1] = list[i];
+          const [t0, v0] = list[i - 1];
+          if (t <= t1) {
+            const p = inOutCubic(seg(t, t0, t1));
+            const o = {};
+            for (const k in v1) o[k] = lerp(v0[k], v1[k], p);
+            return o;
+          }
+        }
+        return list[list.length - 1][1];
+      }
+      /** in over [a, a+d], out over [b-d2, b] */
+      const life = (t, a, b, d = 0.6, d2 = 0.45) =>
+        Math.min(outCubic(seg(t, a, a + d)), 1 - seg(t, b - d2, b));
+      const $ = (s, r = document) => r.querySelector(s);
+      const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+      /** Lines rise out of their masks one after another. */
+      function lines(el, t, a, b, stagger = 0.12) {
+        $$('.ln > span', el).forEach((s, i) => {
+          const p = outExpo(seg(t, a + i * stagger, a + i * stagger + 0.9));
+          const out = seg(t, b - 0.45, b);
+          s.style.transform = `translateY(${(1 - p) * 110 + out * -30}%)`;
+          s.style.opacity = String(1 - out);
+        });
+      }
+
+      // ---- the browser frame camera ----
+      const VW = 1440,
+        VH = 900,
+        FW = 1080,
+        FH = 675;
+      function camera(c) {
+        const s = (FW / VW) * c.z;
+        let tx = FW / 2 - c.cx * s,
+          ty = FH / 2 - c.cy * s;
+        tx = clamp(tx, FW - VW * s, 0);
+        ty = clamp(ty, FH - VH * s, 0);
+        return { s, tx, ty, at: (x, y) => [tx + x * s, ty + y * s] };
+      }
+
+      // ---- features ----
+      const FEATURES = [
+        {
+          id: 'f1',
+          start: 8.6,
+          end: 13.4,
+          n: '01',
+          label: 'Sign in',
+          title: ['Sign in with your', 'Solana wallet.'],
+          sub: 'Phantom, Backpack, OKX and more. No new wallet, no seed phrase.',
+          url: 'coinside.fun/trade/BTC',
+          shots: [{ src: 'connect', from: 0, to: 99 }],
+          cam: [
+            [0, { cx: 720, cy: 450, z: 1 }],
+            [1.1, { cx: 720, cy: 450, z: 1 }],
+            [2.4, { cx: 720, cy: 452, z: 1.75 }],
+          ],
+          ring: { from: 2.3, to: 99, x: 543, y: 379, w: 354, h: 168 },
+          cursor: [
+            [2.6, { x: 900, y: 640 }],
+            [3.5, { x: 640, y: 408 }],
+          ],
+          click: 3.6,
+        },
+        {
+          id: 'f2',
+          start: 13.4,
+          end: 19.6,
+          n: '02',
+          label: 'Deposit',
+          title: ['Deposit SOL.', 'Watch it arrive.'],
+          sub: 'See every fee before you send. Get a notice the moment it lands.',
+          url: 'coinside.fun/portfolio',
+          shots: [
+            { src: 'deposit', from: 0, to: 4.0 },
+            { src: 'arrived', from: 3.7, to: 99 },
+          ],
+          cam: [
+            [0, { cx: 720, cy: 450, z: 1 }],
+            [0.9, { cx: 720, cy: 450, z: 1 }],
+            [1.9, { cx: 420, cy: 300, z: 1.6 }],
+            [2.9, { cx: 380, cy: 530, z: 1.75 }],
+            [3.7, { cx: 380, cy: 530, z: 1.75 }],
+            [3.75, { cx: 1234, cy: 818, z: 1.2 }],
+            [4.8, { cx: 1234, cy: 818, z: 1.9 }],
+          ],
+          ring: [
+            { from: 2.6, to: 3.75, x: 165, y: 450, w: 360, h: 156 },
+            { from: 4.4, to: 99, x: 1044, y: 751, w: 380, h: 133 },
+          ],
+          cursor: [
+            [1.2, { x: 520, y: 360 }],
+            [1.8, { x: 300, y: 318 }],
+          ],
+          cursorTo: 2.4,
+        },
+        {
+          id: 'f3',
+          start: 19.6,
+          end: 25.0,
+          n: '03',
+          label: 'Trade',
+          title: ['Long or short,', 'up to 40x.'],
+          sub: 'BTC, ETH, SOL and more, on Hyperliquid’s order book. Max fills what you can use.',
+          url: 'coinside.fun/trade/BTC',
+          shots: [{ src: 'terminal', from: 0, to: 99 }],
+          cam: [
+            [0, { cx: 720, cy: 450, z: 1 }],
+            [1.2, { cx: 720, cy: 450, z: 1 }],
+            [2.4, { cx: 1150, cy: 420, z: 1.7 }],
+          ],
+          ring: { from: 3.4, to: 99, x: 1000, y: 314, w: 300, h: 28 },
+          cursor: [
+            [2.3, { x: 1060, y: 520 }],
+            [3.0, { x: 1286, y: 329 }],
+          ],
+          click: 3.1,
+        },
+        {
+          id: 'f4',
+          start: 25.0,
+          end: 29.6,
+          n: '04',
+          label: 'Limit orders',
+          title: ['Tap the book.', 'Set your price.'],
+          sub: 'Any price in the order book becomes a limit order, ready to place.',
+          url: 'coinside.fun/trade/BTC',
+          shots: [{ src: 'book', from: 0, to: 99 }],
+          cam: [
+            [0, { cx: 600, cy: 360, z: 1.15 }],
+            [1.0, { cx: 520, cy: 380, z: 1.7 }],
+            [2.6, { cx: 520, cy: 380, z: 1.7 }],
+            [3.6, { cx: 1100, cy: 160, z: 1.7 }],
+          ],
+          ring: [
+            { from: 1.6, to: 2.7, x: 373, y: 438, w: 286, h: 24 },
+            { from: 3.5, to: 99, x: 1000, y: 85, w: 266, h: 26 },
+          ],
+          cursor: [
+            [0.6, { x: 600, y: 560 }],
+            [1.4, { x: 470, y: 450 }],
+          ],
+          click: 1.5,
+          cursorTo: 2.6,
+        },
+        {
+          id: 'f5',
+          start: 29.6,
+          end: 35.4,
+          n: '05',
+          label: 'Manage',
+          title: ['Close your way.'],
+          sub: 'Part or all, at market or your price. Take profit and stop loss. Always confirmed first.',
+          url: 'coinside.fun/trade/BTC',
+          shots: [
+            { src: 'close', from: 0, to: 3.0 },
+            { src: 'tpsl', from: 2.7, to: 99 },
+          ],
+          cam: [
+            [0, { cx: 720, cy: 450, z: 1 }],
+            [1.0, { cx: 720, cy: 450, z: 1.55 }],
+            [2.7, { cx: 720, cy: 450, z: 1.55 }],
+            [2.75, { cx: 720, cy: 450, z: 1.45 }],
+            [3.8, { cx: 720, cy: 450, z: 1.6 }],
+          ],
+          ring: [],
+          cursor: [
+            [1.2, { x: 700, y: 560 }],
+            [2.0, { x: 862, y: 683 }],
+          ],
+          click: 2.15,
+          cursorTo: 2.6,
+        },
+      ];
+
+      function buildFeature(f) {
+        const s = document.createElement('section');
+        s.className = 'scene';
+        s.id = f.id;
+        s.innerHTML = `
+          <div class="copy">
+            <div class="eyebrow"><b>${f.n}</b><i></i>${f.label}</div>
+            <h2>${f.title.map((l) => `<span class="ln"><span>${l}</span></span>`).join('')}</h2>
+            <p>${f.sub}</p>
+          </div>
+          <div class="frame">
+            <div class="bar"><i></i><i></i><i></i><span>${f.url}</span></div>
+            <div class="view">
+              ${f.shots.map((x) => `<img src="shots/${x.src}.png" data-from="${x.from}" data-to="${x.to}" alt="">`).join('')}
+              ${[]
+                .concat(f.ring)
+                .map(() => '<div class="ring"></div>')
+                .join('')}
+              <div class="ripple"></div>
+              <svg class="cursor"><use href="#arrow"/></svg>
+            </div>
+          </div>`;
+        $('#features').appendChild(s);
+        f.el = s;
+      }
+      FEATURES.forEach(buildFeature);
+
+      function renderFeature(f, t) {
+        const el = f.el;
+        const on = t >= f.start - 0.05 && t <= f.end + 0.05;
+        el.style.opacity = on ? '1' : '0';
+        if (!on) return;
+        const lt = t - f.start;
+        const dur = f.end - f.start;
+        // copy
+        const copyIn = life(t, f.start + 0.1, f.end, 0.6);
+        $('.eyebrow', el).style.opacity = String(copyIn);
+        $('.eyebrow', el).style.transform = `translateY(${(1 - copyIn) * 12}px)`;
+        lines(el, t, f.start + 0.2, f.end);
+        const pIn = life(t, f.start + 0.55, f.end, 0.7);
+        $('.copy p', el).style.opacity = String(pIn);
+        $('.copy p', el).style.transform = `translateY(${(1 - pIn) * 14}px)`;
+        // frame
+        const fr = $('.frame', el);
+        const fIn = outCubic(seg(t, f.start, f.start + 0.8));
+        const fOut = seg(t, f.end - 0.45, f.end);
+        fr.style.opacity = String(Math.min(fIn, 1 - fOut));
+        fr.style.transform = `translateX(${(1 - fIn) * 80}px) scale(${1 - fOut * 0.03})`;
+        // camera and shots
+        const c = camera(keys(lt, f.cam));
+        $$('.view img', el).forEach((img) => {
+          const a = Number(img.dataset.from),
+            b = Number(img.dataset.to);
+          const o =
+            a === 0 ? 1 - seg(lt, b - 0.3, b) : Math.min(seg(lt, a, a + 0.3), 1 - seg(lt, b - 0.3, b));
+          img.style.opacity = String(o);
+          img.style.transform = `translate(${c.tx}px, ${c.ty}px) scale(${c.s})`;
+        });
+        // highlight rings
+        const rings = [].concat(f.ring);
+        $$('.ring', el).forEach((r, i) => {
+          const g = rings[i];
+          const o = Math.min(outCubic(seg(lt, g.from, g.from + 0.4)), 1 - seg(lt, g.to - 0.25, g.to));
+          const [x, y] = c.at(g.x - 6, g.y - 6);
+          r.style.left = `${x}px`;
+          r.style.top = `${y}px`;
+          r.style.width = `${(g.w + 12) * c.s}px`;
+          r.style.height = `${(g.h + 12) * c.s}px`;
+          r.style.opacity = String(o);
+        });
+        // cursor
+        const cur = $('.cursor', el);
+        if (f.cursor) {
+          const a = f.cursor[0][0];
+          const b = f.cursorTo ?? 99;
+          const p = keys(lt, f.cursor);
+          const [x, y] = c.at(p.x, p.y);
+          const press = f.click ? 1 - 0.15 * Math.sin(Math.PI * seg(lt, f.click - 0.08, f.click + 0.12)) : 1;
+          cur.style.left = `${x - 4}px`;
+          cur.style.top = `${y - 2}px`;
+          cur.style.transform = `scale(${press})`;
+          cur.style.opacity = String(Math.min(seg(lt, a - 0.2, a + 0.1), 1 - seg(lt, b - 0.3, b)));
+          const rp = $('.ripple', el);
+          if (f.click) {
+            const q = seg(lt, f.click, f.click + 0.6);
+            rp.style.left = `${x}px`;
+            rp.style.top = `${y}px`;
+            rp.style.transform = `scale(${0.3 + q * 1.1})`;
+            rp.style.opacity = String(q > 0 && q < 1 ? (1 - q) * 0.9 : 0);
+          }
+        }
+      }
+
+      // ---- the timeline ----
+      const DURATION = 44;
+      window.DURATION = DURATION;
+      function render(t) {
+        // 1. intro: the two halves of the coin meet, then the name
+        const intro = $('#intro');
+        intro.style.opacity = String(1 - seg(t, 3.4, 3.9));
+        const meet = outExpo(seg(t, 0.2, 1.5));
+        const [l, r] = $$('#coin img');
+        const coinIn = seg(t, 0.15, 0.6);
+        l.style.transform = `translateX(${(1 - meet) * -260}px)`;
+        r.style.transform = `translateX(${(1 - meet) * 260}px)`;
+        l.style.opacity = r.style.opacity = String(coinIn);
+        const ci = outCubic(seg(t, 1.3, 3.8));
+        $('#coin').style.transform = `scale(${1 + ci * 0.06})`;
+        const w = outCubic(seg(t, 1.2, 2.0));
+        $('#word').style.opacity = String(w);
+        $('#word').style.transform = `translateY(${(1 - w) * 24}px)`;
+        const tg = outCubic(seg(t, 1.9, 2.7));
+        $('#tag').style.opacity = String(tg);
+        $('#tag').style.transform = `translateY(${(1 - tg) * 18}px)`;
+
+        // 2. the line
+        const line = $('#line');
+        line.style.opacity = t > 3.7 && t < 8.7 ? '1' : '0';
+        lines(line, t, 3.9, 8.6, 0.35);
+        $('#line .big').style.transform = `scale(${1 + seg(t, 3.9, 8.6) * 0.04})`;
+
+        // 3-7. features
+        FEATURES.forEach((f) => renderFeature(f, t));
+        $('#glow').style.opacity = String(seg(t, 8.4, 9.2) * (1 - seg(t, 35.0, 35.6)) * 1 + 0.25);
+
+        // 8. no fee
+        const fee = $('#fee');
+        fee.style.opacity = t > 35.3 && t < 40.1 ? '1' : '0';
+        lines(fee, t, 35.5, 40.0);
+        const row = life(t, 36.0, 40.0, 0.7);
+        $('#feeRow').style.opacity = String(row);
+        $('#feeRow').style.transform = `translateY(${(1 - row) * 30}px) scale(${0.98 + row * 0.02})`;
+        const fv = outCubic(seg(t, 36.6, 37.2));
+        $('#feeVal').style.opacity = String(fv);
+        $('#feeVal').style.color = `rgb(${lerp(237, 61, fv)}, ${lerp(237, 214, fv)}, ${lerp(237, 140, fv)})`;
+        $$('#trust .chip').forEach((c, i) => {
+          const p = life(t, 37.6 + i * 0.18, 40.0, 0.6);
+          c.style.opacity = String(p);
+          c.style.transform = `translateY(${(1 - p) * 16}px)`;
+        });
+
+        // 9. end card
+        const end = $('#end');
+        end.style.opacity = t > 40.0 ? String(Math.min(1, seg(t, 40.0, 40.3))) : '0';
+        lines(end, t, 40.4, 99, 0.25);
+        const lk = outCubic(seg(t, 40.1, 40.8));
+        $('#lock').style.opacity = String(lk);
+        $('#lock').style.transform = `translateY(${(1 - lk) * 16}px)`;
+        const u = outCubic(seg(t, 41.2, 41.9));
+        $('#url').style.opacity = String(u);
+        $('#url').style.transform = `translateY(${(1 - u) * 16}px)`;
+        const ph = outCubic(seg(t, 40.2, 41.4));
+        $('#phone').style.opacity = String(ph);
+        $('#phone').style.transform = `translateY(${(1 - ph) * 120 - seg(t, 41.4, 44) * 20}px)`;
+        $('#risk').style.opacity = String(outCubic(seg(t, 41.8, 42.4)) * 0.9);
+        // fade to black at the very end
+        $('#stage').style.opacity = String(1 - seg(t, 43.4, 44));
+      }
+      window.render = render;
+      render(Number(new URLSearchParams(location.search).get('t') ?? 0));
+    </script>
+  </body>
+</html>

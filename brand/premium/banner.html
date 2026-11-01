@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Coinside banner</title>
+    <!--
+      Product banner from ALFA's screenshots of coinside.fun (screens/, cropped below the header so no wallet or
+      balance shows). Rendered by build-banner.mjs at 2560x1440 (16:9) for X posts.
+    -->
+    <style>
+      :root {
+        --t1: #ededed;
+        --t2: #a1a1a1;
+        --t3: #6e6e6e;
+        --line: #1c1c1c;
+        --line2: #2a2a2a;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+        color: var(--t1);
+        font-family: Inter, sans-serif;
+        font-feature-settings: 'cv11', 'ss01', 'ss03';
+        -webkit-font-smoothing: antialiased;
+        position: relative;
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(#0d0d0d 1px, transparent 1px), linear-gradient(90deg, #0d0d0d 1px, transparent 1px);
+        background-size: 80px 80px;
+        -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 30%, #000 20%, transparent 75%);
+      }
+      .glow {
+        position: absolute;
+        left: 260px;
+        top: -260px;
+        width: 1400px;
+        height: 1000px;
+        background: radial-gradient(closest-side, rgba(255, 255, 255, 0.07), transparent);
+      }
+      .top {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 66px;
+        text-align: center;
+      }
+      .lock {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 30px;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+      .lock img {
+        width: 44px;
+        height: 44px;
+      }
+      h1 {
+        margin-top: 34px;
+        font-size: 74px;
+        font-weight: 600;
+        letter-spacing: -0.045em;
+        line-height: 1.04;
+      }
+      h1 span {
+        display: block;
+      }
+      h1 .dim {
+        color: var(--t3);
+      }
+      .stage {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 380px;
+        height: 760px;
+        perspective: 2400px;
+      }
+      .frame {
+        position: absolute;
+        border-radius: 14px;
+        border: 1px solid var(--line2);
+        background: #0a0a0a;
+        overflow: hidden;
+        box-shadow: 0 40px 120px rgba(0, 0, 0, 0.75);
+      }
+      .bar {
+        height: 34px;
+        border-bottom: 1px solid var(--line);
+        background: #070707;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 14px;
+      }
+      .bar i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #222;
+      }
+      .bar span {
+        margin: 0 auto;
+        transform: translateX(-20px);
+        font-family: 'Geist Mono', monospace;
+        font-size: 12px;
+        color: var(--t3);
+        background: #111;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 3px 50px;
+      }
+      .frame img {
+        display: block;
+        width: 100%;
+      }
+      .back {
+        width: 860px;
+        top: 70px;
+        opacity: 0.92;
+      }
+      .left {
+        left: 40px;
+        transform: rotateY(24deg);
+        transform-origin: 0 50%;
+      }
+      .right {
+        right: 40px;
+        transform: rotateY(-24deg);
+        transform-origin: 100% 50%;
+      }
+      .front {
+        width: 1240px;
+        left: 340px;
+        top: 0;
+        box-shadow:
+          0 50px 140px rgba(0, 0, 0, 0.9),
+          0 0 0 1px rgba(255, 255, 255, 0.03);
+      }
+      .fade {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 330px;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.85) 45%, #000 80%);
+      }
+      .foot {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 54px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 22px;
+      }
+      .chip {
+        font-family: 'Geist Mono', monospace;
+        font-size: 18px;
+        color: var(--t2);
+        border: 1px solid var(--line2);
+        background: #0a0a0a;
+        border-radius: 8px;
+        padding: 10px 16px;
+      }
+      .go {
+        font-family: 'Geist Mono', monospace;
+        font-size: 26px;
+        background: var(--t1);
+        color: #000;
+        border-radius: 10px;
+        padding: 13px 24px;
+      }
+      .x {
+        font-family: 'Geist Mono', monospace;
+        font-size: 22px;
+        color: var(--t2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grid"></div>
+    <div class="glow"></div>
+    <div class="top">
+      <div class="lock"><img src="mark.svg" alt="" />Coinside</div>
+      <h1>
+        <span>Long or short on 179 markets.</span>
+        <span class="dim">Straight from your Solana wallet.</span>
+      </h1>
+    </div>
+    <div class="stage">
+      <div class="frame back left">
+        <div class="bar"><i></i><i></i><i></i><span>coinside.fun</span></div>
+        <img src="screens/movers.png" alt="" />
+      </div>
+      <div class="frame back right">
+        <div class="bar"><i></i><i></i><i></i><span>coinside.fun</span></div>
+        <img src="screens/map.png" alt="" />
+      </div>
+      <div class="frame front">
+        <div class="bar"><i></i><i></i><i></i><span>coinside.fun</span></div>
+        <img src="screens/hero.png" alt="" />
+      </div>
+    </div>
+    <div class="fade"></div>
+    <div class="foot">
+      <span class="chip">Solana wallet</span>
+      <span class="chip">Hyperliquid order book</span>
+      <span class="go">coinside.fun</span>
+      <span class="chip">No Coinside fee</span>
+      <span class="x">@usecoinside</span>
+    </div>
+  </body>
+</html>
