@@ -301,6 +301,23 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 /* portfolio tables */
 .t-hp{grid-template-columns:minmax(110px,1.2fr) 84px .9fr .9fr .9fr .9fr 1.2fr 84px}
 .t-ho{grid-template-columns:minmax(110px,1.2fr) 64px 1.4fr 1fr .9fr .9fr 84px}
+/* positions and orders where the panel is narrow (the terminal's middle column): fewer columns, never overlapping */
+#tv-mypos,#tv-myorders,#pf-pos,#pf-orders{container-type:inline-size}
+.tr>span{min-width:0}
+.tr .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@container (max-width:860px){
+  .t-hp{grid-template-columns:minmax(80px,1fr) 72px .9fr 1fr 1fr 1.1fr 64px;gap:10px}
+  .t-hp .c5{display:none}
+  .t-hp .pnl small{display:block;margin-left:0}
+  .t-ho{grid-template-columns:minmax(80px,1fr) 56px 1fr 1fr 1fr 64px;gap:10px}
+  .t-ho .c6{display:none}
+}
+@container (max-width:520px){
+  .t-hp{grid-template-columns:minmax(80px,1fr) 72px 1fr 1fr 1.1fr 64px}
+  .t-hp .c3{display:none}
+  .t-ho{grid-template-columns:minmax(80px,1fr) 56px 1fr 1fr 64px}
+  .t-ho .c3{display:none}
+}
 /* trading: result line under the order button, the risk notice, Close and Cancel */
 .omsg.ok{color:var(--t2)}
 .ack{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px;border:1px solid var(--line2);border-radius:10px;background:var(--s2);font-size:13px;color:var(--t2);line-height:1.5;cursor:pointer}
