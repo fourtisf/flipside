@@ -125,11 +125,51 @@ test('close a position and cancel an order from the terminal and from Portfolio'
   await enable(page);
   // the account's positions and orders show above the order book
   await expect(page.locator('#tv-mypos')).toContainText('SOL');
+  // Close never acts at once: it opens the position dialog with the size, the price and the P&L
+  const before = orders(hl).length;
   await page.locator('#tv-mypos [data-close="SOL"]').click();
-  await expect(page.locator('#o-cta-msg')).toHaveText('Closed your SOL long.');
+  const dlg = page.locator('#posDialog');
+  await expect(dlg).toContainText('SOL long 5x');
+  await expect(page.locator('#closeSum')).toContainText('Closing10.5 SOL');
+  expect(orders(hl)).toHaveLength(before);
+  // half, at market
+  await page.locator('#closePct button', { hasText: '50%' }).click();
+  await expect(page.locator('#closeSum')).toContainText('Closing5.25 SOL');
+  await page.locator('#closeGo').click();
+  await expect(dlg).toBeHidden();
+  await expect(page.locator('#o-cta-msg')).toHaveText('Closed 50% of your SOL long.');
   expect(orders(hl).at(-1)!.action).toMatchObject({
-    orders: [{ a: 2, b: false, s: '10.5', r: true, t: { limit: { tif: 'Ioc' } } }],
+    orders: [{ a: 2, b: false, s: '5.25', r: true, t: { limit: { tif: 'Ioc' } } }],
   });
+  // all of it, with a limit price: it rests until the price gets there
+  await page.locator('#tv-mypos [data-close="SOL"]').click();
+  await page.locator('#closeKind button', { hasText: 'Limit' }).click();
+  await page.locator('#closePx').fill('195');
+  await expect(page.locator('#closeGo')).toHaveText('Place limit close (100%)');
+  await page.locator('#closeGo').click();
+  await expect(page.locator('#o-cta-msg')).toContainText('Limit close placed for your SOL long at $195');
+  expect(orders(hl).at(-1)!.action).toMatchObject({
+    orders: [{ a: 2, b: false, p: '195', s: '10.5', r: true, t: { limit: { tif: 'Gtc' } } }],
+  });
+  // take profit and stop loss on the open position: a wrong-side price says why, a good pair is set
+  await page.locator('#tv-mypos [data-tpsl="SOL"]').click();
+  await page.locator('#tpPx').fill('210');
+  await page.locator('#slPx').fill('190');
+  await page.locator('#tpslGo').click();
+  await expect(page.locator('#posMsg')).toContainText('Stop loss must be below the price now');
+  await page.locator('#slPx').fill('160');
+  await page.locator('#tpslGo').click();
+  await expect(page.locator('#posDialog')).toBeHidden();
+  await expect(page.locator('#o-cta-msg')).toContainText('Take profit and stop loss set on your SOL long');
+  const tpsl = orders(hl).at(-1)!.action as unknown as {
+    grouping: string;
+    orders: Array<Record<string, unknown>>;
+  };
+  expect(tpsl.grouping).toBe('positionTpsl');
+  expect(tpsl.orders).toMatchObject([
+    { a: 2, b: false, r: true, s: '10.5', t: { trigger: { triggerPx: '210', tpsl: 'tp', isMarket: true } } },
+    { a: 2, b: false, r: true, s: '10.5', t: { trigger: { triggerPx: '160', tpsl: 'sl', isMarket: true } } },
+  ]);
 
   await page.goto('/portfolio');
   await page.locator('#pf-orders [data-cancel="9001"]').click();

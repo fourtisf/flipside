@@ -20,6 +20,20 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Closing a position is confirmed; partial, limit, and TP/SL on open positions (ALFA, 1 Nov 2026)
+
+ALFA: "tadi saya pencet Close, kenapa langsung ke close, nggak ada limit order close, TP SL dan konfirmasi". Close
+used to send a full market close on one click.
+
+- **Close and TP/SL open a dialog; nothing is sent until its button.** The dialog shows the position (size, entry,
+  price now, P&L).
+- **Close tab:** Market or Limit, 25/50/75/100%, and what it means before sending: the size closing, the price
+  (about, at market; yours, for a limit) and the P&L on that part. Market is reduce-only immediate or cancel 1%
+  through the price; Limit is reduce-only good till cancelled at the person's price.
+- **Take profit / stop loss tab:** prices, each with the P&L it would lock in, sent as reduce-only market triggers
+  grouped "positionTpsl", so Hyperliquid ties them to the position. A price on the wrong side of the market, or a
+  stop loss past the liquidation price, is refused with the reason. They show in Open orders and cancel there.
+
 ## Max, and limit orders from the order book (ALFA, 1 Nov 2026)
 
 ALFA: "harusnya ada fitur Max, dan orderbook bisa dipencet, ketika dipencet itu ke limit order".

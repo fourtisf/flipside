@@ -6,7 +6,7 @@ import { Header } from '@/components/Header';
 import { Footer, FundDialog, TabBar, Toasts, WalletDialog } from '@/components/Shell';
 import { DepositToast } from '@/components/live/DepositStatus';
 import { Notice } from '@/components/live/Notice';
-import { EnableDialog } from '@/components/live/Trading';
+import { EnableDialog, PositionDialog } from '@/components/live/Trading';
 import { ConnectDialog, WalletMenu } from '@/components/live/Wallet';
 import { HlProvider } from '@/hl/provider';
 import { LIVE } from '@/lib/edition';
@@ -60,6 +60,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <ConnectDialog />
               <WalletMenu />
               <EnableDialog />
+              <PositionDialog />
               <DepositToast />
               <Notice />
             </WalletProvider>

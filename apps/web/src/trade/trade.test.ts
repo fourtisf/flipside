@@ -8,7 +8,16 @@ import { toMarkets } from '@/hl/markets';
 import { toSpot, type PositionRow } from '@/wallet/account';
 import { free, planSellUsol, usdcToMove, usolMarket } from './funds';
 import type { Eip1193 } from '@/wallet/store';
-import { describe as describeFill, explain, planClose, planOpen, through, triggerAt } from './orders';
+import {
+  describe as describeFill,
+  explain,
+  planClose,
+  planOpen,
+  planTpsl,
+  pnlAt,
+  through,
+  triggerAt,
+} from './orders';
 import { agentSigner, newAgent, typedDataJson, walletSigner } from './signer';
 
 const markets = Object.fromEntries(toMarkets(META_AND_CTXS).map((m) => [m.name, m]));
@@ -153,6 +162,65 @@ describe('planClose', () => {
     const s = { coin: 'BTC', side: 'short', size: 0.01 } as PositionRow;
     expect(planClose(s, BTC)).toMatchObject({ b: true, p: '98094', s: '0.01', r: true });
     expect(through(100, true)).toBeCloseTo(101);
+  });
+
+  it('closes part of it, or rests at a limit price until the price gets there', () => {
+    const p = { coin: 'SOL', side: 'long', size: 10.5 } as PositionRow;
+    expect(planClose(p, SOL, 0.5)).toMatchObject({ s: '5.25', t: { limit: { tif: 'Ioc' } } });
+    expect(planClose(p, SOL, 0.25)).toMatchObject({ s: '2.62' });
+    expect(planClose(p, SOL, 1, 195)).toMatchObject({
+      b: false,
+      p: '195',
+      s: '10.5',
+      r: true,
+      t: { limit: { tif: 'Gtc' } },
+    });
+  });
+});
+
+describe('take profit and stop loss on an open position', () => {
+  const long = { coin: 'SOL', side: 'long', size: 10.5, entry: 180, liq: 150 } as PositionRow;
+  const short = { coin: 'SOL', side: 'short', size: 2, entry: 190, liq: 220 } as PositionRow;
+
+  it('sets reduce-only market triggers on the other side, for the whole position', () => {
+    const r = planTpsl(long, SOL, 210, 160);
+    expect(r).toMatchObject({
+      ok: true,
+      orders: [
+        { b: false, r: true, s: '10.5', t: { trigger: { triggerPx: '210', tpsl: 'tp', isMarket: true } } },
+        { b: false, r: true, s: '10.5', t: { trigger: { triggerPx: '160', tpsl: 'sl', isMarket: true } } },
+      ],
+    });
+    expect(planTpsl(short, SOL, 170, undefined)).toMatchObject({
+      ok: true,
+      orders: [{ b: true, t: { trigger: { tpsl: 'tp' } } }],
+    });
+  });
+
+  it('says plainly when a price is on the wrong side or past liquidation', () => {
+    expect(planTpsl(long, SOL)).toMatchObject({ ok: false, reason: expect.stringContaining('Enter') });
+    expect(planTpsl(long, SOL, 180)).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining('above the price now'),
+    });
+    expect(planTpsl(long, SOL, undefined, 190)).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining('below the price now'),
+    });
+    expect(planTpsl(long, SOL, undefined, 140)).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining('past your liquidation price'),
+    });
+    expect(planTpsl(short, SOL, 200)).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining('below the price now'),
+    });
+  });
+
+  it('works out the P&L at a price', () => {
+    expect(pnlAt(long, 200)).toBeCloseTo(210);
+    expect(pnlAt(long, 200, 5.25)).toBeCloseTo(105);
+    expect(pnlAt(short, 180)).toBeCloseTo(20);
   });
 });
 

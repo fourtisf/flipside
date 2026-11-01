@@ -15,7 +15,7 @@ import { toSpot, type OrderRow, type PositionRow, type SpotRow } from '@/wallet/
 import type { WalletStore } from '@/wallet/store';
 import { TRADING } from './config';
 import { planSellUsol, usdcToMove, usolMarket } from './funds';
-import { describe, explain, planClose, planOpen, type OpenInput } from './orders';
+import { describe, explain, planClose, planOpen, planTpsl, type OpenInput } from './orders';
 import { agentSigner, forgetAgent, loadAgent, newAgent, saveAgent, type Agent } from './signer';
 
 const ACCEPTED = (owner: string) => `coinside.risk.${owner.toLowerCase()}`;
@@ -48,6 +48,8 @@ export class TradeStore {
   /** The person has accepted the risk notice on this device. */
   accepted = false;
   dialog = false;
+  /** The position dialog: which position, on which tab (close it, or set its take profit and stop loss). */
+  manage: { coin: string; tab: 'close' | 'tpsl' } | null = null;
   busy: string | null = null;
   msg: { text: string; ok: boolean; at: number } | null = null;
   /** A notification for the whole app (a toast), for things worth hearing about wherever the person is. */
@@ -172,18 +174,69 @@ export class TradeStore {
     }
   }
 
-  async close(p: PositionRow, m: Market) {
-    if (!this.ready() || this.busy) return;
+  /**
+   * Close all (fraction 1) or part of a position, at market or at a limit price. Only ever from the position
+   * dialog, after the person has seen the size, the price and the P&L.
+   */
+  async close(p: PositionRow, m: Market, fraction = 1, limit?: number): Promise<boolean> {
+    if (!this.ready() || this.busy) return false;
     this.set((s) => {
       s.busy = `close:${p.coin}`;
       s.msg = null;
     });
+    const share = fraction >= 1 ? 'your' : `${Math.round(fraction * 100)}% of your`;
     try {
-      await order(this.agentConfig(), { orders: [planClose(p, m)], grouping: 'na' });
-      this.set((s) => s.say(`Closed your ${p.coin} ${p.side}.`, true));
+      const res = await order(this.agentConfig(), {
+        orders: [planClose(p, m, fraction, limit)],
+        grouping: 'na',
+      });
+      const st = res.response.data.statuses[0];
+      if (st && typeof st === 'object' && 'error' in st) throw new Error(String(st.error));
+      this.set((s) => {
+        s.say(
+          limit
+            ? `Limit close placed for ${share} ${p.coin} ${p.side} at $${limit}. It fills when the price gets there.`
+            : `Closed ${share} ${p.coin} ${p.side}.`,
+          true,
+        );
+        s.manage = null;
+      });
+      return true;
     } catch (e) {
       this.checkKey(e);
       this.set((s) => s.say(errorText(e, this.wallet.name), false));
+      return false;
+    } finally {
+      this.set((s) => void (s.busy = null));
+    }
+  }
+
+  /** Set take profit and/or stop loss on an open position (prices). */
+  async setTpsl(p: PositionRow, m: Market, tp?: number, sl?: number): Promise<boolean> {
+    if (!this.ready() || this.busy) return false;
+    const planned = planTpsl(p, m, tp, sl);
+    if (!planned.ok) {
+      this.set((s) => s.say(planned.reason, false));
+      return false;
+    }
+    this.set((s) => {
+      s.busy = `tpsl:${p.coin}`;
+      s.msg = null;
+    });
+    try {
+      const res = await order(this.agentConfig(), { orders: planned.orders, grouping: 'positionTpsl' });
+      const bad = res.response.data.statuses.find((st) => st && typeof st === 'object' && 'error' in st);
+      if (bad && typeof bad === 'object' && 'error' in bad) throw new Error(String(bad.error));
+      const what = tp && sl ? 'Take profit and stop loss' : tp ? 'Take profit' : 'Stop loss';
+      this.set((s) => {
+        s.say(`${what} set on your ${p.coin} ${p.side}. They show in Open orders.`, true);
+        s.manage = null;
+      });
+      return true;
+    } catch (e) {
+      this.checkKey(e);
+      this.set((s) => s.say(errorText(e, this.wallet.name), false));
+      return false;
     } finally {
       this.set((s) => void (s.busy = null));
     }

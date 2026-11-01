@@ -116,17 +116,69 @@ export function planOpen(i: OpenInput): Planned {
   };
 }
 
-/** Close a whole position now: the other side, reduce only, immediate or cancel. */
-export function planClose(p: PositionRow, m: Market): Order {
+/**
+ * Close all or part of a position: the other side, reduce only. At market it is immediate or cancel, 1% through
+ * the price; with a limit price it rests on the book (good till cancelled) until the price gets there.
+ */
+export function planClose(p: PositionRow, m: Market, fraction = 1, limit?: number): Order {
   const isBuy = p.side === 'short';
+  const size = fraction >= 1 ? p.size : p.size * fraction;
   return {
     a: m.asset,
     b: isBuy,
-    p: formatPrice(through(m.px, isBuy), m.szDecimals),
+    p: formatPrice(limit && limit > 0 ? limit : through(m.px, isBuy), m.szDecimals),
+    s: formatSize(size, m.szDecimals),
+    r: true,
+    t: { limit: { tif: limit && limit > 0 ? 'Gtc' : 'Ioc' } },
+  };
+}
+
+/** Profit or loss in USDC if `size` of the position closes at `px` (before fees). */
+export const pnlAt = (p: PositionRow, px: number, size = p.size) =>
+  (px - p.entry) * size * (p.side === 'long' ? 1 : -1);
+
+/**
+ * Take profit and stop loss for a position that is already open, as prices. Each is a reduce-only market trigger
+ * on the other side; grouped as "positionTpsl", Hyperliquid ties them to the position, so they follow its size
+ * and go away when it closes. Says plainly when a price is on the wrong side.
+ */
+export function planTpsl(
+  p: PositionRow,
+  m: Market,
+  tp?: number,
+  sl?: number,
+): { ok: true; orders: Order[] } | { ok: false; reason: string } {
+  const long = p.side === 'long';
+  const px = m.px;
+  if (!tp && !sl) return { ok: false, reason: 'Enter a take profit or a stop loss price.' };
+  if (!(px > 0)) return { ok: false, reason: 'No price yet. Wait a moment.' };
+  if (tp && (long ? tp <= px : tp >= px))
+    return {
+      ok: false,
+      reason: `Take profit must be ${long ? 'above' : 'below'} the price now ($${pxText(px, m.szDecimals)}) for a ${p.side}.`,
+    };
+  if (sl && (long ? sl >= px : sl <= px))
+    return {
+      ok: false,
+      reason: `Stop loss must be ${long ? 'below' : 'above'} the price now ($${pxText(px, m.szDecimals)}) for a ${p.side}.`,
+    };
+  if (sl && p.liq && (long ? sl <= p.liq : sl >= p.liq))
+    return {
+      ok: false,
+      reason: `That stop loss is past your liquidation price ($${pxText(p.liq, m.szDecimals)}), so it would never fire first.`,
+    };
+  const exit = (trigger: number, tpsl: 'tp' | 'sl'): Order => ({
+    a: m.asset,
+    b: !long,
+    p: formatPrice(through(trigger, !long), m.szDecimals),
     s: formatSize(p.size, m.szDecimals),
     r: true,
-    t: { limit: { tif: 'Ioc' } },
-  };
+    t: { trigger: { isMarket: true, triggerPx: formatPrice(trigger, m.szDecimals), tpsl } },
+  });
+  const orders: Order[] = [];
+  if (tp) orders.push(exit(tp, 'tp'));
+  if (sl) orders.push(exit(sl, 'sl'));
+  return { ok: true, orders };
 }
 
 /** What happened to the main order, in a sentence. */
