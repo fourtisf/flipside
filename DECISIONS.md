@@ -20,6 +20,25 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Deposits from Solana, switched on (ALFA, 1 Nov 2026)
+
+ALFA chose "Nyalakan sekarang, cek nanti": switch SOL deposits on now, and add Unit's guardian signature check
+when its docs can be read (they still weren't reachable from the build environment, and no copy was provided).
+
+- **The address:** our server asks Unit (`GET https://api.hyperunit.xyz/gen/solana/hyperliquid/sol/<account>`)
+  for the Solana deposit address of the person's Hyperliquid account (`GET /unit/deposit-address/<account>`,
+  `src/lib/unit.ts`). It must be a well-formed Solana address, not the person's own, and the same every time for
+  the same account (Unit's addresses are deterministic; a change is refused, not shown).
+- **The send:** the person's Solana wallet signs and sends a plain transfer to that address (built by hand,
+  checked byte for byte against @solana/web3.js). Coinside never holds a Solana key.
+- **Limits:** at least 0.12 SOL (Unit's minimum; less can be lost), at most 1 SOL per deposit while deposits are
+  new (`NEXT_PUBLIC_MAX_DEPOSIT_SOL`), and 0.002 SOL left behind for the network fee. Amounts are exact lamports.
+- **After:** the panel shows the transaction (Solscan) and says the SOL arrives as USOL in a few minutes; step 2
+  ("Move to trading balance") lights up when it does.
+- **The risk ALFA accepted:** without the guardian check, a compromised Unit API could hand out an address that
+  isn't Unit's. The 1 SOL cap bounds that while it lasts. The guardian check (keys and message format from
+  `docs.hyperunit.xyz/developers/api/generate-address/guardian-signatures`) is the next step.
+
 ## Sign in with a Solana wallet alone (ALFA, 31 Oct 2026)
 
 ALFA: "kenapa harus connect wallet EVM, kenapa tidak langsung wallet SOL aja, biar gampang", then chose the derived

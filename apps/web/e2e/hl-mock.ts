@@ -20,6 +20,10 @@ import {
   trades,
 } from './hl-fixtures';
 
+/** What the pretend Unit answers as the deposit address, and the pretend Solana node as a recent blockhash. */
+export const UNIT_DEPOSIT_ADDRESS = '4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZAMdL4VZHirAn';
+export const TEST_BLOCKHASH = 'GHtXQBsoZHVnNFa9YevAzFr17DJjgHXk3ycTKD5xD3Zi';
+
 /** fastAssetCtxs arrives as base64 of raw-DEFLATE JSON, as Hyperliquid sends it. */
 const packed = (data: unknown) => deflateRawSync(Buffer.from(JSON.stringify(data))).toString('base64');
 
@@ -89,6 +93,11 @@ export async function mockHyperliquid(
 
   // our own server's Solana balance route (it reads a Solana RPC node, which tests never reach)
   await page.route('**/solana/balance/*', (route) => route.fulfill({ json: { lamports: solLamports } }));
+  await page.route('**/solana/blockhash', (route) => route.fulfill({ json: { blockhash: TEST_BLOCKHASH } }));
+  // our server's Unit route: the account's Solana deposit address
+  await page.route('**/unit/deposit-address/*', (route) =>
+    route.fulfill({ json: { address: UNIT_DEPOSIT_ADDRESS } }),
+  );
 
   await page.route('**/logos/*', (route) =>
     route.request().url().endsWith(`/${NO_LOGO}`)

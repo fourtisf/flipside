@@ -1,0 +1,55 @@
+/**
+ * Unit, the bridge that brings SOL from Solana into a Hyperliquid account (it arrives as USOL). For each
+ * Hyperliquid address Unit gives a Solana deposit address; SOL sent there is credited to that account.
+ *
+ * Read on our server (GET /unit/deposit-address/<0x address>), so the browser never depends on Unit's CORS rules
+ * and the answer is checked in one place: a well-formed Solana address, and the same address every time for the
+ * same account (Unit's addresses are deterministic; a change is refused, not shown).
+ *
+ * Not yet: checking the guardian signatures Unit returns with each address. That needs Unit's published guardian
+ * keys and message format, which weren't reachable from the build environment. ALFA chose to switch deposits on
+ * without it, with a 1 SOL cap per deposit until it is in (DECISIONS.md, "Deposits from Solana").
+ */
+import { isSolAddress } from './solana-rpc';
+
+export const UNIT_API = 'https://api.hyperunit.xyz';
+
+const HL_ADDRESS = /^0x[0-9a-f]{40}$/;
+const TTL_MS = 10 * 60_000;
+
+export class UnitAddresses {
+  private cache = new Map<string, { address: string; at: number }>();
+  /** The first address seen for each account; a different one later is refused. */
+  private pinned = new Map<string, string>();
+
+  constructor(
+    private readonly fetcher: typeof fetch = fetch,
+    private readonly now: () => number = Date.now,
+    private readonly api: string = UNIT_API,
+  ) {}
+
+  /** The Solana address that deposits SOL into the Hyperliquid account `hl` (lowercase 0x address). */
+  async depositAddress(hl: string): Promise<string> {
+    const account = hl.toLowerCase();
+    if (!HL_ADDRESS.test(account)) throw new Error('not a Hyperliquid address');
+    const hit = this.cache.get(account);
+    if (hit && this.now() - hit.at < TTL_MS) return hit.address;
+    const res = await this.fetcher(`${this.api}/gen/solana/hyperliquid/sol/${account}`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`Unit answered ${res.status}`);
+    const body = (await res.json()) as { address?: unknown; status?: unknown };
+    const address = typeof body.address === 'string' ? body.address.trim() : '';
+    if (!isSolAddress(address)) throw new Error('Unit gave no Solana address');
+    const before = this.pinned.get(account);
+    if (before && before !== address) throw new Error('Unit gave a different address than before');
+    this.pinned.set(account, address);
+    if (this.cache.size > 10_000) this.cache.clear();
+    this.cache.set(account, { address, at: this.now() });
+    return address;
+  }
+}
+
+let shared: UnitAddresses | null = null;
+export const unitAddresses = () => (shared ??= new UnitAddresses());

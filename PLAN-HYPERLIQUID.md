@@ -98,6 +98,8 @@ Each phase ends with a report and stops for ALFA, as before.
   - **Status (31 Oct 2026):** part 1 built. Deposit lives in the person's Portfolio on Coinside; "Move to trading
     balance" turns USOL into USDC in perps. The SOL deposit address (Unit, with its guardian signature check)
     waits for Unit's docs to be reachable (DECISIONS.md, "An empty account: deposit first").
+  - **Status (1 Nov 2026):** SOL deposits switched on from the person's Solana wallet, without the guardian
+    signature check yet, capped at 1 SOL per deposit (DECISIONS.md, "Deposits from Solana, switched on").
 - **H5. Mainnet launch.**
   - **Prerequisites:** geo-blocking, terms and a plain risk disclosure, and monitoring.
   - **Rollout:** a small beta first.

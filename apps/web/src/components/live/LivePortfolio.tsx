@@ -10,6 +10,12 @@ import { shortAddr } from '@/wallet/catalog';
 import { TRADING } from '@/trade/config';
 import { USOL, free } from '@/trade/funds';
 import { useAccount, useSolana, useTrade, useWallet } from '@/wallet/provider';
+import {
+  FEE_RESERVE_LAMPORTS,
+  MAX_DEPOSIT_LAMPORTS,
+  MIN_DEPOSIT_LAMPORTS,
+  planDeposit,
+} from '@/trade/deposit';
 import { LAMPORTS_PER_SOL, shortSol, solText } from '@/wallet/solana';
 import { Price, SideChip } from '../ui';
 import { CoinTok } from './CoinTok';
@@ -106,8 +112,6 @@ function DepositPanel() {
 }
 
 /** Step 1 of Deposit: the Solana side of the person's wallet, where their SOL is, and its balance. */
-const FEE_RESERVE_LAMPORTS = 2_000_000n;
-
 function SolanaSide() {
   const [amt, setAmt] = useState('');
   const sol = useSolana();
@@ -157,8 +161,13 @@ function SolanaSide() {
       </>
     );
   // Max leaves 0.002 SOL behind for the network fee
-  const maxLamports =
+  // Max leaves the fee reserve behind, and stays within the cap while deposits are new
+  const spare =
     sol.lamports !== null && sol.lamports > FEE_RESERVE_LAMPORTS ? sol.lamports - FEE_RESERVE_LAMPORTS : null;
+  const maxLamports = spare !== null && spare > MAX_DEPOSIT_LAMPORTS ? MAX_DEPOSIT_LAMPORTS : spare;
+  const plan = planDeposit(amt, sol.lamports);
+  const canSend = sol.canSend();
+  const dmsg = sol.depositMsg;
   const px = hl.byName.SOL?.px ?? 0;
   const usd = sol.lamports !== null && px > 0 ? (Number(sol.lamports) / Number(LAMPORTS_PER_SOL)) * px : null;
   return (
@@ -246,11 +255,41 @@ function SolanaSide() {
         </button>
       </div>
       <p>
-        Your deposit address shows here once it has been checked, so SOL can only reach your account. The
-        Deposit button switches on with it.
+        Coinside sends it to your Unit deposit address. Unit is the bridge that credits SOL to your trading
+        account. At least {solText(MIN_DEPOSIT_LAMPORTS)} SOL, and up to {solText(MAX_DEPOSIT_LAMPORTS)} SOL
+        per deposit while deposits are new. Unit&apos;s network fee comes out of the amount.
       </p>
-      <button className="btn w" type="button" id="solDeposit" disabled>
-        Deposit SOL
+      {!canSend && (
+        <p className="omsg" role="status">
+          {sol.name} can&apos;t send from Coinside yet. Update {sol.name}, or sign in with Phantom.
+        </p>
+      )}
+      <p className={`omsg${dmsg?.ok ? ' ok' : ''}`} id="solMsg" role="status">
+        {amt && !plan.ok ? plan.reason : (dmsg?.text ?? '')}
+        {dmsg?.ok && dmsg.sig && (
+          <>
+            {' '}
+            <a
+              className="lnk"
+              href={`https://solscan.io/tx/${dmsg.sig}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              See the transaction
+            </a>
+          </>
+        )}
+      </p>
+      <button
+        className="btn w"
+        type="button"
+        id="solDeposit"
+        disabled={!plan.ok || !canSend || sol.depositing || !wallet.address}
+        onClick={() => {
+          if (plan.ok && wallet.address) void sol.deposit(wallet.address, plan.lamports);
+        }}
+      >
+        {sol.depositing ? `Check ${sol.name}` : 'Deposit SOL'}
       </button>
     </>
   );

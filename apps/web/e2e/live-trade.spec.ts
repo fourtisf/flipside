@@ -7,7 +7,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { ADDRESS } from './hl-fixtures';
 
 const SOL_ADDRESS = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
-import { mockHyperliquid, type HlMock } from './hl-mock';
+import { TEST_BLOCKHASH, UNIT_DEPOSIT_ADDRESS, mockHyperliquid, type HlMock } from './hl-mock';
+import { transferTx } from '../src/wallet/solana-tx';
 import { fakeWallet, testSolanaWallet, type FakeWallet } from './wallet-mock';
 
 async function connected(page: Page): Promise<{ hl: HlMock; wallet: FakeWallet }> {
@@ -192,7 +193,8 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   // Max leaves 0.002 SOL for the network fee
   await page.locator('#solMax').click();
   await expect(page.locator('#solAmt')).toHaveValue('0.198');
-  await expect(page.locator('#solDeposit')).toBeDisabled();
+  // a valid amount from a wallet that can send: Deposit is ready
+  await expect(page.locator('#solDeposit')).toBeEnabled();
   // a reload reconnects it without asking again
   await page.reload();
   await expect(page.locator('#solBal')).toContainText('0.2');
@@ -359,4 +361,49 @@ test('a Solana account with no SOL shows its full address, and another account i
   await page.locator('#solOther').click();
   await expect(page.locator('#wallets')).toBeVisible();
   await expect(page.locator('#walletBtn')).toHaveCount(0);
+});
+
+test("deposit SOL from the Solana wallet to the account's Unit address, within the minimum and the cap", async ({
+  page,
+}) => {
+  const sol = testSolanaWallet();
+  await mockHyperliquid(page, { empty: true });
+  const wallet = await fakeWallet(page, {
+    address: ADDRESS,
+    solana: sol.address,
+    solanaSignature: sol.signature,
+  });
+  await page.goto('/portfolio');
+  await page.locator('#connect').click();
+  await page.locator('#swl button[data-sol="Phantom"]').click();
+  await expect(page.locator('#solBal')).toContainText('0.2');
+
+  // below Unit's minimum, above the cap, more than the wallet holds: each says why, and the button stays off
+  const amt = page.locator('#solAmt');
+  const go = page.locator('#solDeposit');
+  await amt.fill('0.1');
+  await expect(page.locator('#solMsg')).toContainText('at least 0.12 SOL');
+  await expect(go).toBeDisabled();
+  await amt.fill('1.5');
+  await expect(page.locator('#solMsg')).toContainText('at most 1 SOL');
+  await amt.fill('0.199');
+  await expect(page.locator('#solMsg')).toContainText('Keep 0.002 SOL');
+  await expect(go).toBeDisabled();
+
+  // a good amount: the wallet signs and sends a plain transfer to the Unit deposit address
+  await amt.fill('0.15');
+  await expect(go).toBeEnabled();
+  await go.click();
+  await expect(page.locator('#solMsg')).toContainText('Sent 0.15 SOL');
+  await expect(page.locator('#solMsg a')).toHaveAttribute('href', /^https:\/\/solscan\.io\/tx\//);
+  const [tx] = await wallet.sentTransactions();
+  expect(Buffer.from(tx!).toString('hex')).toBe(
+    Buffer.from(transferTx(sol.address, UNIT_DEPOSIT_ADDRESS, 150_000_000n, TEST_BLOCKHASH)).toString('hex'),
+  );
+
+  // a closed prompt sends nothing and says so
+  await wallet.rejectSign();
+  await go.click();
+  await expect(page.locator('#solMsg')).toHaveText('You closed the request in Phantom. Nothing was sent.');
+  expect(await wallet.sentTransactions()).toHaveLength(1);
 });

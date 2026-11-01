@@ -34,6 +34,8 @@ export interface FakeWallet {
   solanaSigns: () => Promise<number>;
   /** Make the next Solana message signature fail as if the person closed the prompt. */
   rejectSign: () => Promise<void>;
+  /** The transactions the Solana side was asked to sign and send, as bytes. */
+  sentTransactions: () => Promise<number[][]>;
   /** Make the next connect request fail as if the person closed the prompt. */
   reject: () => Promise<void>;
   /** Switch account inside the wallet. */
@@ -169,6 +171,17 @@ export async function fakeWallet(
               },
             },
             'standard:events': { version: '1.0.0', on: () => () => {} },
+            'solana:signAndSendTransaction': {
+              version: '1.0.0',
+              async signAndSendTransaction({ transaction }: { transaction: Uint8Array }) {
+                if (w.__rejectSign) {
+                  w.__rejectSign = false;
+                  throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
+                }
+                ((w.__sent as number[][]) ??= []).push(Array.from(transaction));
+                return [{ signature: new Uint8Array(64).fill(9) }];
+              },
+            },
             'solana:signMessage': {
               version: '1.0.0',
               async signMessage({ message: m }: { message: Uint8Array }) {
@@ -187,6 +200,8 @@ export async function fakeWallet(
     { address, name, rdns, icon, solana, legacySolana, solanaSignature, message: SIGN_IN_MESSAGE },
   );
   return {
+    sentTransactions: () =>
+      page.evaluate(() => ((window as unknown as { __sent?: number[][] }).__sent ?? []) as number[][]),
     rejectSign: () =>
       page.evaluate(() => void ((window as unknown as Record<string, unknown>).__rejectSign = true)),
     solanaSigns: () =>

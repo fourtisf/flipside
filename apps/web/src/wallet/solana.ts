@@ -456,6 +456,46 @@ export class SolanaStore {
     this.emit();
   }
 
+  depositing = false;
+  /** The last deposit's outcome, for the panel. */
+  depositMsg: { text: string; ok: boolean; sig?: string; to?: string } | null = null;
+
+  /**
+   * Deposit `lamports` of SOL into the Hyperliquid account `hl`: get the account's Unit deposit address from our
+   * server, check it looks right, and have the wallet send the SOL there (the person approves it in the wallet).
+   */
+  async deposit(hl: string, lamports: bigint) {
+    if (this.depositing || !this.address) return;
+    this.depositing = true;
+    this.depositMsg = null;
+    this.emit();
+    try {
+      const res = await fetch(`/unit/deposit-address/${hl}`, { cache: 'no-store' });
+      if (!res.ok)
+        throw new Error(
+          "Couldn't get your deposit address from Unit. Nothing was sent. Try again in a moment.",
+        );
+      const { address } = (await res.json()) as { address?: string };
+      if (!address || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address) || address === this.address)
+        throw new Error("Unit's deposit address didn't look right, so nothing was sent.");
+      const sig = await this.send(address, lamports);
+      this.depositMsg = {
+        ok: true,
+        sig,
+        to: address,
+        text: `Sent ${solText(lamports)} SOL. It arrives in your account as USOL in a few minutes, and step 2 lights up then.`,
+      };
+    } catch (e) {
+      this.depositMsg = {
+        ok: false,
+        text: (e as Error)?.message || 'Something went wrong. Nothing was sent.',
+      };
+    } finally {
+      this.depositing = false;
+      this.emit();
+    }
+  }
+
   /** The connected wallet can sign a message (for the Solana sign-in). */
   canSignMessage(): boolean {
     return !!this.wallet && 'solana:signMessage' in this.wallet.features;
