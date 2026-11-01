@@ -21,6 +21,8 @@ export interface PendingDeposit {
   /** Unit's own state for it, when Unit's API says. */
   state: string | null;
   arrived: boolean;
+  /** USOL that arrived, once it has. */
+  received?: number;
 }
 
 const KEY = (hl: string) => `coinside.deposit.${hl.toLowerCase()}`;
@@ -111,8 +113,9 @@ export class DepositTracker {
   observe(spot: SpotRow[] | null) {
     const p = this.pending;
     if (!p || p.arrived || !spot) return;
-    if (usolOf(spot) > p.usolBefore + 1e-9) {
-      this.pending = { ...p, arrived: true };
+    const now = usolOf(spot);
+    if (now > p.usolBefore + 1e-9) {
+      this.pending = { ...p, arrived: true, received: now - p.usolBefore };
       this.stop();
       this.save();
       this.emit();

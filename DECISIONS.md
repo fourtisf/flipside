@@ -40,6 +40,14 @@ when its docs can be read (they still weren't reachable from the build environme
   link to move it to the trading balance. Arrival is read from the account's USOL going up, so it doesn't depend on
   Unit's API (whose operation format couldn't be checked; it is read defensively). After 20 minutes it says it's
   taking longer than usual and keeps watching. The SOL balance is re-read over the half minute after a send.
+- **Unit's fee, and a minimum that stays tradable** (ALFA's first deposit: 0.12 SOL sent, 0.1065 USOL arrived).
+  Unit keeps a fee per deposit (0.0135 SOL that time). At about $95 a SOL, 0.1065 USOL is barely $10, Hyperliquid's
+  smallest order, so it might not sell. Now: the minimum is whatever makes what arrives worth over $11 after about
+  0.015 SOL of fee at today's SOL price (never under Unit's 0.12), the panel says Unit keeps about 0.015 SOL per
+  deposit, and the tracker shows the real amount that arrived and the fee Unit kept.
+- **Selling a small USOL balance:** at the best bid instead of 1% under the mid, and the $10 check is on what
+  Hyperliquid checks (the size after rounding down to the lot, times the limit price); an order Hyperliquid
+  refuses shows its reason in plain words instead of "didn't fill".
 - **The risk ALFA accepted:** without the guardian check, a compromised Unit API could hand out an address that
   isn't Unit's. The 1 SOL cap bounds that while it lasts. The guardian check (keys and message format from
   `docs.hyperunit.xyz/developers/api/generate-address/guardian-signatures`) is the next step.

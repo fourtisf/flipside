@@ -214,7 +214,8 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   // the USOL is sold on USOL/USDC (spot asset 10000 + 156) with the trading key...
   expect(hl.exchange.find((e) => e.action.type === 'order')!.action).toMatchObject({
     grouping: 'na',
-    orders: [{ a: 10156, b: false, p: '185.22', s: '1.5', r: false, t: { limit: { tif: 'Ioc' } } }],
+    // sold at the best bid, so a small deposit isn't pushed under $10 by slippage
+    orders: [{ a: 10156, b: false, p: '186.9', s: '1.5', r: false, t: { limit: { tif: 'Ioc' } } }],
   });
   // ...and the free spot USDC moves to perps, signed by the wallet
   expect(hl.exchange.find((e) => e.action.type === 'usdClassTransfer')!.action).toMatchObject({

@@ -14,8 +14,9 @@ import { DepositStatus } from './DepositStatus';
 import {
   FEE_RESERVE_LAMPORTS,
   MAX_DEPOSIT_LAMPORTS,
-  MIN_DEPOSIT_LAMPORTS,
   planDeposit,
+  UNIT_FEE_ESTIMATE_LAMPORTS,
+  minDepositLamports,
 } from '@/trade/deposit';
 import { LAMPORTS_PER_SOL, shortSol, solText } from '@/wallet/solana';
 import { Price, SideChip } from '../ui';
@@ -168,7 +169,8 @@ function SolanaSide() {
   const spare =
     sol.lamports !== null && sol.lamports > FEE_RESERVE_LAMPORTS ? sol.lamports - FEE_RESERVE_LAMPORTS : null;
   const maxLamports = spare !== null && spare > MAX_DEPOSIT_LAMPORTS ? MAX_DEPOSIT_LAMPORTS : spare;
-  const plan = planDeposit(amt, sol.lamports);
+  const plan = planDeposit(amt, sol.lamports, hl.byName.SOL?.px ?? 0);
+  const minLamports = minDepositLamports(hl.byName.SOL?.px ?? 0);
   const canSend = sol.canSend();
   const dmsg = sol.depositMsg;
   const px = hl.byName.SOL?.px ?? 0;
@@ -259,8 +261,10 @@ function SolanaSide() {
       </div>
       <p>
         Coinside sends it to your Unit deposit address. Unit is the bridge that credits SOL to your trading
-        account. At least {solText(MIN_DEPOSIT_LAMPORTS)} SOL, and up to {solText(MAX_DEPOSIT_LAMPORTS)} SOL
-        per deposit while deposits are new. Unit&apos;s network fee comes out of the amount.
+        account and keeps about {solText(UNIT_FEE_ESTIMATE_LAMPORTS)} SOL per deposit as its fee, so one
+        bigger deposit costs less than several small ones. At least {solText(minLamports)} SOL, so what
+        arrives can be traded, and up to {solText(MAX_DEPOSIT_LAMPORTS)} SOL per deposit while deposits are
+        new. Coinside charges nothing.
       </p>
       {!canSend && (
         <p className="omsg" role="status">

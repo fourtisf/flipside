@@ -217,12 +217,18 @@ export class TradeStore {
     });
     try {
       let current = spot;
-      const sell = planSellUsol(current, usolMarket(await info.spotMetaAndAssetCtxs(httpConfig())));
+      const market = usolMarket(await info.spotMetaAndAssetCtxs(httpConfig()));
+      // the best bid, so a small amount isn't pushed under the $10 minimum by slippage
+      const book = market ? await info.l2Book(httpConfig(), { coin: market.pair }).catch(() => null) : null;
+      const bid = Number(book?.levels?.[0]?.[0]?.px ?? 0);
+      const sell = planSellUsol(current, market, bid);
       if (sell && !sell.ok) return this.set((s) => s.say(sell.reason, false));
       if (sell) {
         if (!this.ready()) return this.set((s) => s.say('Enable trading first, then move your SOL.', false));
         const res = await order(this.agentConfig(), { orders: [sell.order], grouping: 'na' });
         const st = res.response.data.statuses[0];
+        if (st && typeof st === 'object' && 'error' in st)
+          return this.set((s) => s.say(explain(String(st.error)), false));
         if (!(st && typeof st === 'object' && 'filled' in st))
           return this.set((s) => s.say("The SOL sale didn't fill. Nothing moved. Try again.", false));
         current = toSpot(await info.spotClearinghouseState(httpConfig(), { user: owner }));

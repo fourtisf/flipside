@@ -37,6 +37,13 @@ export function DepositStatus({ toast = false }: { toast?: boolean }) {
       {p.arrived ? (
         <>
           <b>{p.sol} SOL arrived in your account as USOL.</b>
+          {p.received !== undefined && (
+            <p>
+              {p.received.toLocaleString('en-US', { maximumFractionDigits: 4 })} USOL arrived; Unit kept{' '}
+              {Math.max(0, Number(p.sol) - p.received).toLocaleString('en-US', { maximumFractionDigits: 4 })}{' '}
+              SOL as its fee. Coinside charges nothing.
+            </p>
+          )}
           <p>
             {toast ? (
               <Link className="lnk" href="/portfolio#deposit">

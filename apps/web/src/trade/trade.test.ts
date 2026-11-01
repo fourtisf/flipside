@@ -101,11 +101,25 @@ describe('moving a deposit to the trading balance', () => {
       size: '1.5',
       order: { a: 10156, b: false, p: '185.22', s: '1.5', r: false, t: { limit: { tif: 'Ioc' } } },
     });
+    // at the best bid when the book gives one
+    expect(planSellUsol(spot, m, 186.9)).toMatchObject({ ok: true, order: { p: '186.9', s: '1.5' } });
+    // the $10 check is on what Hyperliquid checks: the size after rounding down, times the limit price
+    // (ALFA's first deposit: 0.1065 USOL; with two size decimals that sells 0.10, under $10 at $95)
+    expect(planSellUsol([{ coin: 'USOL', total: 0.1065, hold: 0 }], { ...m, px: 95.3 }, 95.2)).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining('worth $9.52'),
+    });
+    expect(
+      planSellUsol([{ coin: 'USOL', total: 0.1065, hold: 0 }], { ...m, szDecimals: 4, px: 95.3 }, 95.2),
+    ).toMatchObject({
+      ok: true,
+      size: '0.1065',
+    });
     // nothing to sell, too little to sell, no price
     expect(planSellUsol([], m)).toBeNull();
     expect(planSellUsol([{ coin: 'USOL', total: 0.05, hold: 0 }], m)).toMatchObject({
       ok: false,
-      reason: expect.stringContaining('less than $10'),
+      reason: expect.stringContaining("under Hyperliquid's $10 smallest order"),
     });
     expect(planSellUsol(spot, { ...m, px: 0 })).toMatchObject({ ok: false });
   });

@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { UnitAddresses } from '@/lib/unit';
-import { MAX_DEPOSIT_LAMPORTS, MIN_DEPOSIT_LAMPORTS, planDeposit, toLamports } from './deposit';
+import {
+  MAX_DEPOSIT_LAMPORTS,
+  MIN_DEPOSIT_LAMPORTS,
+  minDepositLamports,
+  planDeposit,
+  toLamports,
+} from './deposit';
 
 const HL = '0x1234567890abcdef1234567890abcdef12345678';
 const UNIT_SOL = '4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZAMdL4VZHirAn';
@@ -68,5 +74,19 @@ describe('Unit deposit address, on the server', () => {
     now += 11 * 60_000;
     addr = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
     await expect(u.depositAddress(HL)).rejects.toThrow(/different address/);
+  });
+});
+
+describe('the smallest deposit worth making', () => {
+  it("covers Unit's fee and Hyperliquid's $10 order at today's price, never under Unit's own minimum", () => {
+    // ALFA's case: 0.12 SOL at about $95 arrived as 0.1065 USOL, too close to $10 to sell
+    expect(minDepositLamports(95.3)).toBe(140_000_000n);
+    expect(minDepositLamports(187.23)).toBe(120_000_000n);
+    expect(minDepositLamports(0)).toBe(120_000_000n);
+    expect(planDeposit('0.13', 10n ** 10n, 95.3)).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining('Deposit at least 0.14 SOL'),
+    });
+    expect(planDeposit('0.14', 10n ** 10n, 95.3)).toEqual({ ok: true, lamports: 140_000_000n });
   });
 });

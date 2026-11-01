@@ -17,8 +17,10 @@ describe('following a deposit', () => {
     t.observe([{ coin: 'USOL', total: 0.5, hold: 0 }]);
     expect(t.pending!.arrived).toBe(false);
     expect(t.slow(t.pending!.at + SLOW_MS + 1)).toBe(true);
-    t.observe([{ coin: 'USOL', total: 0.618, hold: 0 }]);
+    t.observe([{ coin: 'USOL', total: 0.6065, hold: 0 }]);
     expect(t.pending!.arrived).toBe(true);
+    // what arrived, so the panel can show Unit's fee
+    expect(t.pending!.received).toBeCloseTo(0.1065);
     expect(t.slow(Date.now() + SLOW_MS * 2)).toBe(false);
     t.dismiss();
     expect(t.pending).toBeNull();

@@ -50,37 +50,39 @@ export const free = (spot: SpotRow[] | null, coin: string) => {
   return b ? Math.max(0, b.total - b.hold) : 0;
 };
 
-/** The sell order that turns all free USOL into USDC, or why it can't go. */
+/**
+ * The sell order that turns all free USOL into USDC, or why it can't go. It sells at the best bid when the book
+ * gives one (a small deposit sits close to Hyperliquid's $10 minimum, and 1% of slippage could push it under),
+ * else 1% under the mid; and the $10 check uses exactly what Hyperliquid will check: the size after rounding
+ * down to the lot, times the limit price.
+ */
 export function planSellUsol(
   spot: SpotRow[] | null,
   m: SpotMarket | null,
+  bid?: number,
 ): { ok: true; order: Order; size: string } | { ok: false; reason: string } | null {
   const amount = free(spot, USOL);
   if (!(amount > 0)) return null;
   if (!m || !(m.px > 0))
     return { ok: false, reason: 'No USOL price from Hyperliquid yet. Try again in a moment.' };
-  if (amount * m.px < MIN_ORDER_USD)
-    return {
-      ok: false,
-      reason: `Your SOL is worth less than $${MIN_ORDER_USD}, Hyperliquid's smallest order. Deposit a little more.`,
-    };
   let size: string;
+  let px: string;
   try {
     size = formatSize(amount, m.szDecimals);
+    px = formatPrice(bid && bid > 0 ? bid : m.px * (1 - SLIPPAGE), m.szDecimals, 'spot');
   } catch {
     return { ok: false, reason: 'That amount of SOL is too small to sell.' };
   }
+  const value = Number(size) * Number(px);
+  if (value < MIN_ORDER_USD)
+    return {
+      ok: false,
+      reason: `Your USOL is worth $${value.toFixed(2)}, under Hyperliquid's $${MIN_ORDER_USD} smallest order, so it can't be sold yet. Deposit a little more SOL, then try again.`,
+    };
   return {
     ok: true,
     size,
-    order: {
-      a: m.asset,
-      b: false,
-      p: formatPrice(m.px * (1 - SLIPPAGE), m.szDecimals, 'spot'),
-      s: size,
-      r: false,
-      t: { limit: { tif: 'Ioc' } },
-    },
+    order: { a: m.asset, b: false, p: px, s: size, r: false, t: { limit: { tif: 'Ioc' } } },
   };
 }
 

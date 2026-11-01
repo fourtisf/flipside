@@ -161,6 +161,15 @@ export async function mockHyperliquid(
       case 'recentTrades':
         return route.fulfill({ json: trades(body.coin!) });
       case 'l2Book':
+        // a spot pair ("@156" is USOL/USDC): a tight book around its mid
+        if (body.coin!.startsWith('@'))
+          return route.fulfill({
+            json: {
+              coin: body.coin,
+              time: Date.now(),
+              levels: [[{ px: '186.9', sz: '50.0', n: 3 }], [{ px: '187.3', sz: '40.0', n: 2 }]],
+            },
+          });
         return route.fulfill({ json: book(body.coin!) });
       // the account of whoever connects (any address gets the fixture account)
       case 'clearinghouseState':
