@@ -10,6 +10,8 @@ import { LIVE } from '@/lib/edition';
 import { useDialog } from './dialog';
 import { TRADING } from '@/trade/config';
 import { LogoMark } from './ui';
+import { TELEGRAM_URL, X_URL } from '@/lib/social';
+import { TokenCA } from './live/TokenCA';
 
 export function Footer() {
   const hrefs = useNavHrefs();
@@ -27,6 +29,7 @@ export function Footer() {
                 ? "Long or short on every Hyperliquid market from your Solana wallet, on Hyperliquid's order book."
                 : 'Long or short any Solana coin by its contract address, filled against an on-chain pool.'}
             </p>
+            {LIVE && <TokenCA id="ftCa" />}
           </div>
           <div>
             <h2 className="h4">Product</h2>
@@ -61,21 +64,28 @@ export function Footer() {
               </li>
             </ul>
           </div>
-          <div>
-            <h2 className="h4">Community</h2>
-            <ul>
-              <li>
-                <a href="#" onClick={(e) => e.preventDefault()}>
-                  X
-                </a>
-              </li>
-              <li>
-                <a href="#" onClick={(e) => e.preventDefault()}>
-                  Telegram
-                </a>
-              </li>
-            </ul>
-          </div>
+          {/* only links that are set: never a dead "#" or a guessed account */}
+          {(X_URL || TELEGRAM_URL) && (
+            <div>
+              <h2 className="h4">Community</h2>
+              <ul>
+                {X_URL && (
+                  <li>
+                    <a href={X_URL} target="_blank" rel="noopener noreferrer">
+                      X
+                    </a>
+                  </li>
+                )}
+                {TELEGRAM_URL && (
+                  <li>
+                    <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer">
+                      Telegram
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
         <div className="fb">
           <span>

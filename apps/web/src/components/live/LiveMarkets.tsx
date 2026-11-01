@@ -13,6 +13,7 @@ import { LiveMap, MAP_RANGE } from './LiveMap';
 import { LiveTicket } from './LiveTicket';
 import { statusText } from './status';
 import { CoinTok } from './CoinTok';
+import { TokenCA } from './TokenCA';
 
 /* ---------- hero ---------- */
 const TRUST = [
@@ -85,6 +86,7 @@ function Hero() {
             How it works
           </Link>
         </div>
+        <TokenCA />
         <ul className="trust">
           {TRUST.map((t) => (
             <li key={t.b}>
