@@ -8,6 +8,7 @@ for X, posts and slides.
 | File | Size | Use |
 |---|---|---|
 | `x-header.png` | 1500 × 500 | X header. Text sits left and above the bottom-left corner the profile picture covers. |
+| `x-article.png` | 2000 × 800 | X Article cover (5:2, what X asks for). Headline left, the color coin between a long and a short chart. |
 | `x-profile.png` | 400 × 400 | X profile picture (X crops it to a circle). |
 | `x-profile-color.png` | 400 × 400 | The same, green and red halves. |
 | `lockup-on-black.png` | 1200 × 400 | Mark and wordmark on black, for posts and slides. |

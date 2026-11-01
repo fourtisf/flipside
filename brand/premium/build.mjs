@@ -136,6 +136,80 @@ files['lockup-on-black.svg'] = svgDoc(
   `<rect width="1200" height="400" fill="#000"/><g transform="translate(340 136) scale(2)">${lock('e', false)}</g>`,
 );
 
+// 6. X article cover, 5:2 (1500x600): the headline on the left; on the right the color coin at the split of a
+// market going up (long) and its mirror going down (short)
+function articleCandles() {
+  const out = [];
+  const candle = (x, o, c, up, wickUp, wickDown) => {
+    const col = up ? GREEN : RED;
+    const top = Math.min(o, c),
+      h = Math.max(Math.abs(c - o), 3);
+    out.push(
+      `<line x1="${x + 8}" y1="${top - wickUp}" x2="${x + 8}" y2="${top + h + wickDown}" stroke="${col}" stroke-width="2" opacity=".9"/>`,
+    );
+    out.push(`<rect x="${x}" y="${top}" width="16" height="${h}" rx="2" fill="${col}"/>`);
+  };
+  // left: up from y 480 toward 230, one pullback
+  let px = 480;
+  for (let i = 0; i < 6; i++) {
+    const x = 820 + i * 27;
+    const pull = i === 2;
+    const step = 44 + ((i * 7) % 13);
+    const o = px,
+      c = pull ? px + 14 : px - step;
+    candle(x, o, c, !pull, 8 + (i % 3) * 3, 7 + (i % 2) * 4);
+    px = c;
+  }
+  // right: the mirror, down from y 230 toward 480, one bounce
+  px = 230;
+  for (let i = 0; i < 6; i++) {
+    const x = 1277 + i * 27;
+    const bounce = i === 3;
+    const step = 44 + (((5 - i) * 7) % 13);
+    const o = px,
+      c = bounce ? px - 14 : px + step;
+    candle(x, o, c, bounce, 7 + (i % 2) * 4, 8 + (i % 3) * 3);
+    px = c;
+  }
+  return out.join('');
+}
+const chip = (x, w, label) =>
+  `<rect x="${x}" y="452" width="${w}" height="38" rx="8" fill="#0A0A0A" stroke="#2A2A2A"/>` +
+  `<text x="${x + w / 2}" y="476" text-anchor="middle" font-family="Geist Mono" font-size="15" fill="#A1A1A1">${label}</text>`;
+const agrid = [];
+for (let y = 100; y <= 520; y += 70)
+  agrid.push(`<line x1="820" y1="${y}" x2="1430" y2="${y}" stroke="#141414" stroke-width="1"/>`);
+for (let x = 820; x <= 1430; x += 76.25)
+  agrid.push(`<line x1="${x}" y1="80" x2="${x}" y2="530" stroke="#0E0E0E" stroke-width="1"/>`);
+const article = `
+  <rect width="1500" height="600" fill="#000"/>
+  <defs>
+    <radialGradient id="aglow" cx="1124" cy="330" r="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".06"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1500" height="600" fill="url(#aglow)"/>
+  ${agrid.join('')}
+  <line x1="1124" y1="70" x2="1124" y2="540" stroke="#3A3A3A" stroke-width="2" stroke-dasharray="2 6"/>
+  <text x="822" y="120" font-family="Geist Mono" font-size="15" letter-spacing="2" fill="${GREEN}">LONG</text>
+  <text x="1414" y="120" text-anchor="end" font-family="Geist Mono" font-size="15" letter-spacing="2" fill="${RED}">SHORT</text>
+  ${articleCandles()}
+  <circle cx="1124" cy="330" r="140" fill="none" stroke="#151515" stroke-width="1.5"/>
+  <circle cx="1124" cy="330" r="112" fill="#000" stroke="#232323" stroke-width="1.5"/>
+  <g transform="translate(1124 330) scale(3.3) translate(-32 -32)">${mark('ar', { color: true })}</g>
+  <g transform="translate(110 78) scale(.8)">${mark('al', { color: false })}</g>
+  <text x="172" y="114" font-family="Inter" font-weight="600" font-size="30" letter-spacing="-.75" fill="${T1}">Coinside</text>
+  <text x="110" y="250" font-family="Inter" font-weight="600" font-size="80" letter-spacing="-3.2" fill="${T1}">Meet Coinside.</text>
+  <text x="110" y="318" font-family="Inter" font-weight="600" font-size="46" letter-spacing="-1.6" fill="#6E6E6E">Every coin has two sides.</text>
+  <text x="110" y="380" font-family="Inter" font-weight="400" font-size="22" fill="#A1A1A1">Long or short on Hyperliquid, straight from</text>
+  <text x="110" y="410" font-family="Inter" font-weight="400" font-size="22" fill="#A1A1A1">your Solana wallet.</text>
+  ${chip(110, 168, 'Solana wallet')}
+  ${chip(290, 178, 'Deposit SOL')}
+  ${chip(480, 196, 'No Coinside fee')}
+  <text x="1414" y="572" text-anchor="end" font-family="Geist Mono" font-size="17" letter-spacing=".5" fill="#A1A1A1">coinside.fun</text>
+  <text x="110" y="572" font-family="Geist Mono" font-size="17" letter-spacing=".5" fill="#6E6E6E">@usecoinside</text>`;
+files['x-article.svg'] = svgDoc(1500, 600, article);
+
 for (const [name, svg] of Object.entries(files)) writeFileSync(`${out}/${name}`, svg);
 const png = async (name, w, h) =>
   sharp(Buffer.from(files[name]), { density: 300 })
@@ -150,4 +224,5 @@ await png('lockup-color.svg', 1040, 256);
 await png('mark.svg', 512, 512);
 await png('mark-color.svg', 512, 512);
 await png('lockup-on-black.svg', 1200, 400);
+await png('x-article.svg', 2000, 800);
 console.log('ok');
