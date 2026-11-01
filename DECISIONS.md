@@ -20,6 +20,16 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Max, and limit orders from the order book (ALFA, 1 Nov 2026)
+
+ALFA: "harusnya ada fitur Max, dan orderbook bisa dipencet, ketika dipencet itu ke limit order".
+
+- **Max** (terminal and Quick trade): fills the amount with what the account can use, less 0.1% of the position
+  per 1x of leverage, rounded down to the cent. That room covers Hyperliquid's trading fee (more than twice the
+  base taker fee), so a Max order isn't refused for margin: $10.10 at 20x fills $9.89.
+- **The order book is clickable:** a click on any bid or ask (or Enter on its price) switches the order panel to
+  Limit at that price and focuses the price field; the side stays as it was.
+
 ## Deposits from Solana, switched on (ALFA, 1 Nov 2026)
 
 ALFA chose "Nyalakan sekarang, cek nanti": switch SOL deposits on now, and add Unit's guardian signature check

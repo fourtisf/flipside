@@ -2,7 +2,7 @@
 
 import { pxDiffText, pxText, szCol } from '@/hl/format';
 import type { Market } from '@/hl/markets';
-import { useBook, useTrades, type Trade } from '@/hl/provider';
+import { useBook, useHl, useTrades, type Trade } from '@/hl/provider';
 import { Price } from '../ui';
 
 const LEVELS = 10;
@@ -17,7 +17,16 @@ const clock = (ms: number) => {
 /** Hyperliquid's order book for one market: asks above, bids below, with running totals and depth bars. */
 export function OrderBook({ m }: { m: Market }) {
   const book = useBook(m.name, LEVELS);
+  const hl = useHl();
   const sz = m.szDecimals;
+  // a price in the book becomes a limit order at that price, ready to place
+  const pick = (px: number) => {
+    hl.set((s) => {
+      s.draft.type = 'limit';
+      s.draft.limit = pxText(px, sz).replace(/,/g, '');
+    });
+    requestAnimationFrame(() => document.getElementById('o-px')?.focus());
+  };
   return (
     <div className="pn ob" role="region" aria-labelledby="ob-h">
       <div className="pn-h">
@@ -39,10 +48,18 @@ export function OrderBook({ m }: { m: Market }) {
         <div id="ob" role="table" aria-label={`${m.name} order book`}>
           <div role="rowgroup" aria-label="Asks">
             {[...book.asks].reverse().map((r) => (
-              <div className="ob-r a" role="row" key={r.px}>
+              <div
+                className="ob-r a pick"
+                role="row"
+                key={r.px}
+                data-px={pxText(r.px, sz).replace(/,/g, '')}
+                onClick={() => pick(r.px)}
+              >
                 <i style={{ width: `${(r.depth * 100).toFixed(1)}%` }} aria-hidden="true" />
                 <span role="cell" className="dn">
-                  {pxText(r.px, sz)}
+                  <button type="button" className="ob-px" aria-label={`Limit order at ${pxText(r.px, sz)}`}>
+                    {pxText(r.px, sz)}
+                  </button>
                 </span>
                 <span role="cell">{szCol(r.sz, sz)}</span>
                 <span role="cell" className="t3">
@@ -63,10 +80,18 @@ export function OrderBook({ m }: { m: Market }) {
           </div>
           <div role="rowgroup" aria-label="Bids">
             {book.bids.map((r) => (
-              <div className="ob-r b" role="row" key={r.px}>
+              <div
+                className="ob-r b pick"
+                role="row"
+                key={r.px}
+                data-px={pxText(r.px, sz).replace(/,/g, '')}
+                onClick={() => pick(r.px)}
+              >
                 <i style={{ width: `${(r.depth * 100).toFixed(1)}%` }} aria-hidden="true" />
                 <span role="cell" className="up">
-                  {pxText(r.px, sz)}
+                  <button type="button" className="ob-px" aria-label={`Limit order at ${pxText(r.px, sz)}`}>
+                    {pxText(r.px, sz)}
+                  </button>
                 </span>
                 <span role="cell">{szCol(r.sz, sz)}</span>
                 <span role="cell" className="t3">

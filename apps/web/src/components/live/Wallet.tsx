@@ -283,3 +283,24 @@ export function AvailableNote() {
   if (wallet.status !== 'connected' || !account.summary) return <b>Margin in USDC</b>;
   return <b>Available {usd2(account.summary.withdrawable)}</b>;
 }
+
+/**
+ * Max: fills the amount with what the account can use, less a little for Hyperliquid's trading fee (0.1% of the
+ * position per 1x of leverage, more than twice the base taker fee), so a Max order isn't refused for margin.
+ */
+export function maxMargin(available: number, lev: number): number {
+  const cents = Math.floor(available * (1 - 0.001 * Math.max(1, lev)) * 100 + 1e-9);
+  return cents > 0 ? cents / 100 : 0;
+}
+
+export function MaxButton({ id, lev, onPick }: { id: string; lev: number; onPick: (amt: string) => void }) {
+  const wallet = useWallet();
+  const account = useAccount();
+  const max = account.summary ? maxMargin(account.summary.withdrawable, lev) : 0;
+  if (wallet.status !== 'connected' || !(max > 0)) return null;
+  return (
+    <button type="button" className="btn o amt-max" id={id} onClick={() => onPick(max.toFixed(2))}>
+      Max
+    </button>
+  );
+}

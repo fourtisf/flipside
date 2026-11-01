@@ -272,6 +272,11 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .ob-r span{position:relative;white-space:nowrap}
 .ob-r i{position:absolute;right:0;top:1px;bottom:1px;pointer-events:none}
 .ob-r.a i{background:var(--shortbg)}.ob-r.b i{background:var(--longbg)}
+.ob-r.pick{cursor:pointer}
+.ob-r.pick:hover{background:var(--s2)}
+.ob-px{all:unset;cursor:pointer;color:inherit}
+.ob-px:focus-visible{outline:2px solid var(--t2);outline-offset:2px;border-radius:3px}
+.amt-max{height:28px;padding:0 10px;font-size:12px}
 .ob-sp{display:flex;align-items:center;justify-content:space-between;gap:12px;height:36px;margin:4px 0;padding:0 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font:12px var(--mono);color:var(--t3);letter-spacing:-.02em}
 .ob-sp b{font:500 14px var(--mono);color:var(--t1);letter-spacing:-.03em}
 #rt{padding:4px 0 8px}

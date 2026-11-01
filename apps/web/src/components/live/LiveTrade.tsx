@@ -13,7 +13,7 @@ import { LiveChart, TFS, type Tf } from './LiveChart';
 import { LevButtons, Sides, Summary, levFor } from './OrderBits';
 import { statusText } from './status';
 import { CoinTok } from './CoinTok';
-import { AvailableNote } from './Wallet';
+import { AvailableNote, MaxButton } from './Wallet';
 import { TradeButton } from './Trading';
 import { OrdersPanel, PositionsPanel } from './LivePortfolio';
 import { useAccount, useWallet } from '@/wallet/provider';
@@ -132,6 +132,7 @@ function OrderPanel({ m }: { m: Market }) {
           onChange={(e) => hl.set((s) => void (s.draft.amt = e.target.value))}
         />
         <span>USDC</span>
+        <MaxButton id="o-max" lev={lev} onPick={(a) => hl.set((s) => void (s.draft.amt = a))} />
       </div>
       <div className="fl">
         <span>Leverage</span>

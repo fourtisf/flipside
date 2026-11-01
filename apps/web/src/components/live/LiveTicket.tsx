@@ -9,7 +9,7 @@ import { LiveSearchBox } from './LiveSearch';
 import { LevButtons, Sides, Summary, levFor } from './OrderBits';
 import { statusText } from './status';
 import { CoinTok } from './CoinTok';
-import { AvailableNote } from './Wallet';
+import { AvailableNote, MaxButton } from './Wallet';
 import { TradeButton } from './Trading';
 import { TRADING } from '@/trade/config';
 
@@ -119,6 +119,13 @@ export function LiveTicket() {
             onChange={(e) => hl.set((s) => void (s.draft.amt = e.target.value))}
           />
           <span>USDC</span>
+          {m && (
+            <MaxButton
+              id="tk-max"
+              lev={levFor(m, d.lev)}
+              onPick={(a) => hl.set((s) => void (s.draft.amt = a))}
+            />
+          )}
         </div>
         {m && (
           <>

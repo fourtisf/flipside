@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CLEARINGHOUSE, EMPTY_CLEARINGHOUSE, EMPTY_SPOT, FILLS, ORDERS, SPOT } from '../../e2e/hl-fixtures';
 import { isEmpty, mergeFills, toFills, toOrders, toPerps, toSpot } from './account';
 import { WALLETS, shortAddr, walletByRdns, walletFromFlags } from './catalog';
+import { maxMargin } from '@/components/live/Wallet';
 import { WalletStore, connectError, type Eip1193 } from './store';
 
 const ADDR = '0x1234567890ABCDEF1234567890abcdef12345678';
@@ -170,5 +171,14 @@ describe('account', () => {
     expect(mergeFills(fills, fills)).toBe(fills);
     const next = { ...fills[0]!, tid: 99, time: fills[0]!.time + 1 };
     expect(mergeFills(fills, [next]).map((f) => f.tid)).toEqual([99, 1, 2]);
+  });
+});
+
+describe('Max', () => {
+  it('fills what the account can use, less room for the trading fee, rounded down to the cent', () => {
+    expect(maxMargin(744.26, 5)).toBe(740.53);
+    expect(maxMargin(10.1, 20)).toBe(9.89);
+    expect(maxMargin(10.1, 1)).toBe(10.08);
+    expect(maxMargin(0, 5)).toBe(0);
   });
 });

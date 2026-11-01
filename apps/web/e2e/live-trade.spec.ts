@@ -436,3 +436,28 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   await page.locator('#depStatus .dep-x').click();
   await expect(page.locator('#depStatus')).toHaveCount(0);
 });
+
+test('Max fills the usable margin, and a price in the order book becomes a limit order', async ({ page }) => {
+  await connected(page);
+  // Max: what the account can use ($744.26), less 0.1% per 1x of leverage for the trading fee
+  await page.locator('#o-lev button[data-lev="5"]').click();
+  await page.locator('#o-max').click();
+  await expect(page.locator('#o-amt')).toHaveValue('740.53');
+  await page.locator('#o-lev button[data-lev="20"]').click();
+  await page.locator('#o-max').click();
+  await expect(page.locator('#o-amt')).toHaveValue('729.37');
+
+  // a click on a bid in the book: Limit, at that price, ready to place
+  const row = page.locator('#ob .ob-r.b').first();
+  const px = await row.getAttribute('data-px');
+  await row.click();
+  await expect(page.locator('#o-type button', { hasText: 'Limit' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#o-px')).toHaveValue(px!);
+  await expect(page.locator('#o-px')).toBeFocused();
+  // and an ask, by keyboard on its price
+  const ask = page.locator('#ob .ob-r.a').last();
+  const askPx = await ask.getAttribute('data-px');
+  await ask.locator('.ob-px').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#o-px')).toHaveValue(askPx!);
+});
