@@ -277,11 +277,14 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .ob-px{all:unset;cursor:pointer;color:inherit}
 .ob-px:focus-visible{outline:2px solid var(--t2);outline-offset:2px;border-radius:3px}
 .amt-max{height:28px;padding:0 10px;font-size:12px}
-.ca-row{display:flex;align-items:center;gap:8px;margin-top:20px;max-width:440px}
+.ca-row{display:flex;align-items:center;gap:8px;margin-top:20px;max-width:520px}
 .ca{flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:40px;padding:0 6px 0 12px;border:1px solid var(--line2);border-radius:10px;background:var(--s1)}
 .ca-k{font:500 11px var(--mono);color:var(--t3);letter-spacing:.06em}
 .ca code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 13px var(--mono);color:var(--t1);background:none;border:0;padding:0;border-radius:0}
 .ca code.soon{color:var(--t2)}
+.ca code:not(.soon){display:flex}
+.ca-a{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ca-b{flex:none}
 .ca-copy{height:28px;padding:0 10px;border:1px solid var(--line2);border-radius:7px;font-size:12px;color:var(--t1);background:var(--s2)}
 .ca-copy:hover{border-color:var(--line3)}
 .ca-x{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--line2);border-radius:10px;color:var(--t1);background:var(--s1)}
@@ -512,7 +515,7 @@ kbd{font:500 11px var(--mono);color:var(--t3);border:1px solid var(--line2);bord
 .risks li::before{content:"";flex:none;width:5px;height:5px;border-radius:50%;background:var(--short);margin-top:8px}
 
 footer{border-top:1px solid var(--line)}
-.ft{display:grid;grid-template-columns:1.4fr repeat(3,minmax(0,1fr));gap:32px;padding:48px 0 32px}
+.ft{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,1fr));gap:32px;padding:48px 0 32px}
 .ft p{font-size:13px;color:var(--t3);margin-top:12px;max-width:34ch;line-height:1.6}
 .ft h4,.ft .h4{font-size:12.5px;font-weight:500;color:var(--t3);margin-bottom:12px}
 .ft ul{list-style:none;display:grid;gap:8px}
@@ -620,7 +623,8 @@ dialog .amt{margin-top:16px}
   .steps li:nth-child(3){border-left:0}
   .steps li:nth-child(n+3){border-top:1px solid var(--line)}
   .podium{grid-template-columns:1fr}
-  .ft{grid-template-columns:1fr 1fr}
+  .ft{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ft>:first-child{grid-column:1/-1}
 }
 @media (max-width:640px){
   .wrap,.hdr-in{padding-left:16px;padding-right:16px}

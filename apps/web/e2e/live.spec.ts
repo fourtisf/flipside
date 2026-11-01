@@ -5,6 +5,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { NO_LOGO, mockHyperliquid } from './hl-mock';
 
+/** Coinside's token on pump.fun. */
+const CA = '7qUjC9A27ijrQrG69kj6cU2o8wUT9APHeJgMixLxpump';
+
 function watchErrors(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -246,7 +249,7 @@ test('docs: how it works on Hyperliquid', async ({ page }) => {
   await nothingOld(page);
 });
 
-test('the token: "CA Coming soon" with a Copy button, and no dead community links', async ({
+test("the token: Coinside's CA with a Copy button, and no dead community links", async ({
   page,
   context,
 }) => {
@@ -255,12 +258,15 @@ test('the token: "CA Coming soon" with a Copy button, and no dead community link
   await page.goto('/');
   const ca = page.locator('#ca');
   await expect(ca).toContainText('CA');
-  await expect(ca).toContainText('Coming soon');
-  await ca.getByRole('button', { name: /Copy/ }).click();
+  await expect(ca.locator('code')).toHaveText(CA);
+  // however narrow, the end of the address stays in view
+  await expect(ca.locator('.ca-b')).toBeVisible();
+  await expect(ca.locator('.ca-b')).toHaveText('Lxpump');
+  await ca.getByRole('button', { name: /Copy contract address/ }).click();
   await expect(ca.getByRole('button', { name: /Copy/ })).toHaveText('Copied');
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('Coming soon');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(CA);
   // the footer carries it too; Coinside's X account sits next to both and in Community; Telegram once set
-  await expect(page.locator('#ftCa')).toContainText('Coming soon');
+  await expect(page.locator('#ftCa code')).toHaveText(CA);
   await expect(page.locator('.ca-row').first().locator('a.ca-x')).toHaveAttribute(
     'href',
     'https://x.com/usecoinside',

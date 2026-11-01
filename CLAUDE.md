@@ -27,12 +27,12 @@ Also in scope: Practice mode (paper SOL), pool LP deposits, leaderboard and week
 
 These are real observations from useinverse.xyz's public API and on-chain data during its first day. Every one of them maps to a requirement below.
 
-| What happened at Inverse | What Coinside does instead |
-|---|---|
-| Three wallets shorted three coins within seconds of each other at $17K–$29K market cap. The coins went to roughly $0 (liquidity pulled) and each wallet hit max win (~1.35 SOL each). The LP share price fell from 1.00 to about 0.54 in under a day. | Rug guard, insider filter, self-trade detection, per-coin caps and a $30K market cap floor checked on every trade (section 8). |
-| The engine refused to boot: "book holds 122.775 SOL, expected 122.825 SOL". Trading was halted with balances frozen. | All money is integer lamports in a double-entry ledger. In-flight deposits and withdrawals have their own ledger accounts. The audit runs on boot and every 5 seconds, and the halt policy keeps closes and withdrawals working (section 6). |
-| The vault program was unverified and upgradeable by a single key. Their escape hatch only returned deposits, not profits. | Verified build, Squads multisig upgrade authority with a 72-hour timelock, and a Merkle balance proof posted every 5 minutes that lets users withdraw their full balance if the engine stops (section 5). |
-| 82 program transactions in 7 days versus 1,298 trades in 24 hours: all trading was off-chain with no way to check the book. | Trading is off-chain too, for speed, but every balance is committed on-chain every 5 minutes and anyone can verify their own leaf. |
+| What happened at Inverse                                                                                                                                                                                                                              | What Coinside does instead                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Three wallets shorted three coins within seconds of each other at $17K–$29K market cap. The coins went to roughly $0 (liquidity pulled) and each wallet hit max win (~1.35 SOL each). The LP share price fell from 1.00 to about 0.54 in under a day. | Rug guard, insider filter, self-trade detection, per-coin caps and a $30K market cap floor checked on every trade (section 8).                                                                                                               |
+| The engine refused to boot: "book holds 122.775 SOL, expected 122.825 SOL". Trading was halted with balances frozen.                                                                                                                                  | All money is integer lamports in a double-entry ledger. In-flight deposits and withdrawals have their own ledger accounts. The audit runs on boot and every 5 seconds, and the halt policy keeps closes and withdrawals working (section 6). |
+| The vault program was unverified and upgradeable by a single key. Their escape hatch only returned deposits, not profits.                                                                                                                             | Verified build, Squads multisig upgrade authority with a 72-hour timelock, and a Merkle balance proof posted every 5 minutes that lets users withdraw their full balance if the engine stops (section 5).                                    |
+| 82 program transactions in 7 days versus 1,298 trades in 24 hours: all trading was off-chain with no way to check the book.                                                                                                                           | Trading is off-chain too, for speed, but every balance is committed on-chain every 5 minutes and anyone can verify their own leaf.                                                                                                           |
 
 ## 3. Stack
 
@@ -197,16 +197,16 @@ Open `prototype.html` in a browser and click through every view before starting.
 
 Routes:
 
-| Route | Prototype view |
-|---|---|
-| `/` | Markets: tape, hero with Quick trade ticket, stats strip, market map, Hot / Most shorted / Big caps, All markets table, Live trades, Top wins today |
-| `/trade/[mint]` | Terminal: coin header, watchlist, candle chart with 60s average line, Short view flip, order panel, positions and history tabs |
-| `/portfolio` | Metrics, referral link, open positions, history, deposit and withdraw dialogs |
-| `/pool` | Metrics, share price chart, add/remove form, exposure table, safety switches |
-| `/leaderboard` | Today / This week, podium, table, Copy buttons |
-| `/docs` | Getting started, rules, pool protection, risks (keep the copy) |
-| `/r/[code]` | Sets the referrer cookie and redirects to `/` |
-| `/emergency` | Emergency withdraw via Merkle proof (new, follow the same design system) |
+| Route           | Prototype view                                                                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`             | Markets: tape, hero with Quick trade ticket, stats strip, market map, Hot / Most shorted / Big caps, All markets table, Live trades, Top wins today |
+| `/trade/[mint]` | Terminal: coin header, watchlist, candle chart with 60s average line, Short view flip, order panel, positions and history tabs                      |
+| `/portfolio`    | Metrics, referral link, open positions, history, deposit and withdraw dialogs                                                                       |
+| `/pool`         | Metrics, share price chart, add/remove form, exposure table, safety switches                                                                        |
+| `/leaderboard`  | Today / This week, podium, table, Copy buttons                                                                                                      |
+| `/docs`         | Getting started, rules, pool protection, risks (keep the copy)                                                                                      |
+| `/r/[code]`     | Sets the referrer cookie and redirects to `/`                                                                                                       |
+| `/emergency`    | Emergency withdraw via Merkle proof (new, follow the same design system)                                                                            |
 
 Design tokens (copy from the prototype's `:root`):
 
@@ -439,7 +439,7 @@ External audit of the vault program, Squads multisig and timelock in place, veri
 ## 16. Open decisions for ALFA (do not guess these, ask)
 
 1. ~~Final name and domain~~ Decided 29 Oct 2026: **Coinside**, at **coinside.fun** (Flipside was the working name; its domains were taken).
-2. Whether to launch a token. If yes, how its creator fees flow into the pool.
+2. ~~Whether to launch a token~~ Decided 1 Nov 2026: launched on pump.fun, CA `7qUjC9A27ijrQrG69kj6cU2o8wUT9APHeJgMixLxpump`. Still open: how its creator fees flow (there is no pool since the Hyperliquid rebuild).
 3. Who seeds the pool at launch and how much.
 4. Fee split and max win tiers if they should differ from this brief.
 5. Legal review and geo-blocking: this is a leveraged derivatives product on memecoins.

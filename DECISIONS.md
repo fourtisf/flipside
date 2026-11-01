@@ -25,9 +25,12 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 ALFA: "buat CA coming soon dan tambahkan X-nya, CA coming soon bisa dicopy". This is ALFA's call on CLAUDE.md
 section 16, decision 2 (launch a token); how its creator fees would flow is still open.
 
+- **The token is live (ALFA, later the same day): `7qUjC9A27ijrQrG69kj6cU2o8wUT9APHeJgMixLxpump`**, launched on
+  pump.fun. It is the default address (`NEXT_PUBLIC_TOKEN_CA` can replace it). Where the box is too narrow for all
+  44 characters, the start gives way and the last six stay in view (`…Lxpump`), since people check both ends.
 - **CA box** on the home page (under the hero buttons) and in the footer: "CA" with the contract address and a
-  Copy button. Until `NEXT_PUBLIC_TOKEN_CA` holds a valid Solana address it reads "Coming soon", and Copy copies
-  that text, as asked.
+  Copy button. Before the launch it read "Coming soon", and Copy copied that text, as asked; a malformed
+  `NEXT_PUBLIC_TOKEN_CA` still shows that rather than a wrong address.
 - **X: https://x.com/usecoinside** (ALFA, later the same day), the default link; `NEXT_PUBLIC_X_URL` can override it.
   Before that, ALFA had no account ("belum ada, nanti saja"), and the rule below kept it hidden.
 - **X, before the account existed:** An X button sits next to the CA box and in the footer's

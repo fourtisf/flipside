@@ -16,8 +16,8 @@ function XLogo() {
 }
 
 /**
- * Coinside's token: its contract address with a Copy button ("Coming soon" until NEXT_PUBLIC_TOKEN_CA is set),
- * and the X account next to it once NEXT_PUBLIC_X_URL is set.
+ * Coinside's token: its contract address with a Copy button ("Coming soon" if the address is malformed), and
+ * Coinside's X account next to it.
  */
 export function TokenCA({ id = 'ca' }: { id?: string }) {
   const [copied, setCopied] = useState(false);
@@ -34,7 +34,15 @@ export function TokenCA({ id = 'ca' }: { id?: string }) {
     <div className="ca-row">
       <div className="ca" id={id}>
         <span className="ca-k">CA</span>
-        <code className={TOKEN_CA ? undefined : 'soon'}>{text}</code>
+        {TOKEN_CA ? (
+          // too narrow for all of it: the start gives way, the last six characters stay (…Lxpump)
+          <code title={TOKEN_CA}>
+            <span className="ca-a">{TOKEN_CA.slice(0, -6)}</span>
+            <span className="ca-b">{TOKEN_CA.slice(-6)}</span>
+          </code>
+        ) : (
+          <code className="soon">{text}</code>
+        )}
         <button
           type="button"
           className="ca-copy"
