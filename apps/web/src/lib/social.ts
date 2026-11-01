@@ -19,7 +19,13 @@ const httpsOn = (url: string, hosts: string[]) => {
   }
 };
 
+/** Coinside's official X account (ALFA, 1 Nov 2026); NEXT_PUBLIC_X_URL can point elsewhere. */
+export const OFFICIAL_X = 'https://x.com/usecoinside';
 /** Coinside's X (Twitter) account. */
-export const X_URL = httpsOn(env(process.env.NEXT_PUBLIC_X_URL), ['x.com', 'www.x.com', 'twitter.com']);
+export const X_URL = httpsOn(env(process.env.NEXT_PUBLIC_X_URL) || OFFICIAL_X, [
+  'x.com',
+  'www.x.com',
+  'twitter.com',
+]);
 /** Coinside's Telegram. */
 export const TELEGRAM_URL = httpsOn(env(process.env.NEXT_PUBLIC_TELEGRAM_URL), ['t.me', 'telegram.me']);

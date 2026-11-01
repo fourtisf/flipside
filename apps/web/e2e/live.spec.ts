@@ -259,8 +259,16 @@ test('the token: "CA Coming soon" with a Copy button, and no dead community link
   await ca.getByRole('button', { name: /Copy/ }).click();
   await expect(ca.getByRole('button', { name: /Copy/ })).toHaveText('Copied');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('Coming soon');
-  // the footer carries it too; X and Telegram show only once their links are set
+  // the footer carries it too; Coinside's X account sits next to both and in Community; Telegram once set
   await expect(page.locator('#ftCa')).toContainText('Coming soon');
+  await expect(page.locator('.ca-row').first().locator('a.ca-x')).toHaveAttribute(
+    'href',
+    'https://x.com/usecoinside',
+  );
+  await expect(page.locator('footer').getByRole('link', { name: 'X', exact: true })).toHaveAttribute(
+    'href',
+    'https://x.com/usecoinside',
+  );
   await expect(page.locator('footer')).not.toContainText('Telegram');
   await expect(page.locator('a[href="#"]')).toHaveCount(0);
 });

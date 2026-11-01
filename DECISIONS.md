@@ -28,7 +28,9 @@ section 16, decision 2 (launch a token); how its creator fees would flow is stil
 - **CA box** on the home page (under the hero buttons) and in the footer: "CA" with the contract address and a
   Copy button. Until `NEXT_PUBLIC_TOKEN_CA` holds a valid Solana address it reads "Coming soon", and Copy copies
   that text, as asked.
-- **X:** ALFA has no account yet ("belum ada, nanti saja"). An X button sits next to the CA box and in the footer's
+- **X: https://x.com/usecoinside** (ALFA, later the same day), the default link; `NEXT_PUBLIC_X_URL` can override it.
+  Before that, ALFA had no account ("belum ada, nanti saja"), and the rule below kept it hidden.
+- **X, before the account existed:** An X button sits next to the CA box and in the footer's
   Community column, shown only once `NEXT_PUBLIC_X_URL` is an https x.com or twitter.com link; Telegram the same
   with `NEXT_PUBLIC_TELEGRAM_URL` (t.me). The old placeholder links to "#" are gone, so nothing points nowhere or at
   a guessed account.

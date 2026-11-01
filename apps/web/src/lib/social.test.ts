@@ -34,6 +34,7 @@ describe('token and community links', () => {
       NEXT_PUBLIC_X_URL: '',
       NEXT_PUBLIC_TELEGRAM_URL: '',
     });
-    expect([empty.TOKEN_CA, empty.X_URL, empty.TELEGRAM_URL]).toEqual(['', '', '']);
+    // unset: no CA, no Telegram, and Coinside's official X account
+    expect([empty.TOKEN_CA, empty.X_URL, empty.TELEGRAM_URL]).toEqual(['', 'https://x.com/usecoinside', '']);
   });
 });
