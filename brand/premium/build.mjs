@@ -6,7 +6,9 @@ const require = createRequire('/home/user/flipside/apps/web/package.json');
 const sharp = require('sharp');
 const out = process.argv[2] ?? new URL('.', import.meta.url).pathname;
 
-const GREEN = '#3DD68C', RED = '#FF5F5F', T1 = '#EDEDED';
+const GREEN = '#3DD68C',
+  RED = '#FF5F5F',
+  T1 = '#EDEDED';
 
 // the mark on a 64 grid, centered at (32,32); id keeps masks unique per file
 function mark(id, { color = false, rim = true } = {}) {
@@ -67,30 +69,46 @@ function candles() {
   let px = 330;
   for (let i = 0; i < n; i++) {
     const x = 830 + i * 29;
-    const o = px, c = px - (14 + ((i * 7) % 11));
-    const hi = Math.min(o, c) - 8 - (i % 3) * 3, lo = Math.max(o, c) + 7 + (i % 2) * 4;
+    const o = px,
+      c = px - (14 + ((i * 7) % 11));
+    const hi = Math.min(o, c) - 8 - (i % 3) * 3,
+      lo = Math.max(o, c) + 7 + (i % 2) * 4;
     const red = i === 3 || i === 7;
-    const top = red ? o - 6 : c, bot = red ? o + 8 : o;
-    out.push(`<line x1="${x + 7}" y1="${hi}" x2="${x + 7}" y2="${lo}" stroke="${red ? RED : GREEN}" stroke-width="2" opacity=".9"/>`);
-    out.push(`<rect x="${x}" y="${Math.min(top, bot)}" width="14" height="${Math.abs(bot - top) || 3}" rx="2" fill="${red ? RED : GREEN}"/>`);
+    const top = red ? o - 6 : c,
+      bot = red ? o + 8 : o;
+    out.push(
+      `<line x1="${x + 7}" y1="${hi}" x2="${x + 7}" y2="${lo}" stroke="${red ? RED : GREEN}" stroke-width="2" opacity=".9"/>`,
+    );
+    out.push(
+      `<rect x="${x}" y="${Math.min(top, bot)}" width="14" height="${Math.abs(bot - top) || 3}" rx="2" fill="${red ? RED : GREEN}"/>`,
+    );
     px = red ? o + 4 : c;
   }
   px = 175;
   for (let i = 0; i < 9; i++) {
     const x = split + 26 + i * 28;
-    const o = px, c = px + (13 + ((i * 5) % 10));
-    const hi = Math.min(o, c) - 7 - (i % 2) * 4, lo = Math.max(o, c) + 8 + (i % 3) * 3;
+    const o = px,
+      c = px + (13 + ((i * 5) % 10));
+    const hi = Math.min(o, c) - 7 - (i % 2) * 4,
+      lo = Math.max(o, c) + 8 + (i % 3) * 3;
     const green = i === 2 || i === 6;
-    const top = green ? o - 8 : o, bot = green ? o + 4 : c;
-    out.push(`<line x1="${x + 7}" y1="${hi}" x2="${x + 7}" y2="${lo}" stroke="${green ? GREEN : RED}" stroke-width="2" opacity=".9"/>`);
-    out.push(`<rect x="${x}" y="${Math.min(top, bot)}" width="14" height="${Math.abs(bot - top) || 3}" rx="2" fill="${green ? GREEN : RED}"/>`);
+    const top = green ? o - 8 : o,
+      bot = green ? o + 4 : c;
+    out.push(
+      `<line x1="${x + 7}" y1="${hi}" x2="${x + 7}" y2="${lo}" stroke="${green ? GREEN : RED}" stroke-width="2" opacity=".9"/>`,
+    );
+    out.push(
+      `<rect x="${x}" y="${Math.min(top, bot)}" width="14" height="${Math.abs(bot - top) || 3}" rx="2" fill="${green ? GREEN : RED}"/>`,
+    );
     px = green ? o - 3 : c;
   }
   return out.join('');
 }
 const grid = [];
-for (let y = 70; y <= 440; y += 62) grid.push(`<line x1="800" y1="${y}" x2="1460" y2="${y}" stroke="#151515" stroke-width="1"/>`);
-for (let x = 800; x <= 1460; x += 82.5) grid.push(`<line x1="${x}" y1="60" x2="${x}" y2="450" stroke="#101010" stroke-width="1"/>`);
+for (let y = 70; y <= 440; y += 62)
+  grid.push(`<line x1="800" y1="${y}" x2="1460" y2="${y}" stroke="#151515" stroke-width="1"/>`);
+for (let x = 800; x <= 1460; x += 82.5)
+  grid.push(`<line x1="${x}" y1="60" x2="${x}" y2="450" stroke="#101010" stroke-width="1"/>`);
 const header = `
   <rect width="1500" height="500" fill="#000"/>
   <defs>
@@ -112,11 +130,18 @@ const header = `
   <text x="1420" y="480" text-anchor="end" font-family="Geist Mono" font-size="17" letter-spacing=".5" fill="#A1A1A1">coinside.fun</text>`;
 files['x-header.svg'] = svgDoc(1500, 500, header);
 // 5. the lockup on black, for posts and slides
-files['lockup-on-black.svg'] = svgDoc(1200, 400, `<rect width="1200" height="400" fill="#000"/><g transform="translate(340 136) scale(2)">${lock('e', false)}</g>`);
+files['lockup-on-black.svg'] = svgDoc(
+  1200,
+  400,
+  `<rect width="1200" height="400" fill="#000"/><g transform="translate(340 136) scale(2)">${lock('e', false)}</g>`,
+);
 
 for (const [name, svg] of Object.entries(files)) writeFileSync(`${out}/${name}`, svg);
 const png = async (name, w, h) =>
-  sharp(Buffer.from(files[name]), { density: 300 }).resize(w, h).png().toFile(`${out}/${name.replace('.svg', '.png')}`);
+  sharp(Buffer.from(files[name]), { density: 300 })
+    .resize(w, h)
+    .png()
+    .toFile(`${out}/${name.replace('.svg', '.png')}`);
 await png('x-header.svg', 1500, 500);
 await png('x-profile.svg', 400, 400);
 await png('x-profile-color.svg', 400, 400);
