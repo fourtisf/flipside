@@ -55,7 +55,9 @@ ALFA: "harusnya ada fitur Max, dan orderbook bisa dipencet, ketika dipencet itu 
 
 - **Max** (terminal and Quick trade): fills the amount with what the account can use, less 0.1% of the position
   per 1x of leverage, rounded down to the cent. That room covers Hyperliquid's trading fee (more than twice the
-  base taker fee), so a Max order isn't refused for margin: $10.10 at 20x fills $9.89.
+  base taker fee), so a Max order isn't refused for margin: $10.10 at 20x fills $9.89. It also stops at the
+  largest position one order may open while trading is new (NEXT_PUBLIC_MAX_ORDER_USD, $1,000): $744 at 10x
+  fills $100, not $736 that the order button would then refuse.
 - **The order book is clickable:** a click on any bid or ask (or Enter on its price) switches the order panel to
   Limit at that price and focuses the price field; the side stays as it was.
 
@@ -368,6 +370,7 @@ Hardening after review (ALFA: "pastikan semuanya berjalan lancar"):
 
 ALFA asked whether Coinside could work like Hyperliquid with Hyperliquid as the market maker, then chose that
 direction. It removes the parts that made the original design slow and risky for ALFA:
+
 - the seed capital for the pool;
 - the pool's losses when traders win;
 - a vault program holding users' SOL, which needs an external audit;
@@ -425,6 +428,7 @@ undone:
   is removed.
 
 Rehearsed against a copy of the server's layout:
+
 - **What it removed:** app users with running processes, an app under root's PM2, systemd services, cron
   files, an Nginx site, databases with data, a table an app left in the shared `postgres` database, Redis
   keys, and leftover folders.
@@ -597,17 +601,17 @@ This overrides the prototype's letter-on-hue avatars.
 
 ### Stack and versions
 
-| Piece | Choice | Why |
-|---|---|---|
-| Next.js | 15.5.28, React 19.3.1 | The brief pins Next.js 14; moved to 15 for security fixes (see Audit and fixes). |
-| TypeScript | 5.9 | TypeScript 7 exists but Next and typescript-eslint need 5.x. |
-| ESLint | 8.57 + typescript-eslint 8 | Chosen when `eslint-config-next@14` only supported ESLint 8; version 15 also supports ESLint 9. |
-| Prisma | 6.19 | Stable `prisma-client-js` generator and engines; Prisma 7 changes the client and datasource model. Revisit before P2. |
-| zod | 4 | Current major; schemas live in `packages/core/src/schemas.ts`. |
-| Fastify | 5 + `@fastify/websocket` 11 | Current majors. |
-| Charts | `lightweight-charts` 5.2 | The brief asks for TradingView lightweight-charts. |
-| Treemap | `d3-hierarchy` 3, `treemapSquarify.ratio(1)` | Ratio 1 is the classic squarify the prototype implements by hand. |
-| Tests | vitest 4 (unit), Playwright 1.63 (e2e) | Playwright is pinned to the version whose Chromium is preinstalled on our build machines; CI installs its own. |
+| Piece         | Choice                                                        | Why                                                                                                                                           |
+| ------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js       | 15.5.28, React 19.3.1                                         | The brief pins Next.js 14; moved to 15 for security fixes (see Audit and fixes).                                                              |
+| TypeScript    | 5.9                                                           | TypeScript 7 exists but Next and typescript-eslint need 5.x.                                                                                  |
+| ESLint        | 8.57 + typescript-eslint 8                                    | Chosen when `eslint-config-next@14` only supported ESLint 8; version 15 also supports ESLint 9.                                               |
+| Prisma        | 6.19                                                          | Stable `prisma-client-js` generator and engines; Prisma 7 changes the client and datasource model. Revisit before P2.                         |
+| zod           | 4                                                             | Current major; schemas live in `packages/core/src/schemas.ts`.                                                                                |
+| Fastify       | 5 + `@fastify/websocket` 11                                   | Current majors.                                                                                                                               |
+| Charts        | `lightweight-charts` 5.2                                      | The brief asks for TradingView lightweight-charts.                                                                                            |
+| Treemap       | `d3-hierarchy` 3, `treemapSquarify.ratio(1)`                  | Ratio 1 is the classic squarify the prototype implements by hand.                                                                             |
+| Tests         | vitest 4 (unit), Playwright 1.63 (e2e)                        | Playwright is pinned to the version whose Chromium is preinstalled on our build machines; CI installs its own.                                |
 | Node services | TypeScript run with `tsx` in dev, bundled with `tsup` for PM2 | Workspace packages ship TypeScript source, so services bundle them and Next transpiles them (`transpilePackages`). No per-package build step. |
 
 ### Styling: one global stylesheet, not CSS modules or Tailwind

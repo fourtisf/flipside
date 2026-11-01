@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { MAX_ORDER_USD } from '@/trade/config';
 import { shortAddr } from '@/wallet/catalog';
 import { useAccount, useSolana, useTrade, useWallet } from '@/wallet/provider';
 import type { WalletOption } from '@/wallet/store';
@@ -288,8 +289,12 @@ export function AvailableNote() {
  * Max: fills the amount with what the account can use, less a little for Hyperliquid's trading fee (0.1% of the
  * position per 1x of leverage, more than twice the base taker fee), so a Max order isn't refused for margin.
  */
-export function maxMargin(available: number, lev: number): number {
-  const cents = Math.floor(available * (1 - 0.001 * Math.max(1, lev)) * 100 + 1e-9);
+export function maxMargin(available: number, lev: number, cap = MAX_ORDER_USD): number {
+  const l = Math.max(1, lev);
+  const usable = Math.floor(available * (1 - 0.001 * l) * 100 + 1e-9);
+  // and no more than one order may open while trading is new, so Max is never refused for the cap
+  const capped = Math.floor((cap / l) * 100 + 1e-9);
+  const cents = Math.min(usable, capped);
   return cents > 0 ? cents / 100 : 0;
 }
 

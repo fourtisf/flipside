@@ -479,13 +479,15 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
 
 test('Max fills the usable margin, and a price in the order book becomes a limit order', async ({ page }) => {
   await connected(page);
-  // Max: what the account can use ($744.26), less 0.1% per 1x of leverage for the trading fee
+  // Max: what the account can use ($744.26), less 0.1% per 1x of leverage for the trading fee, and never a
+  // position over the $1,000 one order may open while trading is new
   await page.locator('#o-lev button[data-lev="5"]').click();
   await page.locator('#o-max').click();
-  await expect(page.locator('#o-amt')).toHaveValue('740.53');
+  await expect(page.locator('#o-amt')).toHaveValue('200.00');
+  await expect(page.locator('#o-cta-msg')).not.toContainText('at most');
   await page.locator('#o-lev button[data-lev="20"]').click();
   await page.locator('#o-max').click();
-  await expect(page.locator('#o-amt')).toHaveValue('729.37');
+  await expect(page.locator('#o-amt')).toHaveValue('50.00');
 
   // a click on a bid in the book: Limit, at that price, ready to place
   const row = page.locator('#ob .ob-r.b').first();

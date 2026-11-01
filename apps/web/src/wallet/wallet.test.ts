@@ -176,9 +176,17 @@ describe('account', () => {
 
 describe('Max', () => {
   it('fills what the account can use, less room for the trading fee, rounded down to the cent', () => {
-    expect(maxMargin(744.26, 5)).toBe(740.53);
+    expect(maxMargin(744.26, 5, Infinity)).toBe(740.53);
     expect(maxMargin(10.1, 20)).toBe(9.89);
     expect(maxMargin(10.1, 1)).toBe(10.08);
     expect(maxMargin(0, 5)).toBe(0);
+  });
+
+  it('never fills more than one order may open while trading is new ($1,000 by default)', () => {
+    expect(maxMargin(744.26, 5)).toBe(200);
+    expect(maxMargin(744.26, 10)).toBe(100);
+    expect(maxMargin(744.26, 3)).toBe(333.33);
+    expect(maxMargin(744.26, 1)).toBe(743.51);
+    expect(maxMargin(5000, 2, 1500)).toBe(750);
   });
 });
