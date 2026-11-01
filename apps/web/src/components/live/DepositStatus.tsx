@@ -8,6 +8,23 @@ import { useDeposits } from '@/wallet/provider';
 
 const time = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+/** The rules of a deposit, in the order they happen, shown while it travels. */
+function NextSteps({ arrived }: { arrived: boolean }) {
+  return (
+    <ol className="dep-steps">
+      <li className={arrived ? 'done' : undefined}>
+        Unit, the bridge, credits your SOL to your trading account as USOL, usually within a few minutes. It
+        keeps about 0.015 SOL as its fee; Coinside charges nothing.
+      </li>
+      <li>
+        Then, in step 2 of Deposit: Enable trading (once), and Move to trading balance. That sells the USOL
+        for USDC and moves it where orders can use it; your wallet signs once.
+      </li>
+      <li>Orders on Hyperliquid must be worth at least $10, so keep at least that much to trade.</li>
+    </ol>
+  );
+}
+
 /**
  * Where the last SOL deposit is: on its way (with Unit's own status when it gives one) or arrived as USOL. In the
  * Deposit panel, and as a toast on every other page, so the person hears about it wherever they are.
@@ -36,7 +53,7 @@ export function DepositStatus({ toast = false }: { toast?: boolean }) {
     >
       {p.arrived ? (
         <>
-          <b>{p.sol} SOL arrived in your account as USOL.</b>
+          <b>Deposit complete: {p.sol} SOL arrived in your account as USOL.</b>
           {p.received !== undefined && (
             <p>
               {p.received.toLocaleString('en-US', { maximumFractionDigits: 4 })} USOL arrived; Unit kept{' '}
@@ -50,9 +67,10 @@ export function DepositStatus({ toast = false }: { toast?: boolean }) {
                 Move it to your trading balance
               </Link>
             ) : (
-              'Move it to your trading balance in step 2 below.'
+              'Next: move it to your trading balance in step 2 below.'
             )}
           </p>
+          {!toast && <NextSteps arrived />}
         </>
       ) : (
         <>
@@ -61,6 +79,12 @@ export function DepositStatus({ toast = false }: { toast?: boolean }) {
             {stateText(p.state)}
             {d.slow() && ' Taking longer than usual; it can still arrive.'} Sent at {time(p.at)}. {tx}
           </p>
+          {!toast && (
+            <p>
+              The SOL has already left your wallet; it is with Unit now and shows here as soon as it lands.
+            </p>
+          )}
+          {!toast && <NextSteps arrived={false} />}
         </>
       )}
       <button

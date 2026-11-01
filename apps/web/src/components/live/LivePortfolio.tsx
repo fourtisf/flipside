@@ -271,6 +271,35 @@ function SolanaSide() {
           {sol.name} can&apos;t send from Coinside yet. Update {sol.name}, or sign in with Phantom.
         </p>
       )}
+      {plan.ok && (
+        // before sending: where every bit of the amount goes
+        <dl className="sum dep-sum" id="solBreakdown">
+          <div>
+            <dt>You send</dt>
+            <dd>{solText(plan.lamports)} SOL</dd>
+          </div>
+          <div>
+            <dt>Unit&apos;s fee, about</dt>
+            <dd>{solText(UNIT_FEE_ESTIMATE_LAMPORTS)} SOL</dd>
+          </div>
+          <div>
+            <dt>Arrives as, about</dt>
+            <dd>
+              {solText(plan.lamports - UNIT_FEE_ESTIMATE_LAMPORTS)} USOL
+              {px > 0 &&
+                ` ≈ ${usd2((Number(plan.lamports - UNIT_FEE_ESTIMATE_LAMPORTS) / Number(LAMPORTS_PER_SOL)) * px)}`}
+            </dd>
+          </div>
+          <div>
+            <dt>Solana network fee</dt>
+            <dd>under 0.0001 SOL</dd>
+          </div>
+          <div>
+            <dt>Coinside fee</dt>
+            <dd>Free</dd>
+          </div>
+        </dl>
+      )}
       <p className={`omsg${dmsg?.ok ? ' ok' : ''}`} id="solMsg" role="status">
         {amt && !plan.ok ? plan.reason : (dmsg?.text ?? '')}
         {dmsg?.ok && dmsg.sig && (

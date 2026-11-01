@@ -483,7 +483,7 @@ export class SolanaStore {
         ok: true,
         sig,
         to: address,
-        text: `Sent ${solText(lamports)} SOL.`,
+        text: `Sent ${solText(lamports)} SOL. Your wallet balance went down by that much, plus a Solana network fee (usually under 0.0001 SOL).`,
       };
       return { sig, to: address };
     } catch (e) {

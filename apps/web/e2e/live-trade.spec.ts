@@ -394,6 +394,10 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   // a closed prompt sends nothing and says so
   await amt.fill('0.15');
   await expect(go).toBeEnabled();
+  // before sending, where every bit goes: Unit's fee and what arrives
+  await expect(page.locator('#solBreakdown')).toContainText('You send0.15 SOL');
+  await expect(page.locator('#solBreakdown')).toContainText('Arrives as, about0.135 USOL');
+  await expect(page.locator('#solBreakdown')).toContainText('Coinside feeFree');
   await wallet.rejectSign();
   await go.click();
   await expect(page.locator('#solMsg')).toHaveText('You closed the request in Phantom. Nothing was sent.');
@@ -411,6 +415,9 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   // the deposit is followed: on its way, Unit's own status, then arrived as USOL, on every page
   const status = page.locator('#depStatus');
   await expect(status).toContainText('Deposit of 0.15 SOL on its way');
+  await expect(status).toContainText('The SOL has already left your wallet');
+  await expect(status).toContainText('Enable trading (once), and Move to trading balance');
+  await expect(page.locator('#solMsg')).toContainText('Your wallet balance went down by that much');
   const sig = base58Encode(new Uint8Array(64).fill(9));
   hl.unitOps = [{ state: 'waitForSrcTxFinalization', sourceTxHash: `${sig}:0` }];
   await expect(status).toContainText('Waiting for Solana to finalize the transfer.', { timeout: 15_000 });
@@ -420,7 +427,7 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   await expect(page.locator('#depToast')).toContainText('0.15 SOL arrived in your account as USOL');
   await page.locator('#depToast a').click();
   await expect(page).toHaveURL(/\/portfolio#deposit$/);
-  await expect(page.locator('#depStatus')).toContainText('arrived');
+  await expect(page.locator('#depStatus')).toContainText('Deposit complete: 0.15 SOL arrived');
   await page.locator('#depStatus .dep-x').click();
   await expect(page.locator('#depStatus')).toHaveCount(0);
 });

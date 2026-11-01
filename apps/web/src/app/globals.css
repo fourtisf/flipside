@@ -513,6 +513,9 @@ dialog .amt{margin-top:16px}
 .dep-status p{margin-top:4px;color:var(--t2)}
 .dep-status.ok b{color:var(--long)}
 .dep-x{position:absolute;top:8px;right:10px;font-size:18px;line-height:1;text-decoration:none}
+.dep-steps{margin:8px 0 0 18px;color:var(--t2);display:grid;gap:4px}
+.dep-steps li.done{color:var(--long)}
+.dep-sum{max-width:360px;margin:10px 0}
 .dep-toast{position:fixed;right:16px;bottom:16px;z-index:60;margin:0;max-width:380px;box-shadow:0 20px 40px -12px rgba(0,0,0,.9)}
 @media (max-width:760px){.dep-toast{left:16px;right:16px;bottom:76px;max-width:none}}
 .sol-addr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:-2px 0 10px;font-size:12.5px}

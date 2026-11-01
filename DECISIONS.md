@@ -45,6 +45,12 @@ when its docs can be read (they still weren't reachable from the build environme
   smallest order, so it might not sell. Now: the minimum is whatever makes what arrives worth over $11 after about
   0.015 SOL of fee at today's SOL price (never under Unit's 0.12), the panel says Unit keeps about 0.015 SOL per
   deposit, and the tracker shows the real amount that arrived and the fee Unit kept.
+- **Said plainly, before and after** (ALFA: "harus jelas saldo berkurang karena apa, dan kalau deposit sukses
+  aturannya juga diberi tahu"): before sending, a breakdown (you send, Unit's fee about, arrives as about with its
+  dollar value, the Solana network fee, Coinside's fee: free); after sending, that the wallet balance went down by
+  the amount plus the network fee and that the SOL is now with Unit; while it travels and once it lands
+  ("Deposit complete"), the rules in order: Unit credits it as USOL in minutes keeping its fee, then Enable trading
+  and Move to trading balance, and orders need at least $10.
 - **Selling a small USOL balance:** at the best bid instead of 1% under the mid, and the $10 check is on what
   Hyperliquid checks (the size after rounding down to the lot, times the limit price); an order Hyperliquid
   refuses shows its reason in plain words instead of "didn't fill".
