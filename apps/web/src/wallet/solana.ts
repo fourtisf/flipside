@@ -464,8 +464,8 @@ export class SolanaStore {
    * Deposit `lamports` of SOL into the Hyperliquid account `hl`: get the account's Unit deposit address from our
    * server, check it looks right, and have the wallet send the SOL there (the person approves it in the wallet).
    */
-  async deposit(hl: string, lamports: bigint) {
-    if (this.depositing || !this.address) return;
+  async deposit(hl: string, lamports: bigint): Promise<{ sig: string; to: string } | null> {
+    if (this.depositing || !this.address) return null;
     this.depositing = true;
     this.depositMsg = null;
     this.emit();
@@ -483,8 +483,9 @@ export class SolanaStore {
         ok: true,
         sig,
         to: address,
-        text: `Sent ${solText(lamports)} SOL. It arrives in your account as USOL in a few minutes, and step 2 lights up then.`,
+        text: `Sent ${solText(lamports)} SOL.`,
       };
+      return { sig, to: address };
     } catch (e) {
       this.depositMsg = {
         ok: false,
@@ -494,6 +495,7 @@ export class SolanaStore {
       this.depositing = false;
       this.emit();
     }
+    return null;
   }
 
   /** The connected wallet can sign a message (for the Solana sign-in). */
@@ -562,7 +564,8 @@ export class SolanaStore {
     const sig = out[0]?.signature;
     if (!sig)
       throw new Error(`${w.name} didn't say whether it sent. Check its activity before trying again.`);
-    void this.refresh();
+    // the balance drops once the transfer confirms: look again over the next half minute
+    for (const ms of [0, 3_000, 8_000, 20_000, 40_000]) setTimeout(() => void this.refresh(), ms);
     return base58Encode(sig);
   }
 

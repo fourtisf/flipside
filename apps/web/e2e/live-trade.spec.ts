@@ -8,7 +8,7 @@ import { ADDRESS } from './hl-fixtures';
 
 const SOL_ADDRESS = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 import { TEST_BLOCKHASH, UNIT_DEPOSIT_ADDRESS, mockHyperliquid, type HlMock } from './hl-mock';
-import { transferTx } from '../src/wallet/solana-tx';
+import { base58Encode, transferTx } from '../src/wallet/solana-tx';
 import { fakeWallet, testSolanaWallet, type FakeWallet } from './wallet-mock';
 
 async function connected(page: Page): Promise<{ hl: HlMock; wallet: FakeWallet }> {
@@ -367,7 +367,7 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   page,
 }) => {
   const sol = testSolanaWallet();
-  await mockHyperliquid(page, { empty: true });
+  const hl = await mockHyperliquid(page, { empty: true });
   const wallet = await fakeWallet(page, {
     address: ADDRESS,
     solana: sol.address,
@@ -390,9 +390,15 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   await expect(page.locator('#solMsg')).toContainText('Keep 0.002 SOL');
   await expect(go).toBeDisabled();
 
-  // a good amount: the wallet signs and sends a plain transfer to the Unit deposit address
+  // a closed prompt sends nothing and says so
   await amt.fill('0.15');
   await expect(go).toBeEnabled();
+  await wallet.rejectSign();
+  await go.click();
+  await expect(page.locator('#solMsg')).toHaveText('You closed the request in Phantom. Nothing was sent.');
+  expect(await wallet.sentTransactions()).toHaveLength(0);
+
+  // a good amount: the wallet signs and sends a plain transfer to the Unit deposit address
   await go.click();
   await expect(page.locator('#solMsg')).toContainText('Sent 0.15 SOL');
   await expect(page.locator('#solMsg a')).toHaveAttribute('href', /^https:\/\/solscan\.io\/tx\//);
@@ -401,9 +407,19 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
     Buffer.from(transferTx(sol.address, UNIT_DEPOSIT_ADDRESS, 150_000_000n, TEST_BLOCKHASH)).toString('hex'),
   );
 
-  // a closed prompt sends nothing and says so
-  await wallet.rejectSign();
-  await go.click();
-  await expect(page.locator('#solMsg')).toHaveText('You closed the request in Phantom. Nothing was sent.');
-  expect(await wallet.sentTransactions()).toHaveLength(1);
+  // the deposit is followed: on its way, Unit's own status, then arrived as USOL, on every page
+  const status = page.locator('#depStatus');
+  await expect(status).toContainText('Deposit of 0.15 SOL on its way');
+  const sig = base58Encode(new Uint8Array(64).fill(9));
+  hl.unitOps = [{ state: 'waitForSrcTxFinalization', sourceTxHash: `${sig}:0` }];
+  await expect(status).toContainText('Waiting for Solana to finalize the transfer.', { timeout: 15_000 });
+  await page.goto('/trade/SOL');
+  await expect(page.locator('#depToast')).toContainText('Deposit of 0.15 SOL on its way');
+  hl.fund(sol.account);
+  await expect(page.locator('#depToast')).toContainText('0.15 SOL arrived in your account as USOL');
+  await page.locator('#depToast a').click();
+  await expect(page).toHaveURL(/\/portfolio#deposit$/);
+  await expect(page.locator('#depStatus')).toContainText('arrived');
+  await page.locator('#depStatus .dep-x').click();
+  await expect(page.locator('#depStatus')).toHaveCount(0);
 });

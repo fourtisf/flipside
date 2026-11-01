@@ -59,6 +59,8 @@ export interface HlMock {
   pushMids: (mids: Record<string, string>) => void;
   /** An empty account receives a deposit: the funded account arrives over the socket, as Hyperliquid sends it. */
   fund: (user: string) => void;
+  /** What our server's Unit operations route answers. */
+  unitOps: Array<{ state: string; sourceTxHash: string }>;
 }
 
 /** `empty`: the connected wallet has never deposited, as every new address on Hyperliquid. */
@@ -74,6 +76,7 @@ export async function mockHyperliquid(
     pushMids: () => {},
     failNext: () => {},
     fund: () => {},
+    unitOps: [],
   };
   let account = empty ? { ch: EMPTY_CLEARINGHOUSE, spot: EMPTY_SPOT } : { ch: CLEARINGHOUSE, spot: SPOT };
   let fail: string | null = null;
@@ -94,6 +97,18 @@ export async function mockHyperliquid(
   // our own server's Solana balance route (it reads a Solana RPC node, which tests never reach)
   await page.route('**/solana/balance/*', (route) => route.fulfill({ json: { lamports: solLamports } }));
   await page.route('**/solana/blockhash', (route) => route.fulfill({ json: { blockhash: TEST_BLOCKHASH } }));
+  await page.route('**/unit/operations/*', (route) =>
+    route.fulfill({
+      json: {
+        operations: mock.unitOps.map((o) => ({
+          ...o,
+          destinationTxHash: '',
+          sourceAmount: '',
+          asset: 'sol',
+        })),
+      },
+    }),
+  );
   // our server's Unit route: the account's Solana deposit address
   await page.route('**/unit/deposit-address/*', (route) =>
     route.fulfill({ json: { address: UNIT_DEPOSIT_ADDRESS } }),

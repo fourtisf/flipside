@@ -9,7 +9,8 @@ import { M, pct } from '@/lib/format';
 import { shortAddr } from '@/wallet/catalog';
 import { TRADING } from '@/trade/config';
 import { USOL, free } from '@/trade/funds';
-import { useAccount, useSolana, useTrade, useWallet } from '@/wallet/provider';
+import { useAccount, useDeposits, useSolana, useTrade, useWallet } from '@/wallet/provider';
+import { DepositStatus } from './DepositStatus';
 import {
   FEE_RESERVE_LAMPORTS,
   MAX_DEPOSIT_LAMPORTS,
@@ -77,6 +78,7 @@ function DepositPanel() {
   const msg = trade.msg && Date.now() - trade.msg.at < 60_000 ? trade.msg : null;
   return (
     <Panel id="deposit" title="Deposit" note="from Solana">
+      <DepositStatus />
       {account.empty() && <p className="dep-lead">Your account is empty. Deposit to start trading.</p>}
       <ol className="fsteps">
         <li>
@@ -114,6 +116,7 @@ function DepositPanel() {
 /** Step 1 of Deposit: the Solana side of the person's wallet, where their SOL is, and its balance. */
 function SolanaSide() {
   const [amt, setAmt] = useState('');
+  const deposits = useDeposits();
   const sol = useSolana();
   const wallet = useWallet();
   const account = useAccount();
@@ -285,8 +288,13 @@ function SolanaSide() {
         type="button"
         id="solDeposit"
         disabled={!plan.ok || !canSend || sol.depositing || !wallet.address}
-        onClick={() => {
-          if (plan.ok && wallet.address) void sol.deposit(wallet.address, plan.lamports);
+        onClick={async () => {
+          if (!plan.ok || !wallet.address) return;
+          const sent = await sol.deposit(wallet.address, plan.lamports);
+          if (sent) {
+            deposits.begin(sent.sig, solText(plan.lamports), sent.to, account.spot);
+            setAmt('');
+          }
         }}
       >
         {sol.depositing ? `Check ${sol.name}` : 'Deposit SOL'}

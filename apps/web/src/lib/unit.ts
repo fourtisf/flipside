@@ -51,5 +51,46 @@ export class UnitAddresses {
   }
 }
 
+/** One Unit operation (a deposit or withdrawal), reduced to the fields the deposit tracker shows. */
+export interface UnitOperation {
+  state: string;
+  sourceTxHash: string;
+  destinationTxHash: string;
+  sourceAmount: string;
+  asset: string;
+}
+
+const text = (v: unknown, max = 120) => (typeof v === 'string' ? v.slice(0, max) : '');
+
+/**
+ * The account's Unit operations (GET <Unit>/operations/<0x address>), for the deposit tracker. Best effort: the
+ * tracker also watches the account itself, so a shape it can't read just means no step-by-step status.
+ */
+export async function unitOperations(
+  hl: string,
+  fetcher: typeof fetch = fetch,
+  api: string = UNIT_API,
+): Promise<UnitOperation[]> {
+  const account = hl.toLowerCase();
+  if (!HL_ADDRESS.test(account)) throw new Error('not a Hyperliquid address');
+  const res = await fetcher(`${api}/operations/${account}`, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`Unit answered ${res.status}`);
+  const body = (await res.json()) as { operations?: unknown };
+  const ops = Array.isArray(body.operations) ? body.operations : [];
+  return ops.slice(0, 50).map((o) => {
+    const op = (o ?? {}) as Record<string, unknown>;
+    return {
+      state: text(op.state, 40),
+      sourceTxHash: text(op.sourceTxHash),
+      destinationTxHash: text(op.destinationTxHash),
+      sourceAmount: text(op.sourceAmount, 40),
+      asset: text(op.asset, 20),
+    };
+  });
+}
+
 let shared: UnitAddresses | null = null;
 export const unitAddresses = () => (shared ??= new UnitAddresses());

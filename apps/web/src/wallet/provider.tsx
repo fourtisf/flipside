@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { DepositTracker } from '@/trade/deposit-tracker';
 import { TradeStore } from '@/trade/store';
 import { AccountStore } from './account';
 import { SolanaStore } from './solana';
@@ -11,6 +12,7 @@ const Ctx = createContext<{
   account: AccountStore;
   trade: TradeStore;
   solana: SolanaStore;
+  deposits: DepositTracker;
 } | null>(null);
 
 /** The connected wallet and its Hyperliquid account, for the whole live edition. */
@@ -18,22 +20,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [stores] = useState(() => {
     const solana = new SolanaStore();
     const wallet = new WalletStore(solana);
-    return { wallet, account: new AccountStore(), trade: new TradeStore(wallet), solana };
+    return {
+      wallet,
+      account: new AccountStore(),
+      trade: new TradeStore(wallet),
+      solana,
+      deposits: new DepositTracker(),
+    };
   });
   useEffect(() => stores.wallet.start(), [stores]);
   useEffect(() => stores.solana.start(), [stores]);
   // the account and the trading key follow whatever address the wallet has
   useEffect(() => {
-    const { wallet, account, trade, solana } = stores;
+    const { wallet, account, trade, solana, deposits } = stores;
     const sync = () => {
       account.follow(wallet.address);
       trade.follow(wallet.address);
       solana.follow(wallet.address, wallet.name, wallet.icon);
+      deposits.follow(wallet.address);
     };
     sync();
     const off = wallet.subscribe(sync);
+    // a deposit on its way lands when the account's USOL goes up
+    const offAccount = account.subscribe(() => deposits.observe(account.spot));
     return () => {
       off();
+      offAccount();
+      deposits.follow(null);
       account.follow(null);
       trade.follow(null);
       solana.follow(null, '');
@@ -70,4 +83,10 @@ export function useSolana(): SolanaStore {
   const { solana } = useStores();
   useSyncExternalStore(solana.subscribe, solana.getVersion, solana.getVersion);
   return solana;
+}
+
+export function useDeposits(): DepositTracker {
+  const { deposits } = useStores();
+  useSyncExternalStore(deposits.subscribe, deposits.getVersion, deposits.getVersion);
+  return deposits;
 }

@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Header } from '@/components/Header';
 import { Footer, FundDialog, TabBar, Toasts, WalletDialog } from '@/components/Shell';
+import { DepositToast } from '@/components/live/DepositStatus';
 import { EnableDialog } from '@/components/live/Trading';
 import { ConnectDialog, WalletMenu } from '@/components/live/Wallet';
 import { HlProvider } from '@/hl/provider';
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <ConnectDialog />
               <WalletMenu />
               <EnableDialog />
+              <DepositToast />
             </WalletProvider>
           </HlProvider>
         ) : (

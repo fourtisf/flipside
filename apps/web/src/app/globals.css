@@ -508,6 +508,13 @@ dialog .amt{margin-top:16px}
 .fsteps .btn{margin-top:4px}
 .fsteps p+.btn,.fsteps p+.sol-pick{margin-top:12px}
 .sol-pick{display:flex;flex-wrap:wrap;gap:8px}
+.dep-status{position:relative;margin:14px 18px 0;padding:12px 40px 12px 14px;border:1px solid var(--line2);border-radius:10px;background:var(--s2);font-size:13px}
+.dep-status b{display:block;font-weight:550;font-size:13.5px}
+.dep-status p{margin-top:4px;color:var(--t2)}
+.dep-status.ok b{color:var(--long)}
+.dep-x{position:absolute;top:8px;right:10px;font-size:18px;line-height:1;text-decoration:none}
+.dep-toast{position:fixed;right:16px;bottom:16px;z-index:60;margin:0;max-width:380px;box-shadow:0 20px 40px -12px rgba(0,0,0,.9)}
+@media (max-width:760px){.dep-toast{left:16px;right:16px;bottom:76px;max-width:none}}
 .sol-addr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:-2px 0 10px;font-size:12.5px}
 .sol-addr code{font:500 12px var(--mono);color:var(--t2);word-break:break-all}
 #solEmpty p{margin:0 0 8px;color:var(--t2)}

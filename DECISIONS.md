@@ -33,8 +33,13 @@ when its docs can be read (they still weren't reachable from the build environme
   checked byte for byte against @solana/web3.js). Coinside never holds a Solana key.
 - **Limits:** at least 0.12 SOL (Unit's minimum; less can be lost), at most 1 SOL per deposit while deposits are
   new (`NEXT_PUBLIC_MAX_DEPOSIT_SOL`), and 0.002 SOL left behind for the network fee. Amounts are exact lamports.
-- **After:** the panel shows the transaction (Solscan) and says the SOL arrives as USOL in a few minutes; step 2
-  ("Move to trading balance") lights up when it does.
+- **After, followed until it lands** (ALFA, after the first real deposit: "saldo sudah berkurang tapi tidak ada
+  pemberitahuan"): a deposit tracker keeps the sent deposit on the device per account and shows it in the Deposit
+  panel and as a toast on every other page: on its way (with the transaction on Solscan, and Unit's own status
+  from `GET /unit/operations/<account>` polled every 10 seconds, in plain words), then "arrived as USOL" with a
+  link to move it to the trading balance. Arrival is read from the account's USOL going up, so it doesn't depend on
+  Unit's API (whose operation format couldn't be checked; it is read defensively). After 20 minutes it says it's
+  taking longer than usual and keeps watching. The SOL balance is re-read over the half minute after a send.
 - **The risk ALFA accepted:** without the guardian check, a compromised Unit API could hand out an address that
   isn't Unit's. The 1 SOL cap bounds that while it lasts. The guardian check (keys and message format from
   `docs.hyperunit.xyz/developers/api/generate-address/guardian-signatures`) is the next step.
