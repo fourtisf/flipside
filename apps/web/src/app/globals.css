@@ -576,6 +576,11 @@ dialog .amt{margin-top:16px}
 .wd-usol p{margin-top:0}
 .t-act{grid-template-columns:120px 1fr 140px 140px}
 @media (max-width:640px){.t-act{grid-template-columns:96px 1fr 104px}.t-act>:nth-child(4){display:none}}
+.wd-ops{margin-top:18px}
+.wd-ops ul{list-style:none;display:grid;gap:6px;margin-top:6px}
+.wd-ops li{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px}
+.wd-ops li.ok>span:first-child{color:var(--long)}
+.wd-ops li.bad>span:first-child{color:var(--short)}
 .wd-h{display:block;font-weight:550;font-size:13.5px;margin:6px 0 2px}
 .wd-usol .btn{margin-top:10px}
 .wd-usol .omsg{margin-top:8px}

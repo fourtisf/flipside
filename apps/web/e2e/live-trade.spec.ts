@@ -255,7 +255,7 @@ test('an empty account is sent to Deposit in its own Coinside account, and trade
   await page.locator('#ack').check();
   await page.locator('#enableGo').click();
   await expect(page.locator('#enable')).toBeHidden();
-  await expect(page.locator('#moveBtn')).toHaveText('Move to trading balance');
+  await expect(page.locator('#moveBtn')).toHaveText('Sell SOL for trading');
   await page.locator('#moveBtn').click();
   await expect(page.locator('#moveMsg')).toHaveText(
     'Moved $480.12 to your trading balance. You can trade now.',
@@ -468,7 +468,7 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   const status = page.locator('#depStatus');
   await expect(status).toContainText('Deposit of 0.15 SOL on its way');
   await expect(status).toContainText('The SOL has already left your wallet');
-  await expect(status).toContainText('Enable trading (once), and Move to trading balance');
+  await expect(status).toContainText('Enable trading (once), and Sell SOL for trading');
   await expect(page.locator('#solMsg')).toContainText('Your wallet balance went down by that much');
   const sig = base58Encode(new Uint8Array(64).fill(9));
   hl.unitOps = [{ state: 'waitForSrcTxFinalization', sourceTxHash: `${sig}:0` }];
@@ -590,6 +590,23 @@ test('USOL already in the account goes straight to the Solana wallet, one signat
   // and Activity says where it went
   await expect(page.locator('#pf-activity')).toContainText('Sent to 0x5a1e…5a1e');
   await expect(page.locator('#pf-activity')).toContainText('−0.24 SOL');
+  // and Unit's side of it, once Unit has paid it out
+  hl.unitOps = [
+    {
+      state: 'done',
+      sourceTxHash: '0xabc',
+      sourceChain: 'hyperliquid',
+      destinationChain: 'solana',
+      destinationAddress: sol.address,
+      destinationTxHash: '5VfYmGC9L6Zp3bh6K4HsWxH9y4Lrm9ZPzK4uvAqYwPZ1:0',
+    },
+  ];
+  await page.reload();
+  await expect(page.locator('#wdOps')).toContainText('Paid out to your Solana wallet', { timeout: 15_000 });
+  await expect(page.locator('#wdOps a')).toHaveAttribute(
+    'href',
+    'https://solscan.io/tx/5VfYmGC9L6Zp3bh6K4HsWxH9y4Lrm9ZPzK4uvAqYwPZ1',
+  );
   const sent = hl.exchange.map((e) => e.action);
   expect(sent.find((a) => a.type === 'order')).toBeUndefined();
   expect(sent.find((a) => a.type === 'spotSend')).toMatchObject({

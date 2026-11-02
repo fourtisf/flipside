@@ -22,6 +22,7 @@ import {
 import { useAccount, useDeposits, useSolana, useTrade, useWallet } from '@/wallet/provider';
 import { Activity } from './Activity';
 import { DepositStatus } from './DepositStatus';
+import { UnitWithdrawals } from './UnitWithdrawals';
 import {
   FEE_RESERVE_LAMPORTS,
   MAX_DEPOSIT_LAMPORTS,
@@ -83,7 +84,8 @@ function DepositPanel() {
   const waiting = usolWaiting || usdc >= DUST_USD;
   const crumb = usol > 0 && !usolWaiting;
   const busy = trade.busy === 'move';
-  let label = 'Move to trading balance';
+  // says what it does: it sells the SOL (ALFA pressed it meaning to withdraw)
+  let label = usolWaiting ? 'Sell SOL for trading' : 'Move USDC to trading balance';
   // one request to the wallet at a time
   let disabled = !TRADING || !!trade.busy || !waiting;
   const deposits = useDeposits();
@@ -138,7 +140,7 @@ function DepositPanel() {
           <p className={`omsg${msg?.ok ? ' ok' : ''}`} id="moveMsg" role="status">
             {msg?.text ?? ''}
           </p>
-          <button className="btn w" type="button" id="moveBtn" disabled={disabled} onClick={onClick}>
+          <button className="btn o" type="button" id="moveBtn" disabled={disabled} onClick={onClick}>
             {label}
           </button>
         </li>
@@ -303,6 +305,7 @@ function WithdrawPanel() {
         <button className="btn w" type="button" id="wdGo" disabled={disabled} onClick={onClick}>
           {label}
         </button>
+        <UnitWithdrawals />
       </div>
     </Panel>
   );

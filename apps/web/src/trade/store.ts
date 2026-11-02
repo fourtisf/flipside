@@ -388,7 +388,7 @@ export class TradeStore {
       // 4. USDC → USOL
       const r = await order(this.agentConfig(), { orders: [plan.order], grouping: 'na' });
       const st = r.response.data.statuses[0];
-      const waits = ' Your USDC waits in spot; Move to trading balance in Deposit puts it back.';
+      const waits = ' Your USDC waits in spot; Move USDC to trading balance in Deposit puts it back.';
       if (st && typeof st === 'object' && 'error' in st) return say(explain(String(st.error)) + waits);
       if (!(st && typeof st === 'object' && 'filled' in st))
         return say("The SOL purchase didn't fill: the price moved." + waits);

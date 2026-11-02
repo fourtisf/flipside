@@ -62,7 +62,7 @@ export interface HlMock {
   /** An empty account receives a deposit: the funded account arrives over the socket, as Hyperliquid sends it. */
   fund: (user: string) => void;
   /** What our server's Unit operations route answers. */
-  unitOps: Array<{ state: string; sourceTxHash: string }>;
+  unitOps: Array<{ state: string; sourceTxHash: string } & Record<string, string>>;
   /** Replace the account's spot balances (what Hyperliquid answers from now on). */
   setSpot: (spot: typeof SPOT) => void;
 }
@@ -107,10 +107,10 @@ export async function mockHyperliquid(
     route.fulfill({
       json: {
         operations: mock.unitOps.map((o) => ({
-          ...o,
           destinationTxHash: '',
           sourceAmount: '',
           asset: 'sol',
+          ...o,
         })),
       },
     }),

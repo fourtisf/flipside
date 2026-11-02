@@ -54,6 +54,10 @@ describe('following a deposit', () => {
       destinationTxHash: '',
       sourceAmount: '',
       asset: '',
+      sourceChain: '',
+      destinationChain: '',
+      destinationAddress: '',
+      createdAt: '',
     });
     expect(ops).toHaveLength(3);
     await expect(unitOperations('nope', fetcher)).rejects.toThrow();

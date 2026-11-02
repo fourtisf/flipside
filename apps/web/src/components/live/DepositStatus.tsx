@@ -17,7 +17,7 @@ function NextSteps({ arrived }: { arrived: boolean }) {
         about 0.015 SOL as its fee; Coinside charges nothing.
       </li>
       <li>
-        Then, in step 2 of Deposit: Enable trading (once), and Move to trading balance. That sells the SOL for
+        Then, in step 2 of Deposit: Enable trading (once), and Sell SOL for trading. That sells the SOL for
         USDC and moves it where orders can use it; your wallet signs once.
       </li>
       <li>Orders on Hyperliquid must be worth at least $10, so keep at least that much to trade.</li>

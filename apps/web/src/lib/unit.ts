@@ -81,6 +81,12 @@ export interface UnitOperation {
   destinationTxHash: string;
   sourceAmount: string;
   asset: string;
+  /** "solana" or "hyperliquid": a withdrawal goes from hyperliquid to solana. */
+  sourceChain: string;
+  destinationChain: string;
+  destinationAddress: string;
+  /** When Unit saw it (ISO time), when it says. */
+  createdAt: string;
 }
 
 const text = (v: unknown, max = 120) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -111,6 +117,10 @@ export async function unitOperations(
       destinationTxHash: text(op.destinationTxHash),
       sourceAmount: text(op.sourceAmount, 40),
       asset: text(op.asset, 20),
+      sourceChain: text(op.sourceChain, 20),
+      destinationChain: text(op.destinationChain, 20),
+      destinationAddress: text(op.destinationAddress, 80),
+      createdAt: text(op.opCreatedAt, 40),
     };
   });
 }
