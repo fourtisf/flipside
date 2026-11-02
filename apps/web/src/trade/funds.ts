@@ -198,3 +198,28 @@ export function planWithdraw(i: {
     },
   };
 }
+
+/**
+ * USOL already in the account (a deposit not moved yet, or a withdrawal whose send didn't go through), sent
+ * straight to Unit: all of it up to the cap, rounded down to the lot. Null when there is none.
+ */
+export function planSendUsol(
+  spot: SpotRow[] | null,
+  m: SpotMarket | null,
+): { ok: true; amount: string } | { ok: false; reason: string } | null {
+  const held = free(spot, USOL);
+  if (!(held > 0)) return null;
+  if (!m) return { ok: false, reason: 'No USOL market from Hyperliquid yet. Try again in a moment.' };
+  let amount: string;
+  try {
+    amount = formatSize(Math.min(held, MAX_WITHDRAW_SOL), m.szDecimals);
+  } catch {
+    return null;
+  }
+  if (Number(amount) < MIN_WITHDRAW_SOL)
+    return {
+      ok: false,
+      reason: `You hold ${amount} SOL as USOL, under Unit's ${MIN_WITHDRAW_SOL} SOL minimum, so it can't be sent yet.`,
+    };
+  return { ok: true, amount };
+}

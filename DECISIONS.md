@@ -35,7 +35,10 @@ one button that does, in order:
 4. Send exactly the USOL bought to that address (`spotSend`, the wallet signs); Unit pays it out as SOL.
 
 If step 3 or 4 doesn't happen, the money waits in spot and Deposit's "Move to trading balance" puts it back; the
-message says so. **Limits:** at least 0.12 SOL (and Hyperliquid's $10 order), at most 1 SOL per withdrawal while
+message says so. **USOL already in the account** (a deposit not moved yet, or a withdrawal whose send didn't go
+through, as happened on ALFA's first try) shows in the panel with its own "Withdraw your USOL" button: one
+`spotSend` of all of it (up to the cap, rounded down to the lot), nothing bought. If the send step fails, the
+message now gives Hyperliquid's reason and points to that button. **Limits:** at least 0.12 SOL (and Hyperliquid's $10 order), at most 1 SOL per withdrawal while
 withdrawals are new (`NEXT_PUBLIC_MIN_WITHDRAW_SOL`, `NEXT_PUBLIC_MAX_WITHDRAW_SOL`). Unit's own withdrawal limits
 and fees weren't reachable from the build environment (docs.hyperunit.xyz is blocked here), so the minimum
 matches its 0.12 SOL deposit minimum, on the assumption that its withdrawal minimum is no higher. That is not

@@ -16,7 +16,15 @@ import { toSpot, type OrderRow, type PositionRow, type SpotRow } from '@/wallet/
 import { shortSol } from '@/wallet/solana';
 import type { WalletStore } from '@/wallet/store';
 import { TRADING } from './config';
-import { MIN_WITHDRAW_SOL, free, planSellUsol, planWithdraw, usdcToMove, usolMarket } from './funds';
+import {
+  MIN_WITHDRAW_SOL,
+  free,
+  planSellUsol,
+  planSendUsol,
+  planWithdraw,
+  usdcToMove,
+  usolMarket,
+} from './funds';
 import { describe, explain, planClose, planOpen, planTpsl, type OpenInput } from './orders';
 import { agentSigner, forgetAgent, loadAgent, newAgent, saveAgent, type Agent } from './signer';
 
@@ -30,6 +38,15 @@ function walletCode(e: unknown, depth = 0): number | undefined {
 }
 
 /** What went wrong, for the person: a wallet that said no, Hyperliquid's own message, or a network problem. */
+/** The Hyperliquid address that pays out to the Solana wallet `sol`, from our server (lib/unit.ts), or null. */
+async function unitWithdrawAddress(sol: string): Promise<string | null> {
+  const res = await fetch(`/unit/withdraw-address/${sol}`, { cache: 'no-store' }).catch(() => null);
+  const to = res?.ok
+    ? String(((await res.json().catch(() => ({}))) as { address?: unknown }).address ?? '')
+    : '';
+  return /^0x[0-9a-f]{40}$/.test(to) ? to : null;
+}
+
 function errorText(e: unknown, wallet: string): string {
   const code = walletCode(e);
   if (code === 4001) return `You closed the request in ${wallet}. Nothing was signed.`;
@@ -342,9 +359,8 @@ export class TradeStore {
     });
     try {
       // 1. where it goes, before anything moves
-      const res = await fetch(`/unit/withdraw-address/${sol}`, { cache: 'no-store' }).catch(() => null);
-      const to = res?.ok ? String(((await res.json()) as { address?: unknown }).address ?? '') : '';
-      if (!/^0x[0-9a-f]{40}$/.test(to))
+      const to = await unitWithdrawAddress(sol);
+      if (!to)
         return say("Couldn't get your withdrawal address from Unit. Nothing moved. Try again in a minute.");
       // 2. the price and the balances right now
       const [spotMeta, perps, spotState] = await Promise.all([
@@ -380,23 +396,18 @@ export class TradeStore {
           `Only ${bought} SOL was bought, under Unit's ${MIN_WITHDRAW_SOL} SOL minimum, so it wasn't sent. It waits in spot as USOL; try again.`,
         );
       // 5. USOL → Unit, which pays out SOL to the wallet
-      await spotSend(
-        { ...httpConfig(), wallet: signer },
-        { destination: to, token: market!.token, amount: bought },
-      );
-      this.set((s) => {
-        s.say(
-          `Sent ${bought} SOL to Unit for ${shortSol(sol)}. It arrives in your Solana wallet in a few minutes.`,
-          true,
+      try {
+        await spotSend(
+          { ...httpConfig(), wallet: signer },
+          { destination: to, token: market!.token, amount: bought },
         );
-        s.notice = {
-          title: `${bought} SOL is on its way to your Solana wallet`,
-          body: `Unit pays it out to ${shortSol(sol)}, usually within a few minutes, less its small network fee.`,
-          href: `https://solscan.io/account/${sol}`,
-          link: 'Watch it on Solscan',
-          at: Date.now(),
-        };
-      });
+      } catch (e) {
+        this.checkKey(e);
+        return say(
+          `Bought ${bought} SOL, but sending it to Unit didn't go through: ${errorText(e, this.wallet.name)} It is safe in your account as USOL; press "Withdraw your USOL" to send it again.`,
+        );
+      }
+      this.sent(bought, sol);
       return true;
     } catch (e) {
       this.checkKey(e);
@@ -404,6 +415,68 @@ export class TradeStore {
     } finally {
       this.set((s) => void (s.busy = null));
     }
+  }
+
+  /**
+   * Send USOL already in the account to the Solana wallet `sol` (a deposit not moved yet, or a withdrawal whose
+   * last step didn't go through): one signature, no purchase.
+   */
+  async withdrawUsol(sol: string | null): Promise<boolean> {
+    const owner = this.wallet.address;
+    if (!TRADING || !this.wallet.canSign() || !owner || this.busy) return false;
+    const say = (text: string, ok = false) => {
+      this.set((s) => {
+        s.say(text, ok);
+        s.lastAction = 'withdraw';
+      });
+      return ok;
+    };
+    if (!sol) return say('Connect your Solana wallet first: the SOL goes back to it.');
+    this.set((s) => {
+      s.busy = 'withdraw';
+      s.msg = null;
+    });
+    try {
+      const to = await unitWithdrawAddress(sol);
+      if (!to)
+        return say("Couldn't get your withdrawal address from Unit. Nothing moved. Try again in a minute.");
+      const [spotMeta, spotState] = await Promise.all([
+        info.spotMetaAndAssetCtxs(httpConfig()),
+        info.spotClearinghouseState(httpConfig(), { user: owner }),
+      ]);
+      const market = usolMarket(spotMeta);
+      const plan = planSendUsol(toSpot(spotState), market);
+      if (!plan) return say('There is no USOL in your account to send.');
+      if (!plan.ok) return say(plan.reason);
+      await spotSend(
+        { ...httpConfig(), wallet: await this.wallet.signer() },
+        { destination: to, token: market!.token, amount: plan.amount },
+      );
+      this.sent(plan.amount, sol);
+      return true;
+    } catch (e) {
+      this.checkKey(e);
+      return say(errorText(e, this.wallet.name));
+    } finally {
+      this.set((s) => void (s.busy = null));
+    }
+  }
+
+  private sent(amount: string, sol: string) {
+    this.set((s) => {
+      s.say(
+        `Sent ${amount} SOL to Unit for ${shortSol(sol)}. It arrives in your Solana wallet in a few minutes.`,
+        true,
+      );
+      s.lastAction = 'withdraw';
+      s.notice = {
+        title: `${amount} SOL is on its way to your Solana wallet`,
+        body: `Unit pays it out to ${shortSol(sol)}, usually within a few minutes, less its small network fee.`,
+        href: `https://solscan.io/account/${sol}`,
+        link: 'Watch it on Solscan',
+        at: Date.now(),
+      };
+    });
   }
 
   dismissNotice() {

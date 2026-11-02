@@ -569,3 +569,27 @@ test('withdraw to the Solana wallet: trading balance to spot, USDC to USOL, USOL
     'spotSend',
   ]);
 });
+
+test('USOL already in the account goes straight to the Solana wallet, one signature, nothing bought', async ({
+  page,
+}) => {
+  const sol = testSolanaWallet();
+  const hl = await mockHyperliquid(page);
+  hl.setSpot({ balances: [{ ...SPOT.balances[0]!, total: '0.2409', hold: '0.0' }] });
+  await fakeWallet(page, { address: ADDRESS, solana: sol.address, solanaSignature: sol.signature });
+  await page.goto('/portfolio');
+  await page.locator('#connect').click();
+  await page.locator('#swl button[data-sol="Phantom"]').click();
+  await expect(page.locator('#walletBtn')).toBeVisible();
+
+  await expect(page.locator('#wdUsolBox')).toContainText('You hold 0.2409 SOL as USOL');
+  await page.locator('#wdUsol').click();
+  await expect(page.locator('#wdMsg')).toContainText('Sent 0.24 SOL to Unit');
+  const sent = hl.exchange.map((e) => e.action);
+  expect(sent.find((a) => a.type === 'order')).toBeUndefined();
+  expect(sent.find((a) => a.type === 'spotSend')).toMatchObject({
+    destination: UNIT_WITHDRAW_ADDRESS,
+    token: 'USOL:0x000000000000000000000000000000fe',
+    amount: '0.24',
+  });
+});

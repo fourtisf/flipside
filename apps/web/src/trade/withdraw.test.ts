@@ -4,6 +4,7 @@ import {
   MAX_WITHDRAW_SOL,
   MIN_WITHDRAW_SOL,
   minWithdrawUsd,
+  planSendUsol,
   planWithdraw,
   usolMarket,
   withdrawProblem,
@@ -66,5 +67,23 @@ describe('withdrawing to Solana: the plan', () => {
       ok: false,
       reason: expect.stringContaining('No SOL price'),
     });
+  });
+});
+
+describe('withdrawing USOL already in the account', () => {
+  const usol = (total: string) => [{ coin: 'USOL', total: Number(total), hold: 0 }] as never;
+
+  it('sends all of it, rounded down to the lot, up to the cap', () => {
+    // ALFA's account after a withdrawal whose send didn't go through
+    expect(planSendUsol(usol('0.2409'), m)).toEqual({ ok: true, amount: '0.24' });
+    expect(planSendUsol(usol('1.5'), m)).toEqual({ ok: true, amount: '1' });
+  });
+
+  it("refuses under Unit's minimum, and has nothing to say without USOL", () => {
+    expect(planSendUsol(usol('0.1'), m)).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining('0.12 SOL'),
+    });
+    expect(planSendUsol([], m)).toBeNull();
   });
 });

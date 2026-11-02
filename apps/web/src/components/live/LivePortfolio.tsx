@@ -163,6 +163,11 @@ function WithdrawPanel() {
   const estimate = px > 0 && amt && !problem ? amount / (px * 1.01) : 0;
   const msg =
     trade.msg && Date.now() - trade.msg.at < 120_000 && trade.lastAction === 'withdraw' ? trade.msg : null;
+  // USOL already in the account goes straight to Unit, no purchase
+  const usol = free(account.spot, USOL);
+  const refreshLater = () => {
+    for (const ms of [30_000, 60_000, 120_000, 240_000]) setTimeout(() => void sol.refresh(), ms);
+  };
   let label = 'Withdraw to Solana';
   let disabled = !TRADING || busy || !amt || !!problem || !sol.address;
   let onClick: () => void = () =>
@@ -170,7 +175,7 @@ function WithdrawPanel() {
       if (!ok) return;
       setAmt('');
       // Unit pays out in a few minutes: look again now and then
-      for (const ms of [30_000, 60_000, 120_000, 240_000]) setTimeout(() => void sol.refresh(), ms);
+      refreshLater();
     });
   if (busy) label = `Check ${wallet.name || 'your wallet'}`;
   else if (!trade.ready()) {
@@ -199,7 +204,27 @@ function WithdrawPanel() {
           <p className="sol-addr">
             <code id="wdTo">{sol.address}</code>
           </p>
-        ) : (
+        ) : null}
+        {usol >= MIN_WITHDRAW_SOL && (
+          <div className="wd-usol" id="wdUsolBox">
+            <p>
+              You hold <b className="n">{usol.toLocaleString('en-US', { maximumFractionDigits: 4 })} SOL</b>{' '}
+              as USOL in your account{px > 0 ? ` (about ${usd2(usol * px)})` : ''}. It can go straight to your
+              Solana wallet: one signature, nothing to buy
+              {usol > MAX_WITHDRAW_SOL ? `, up to ${MAX_WITHDRAW_SOL} SOL at a time` : ''}.
+            </p>
+            <button
+              className="btn w"
+              type="button"
+              id="wdUsol"
+              disabled={!TRADING || busy || !sol.address}
+              onClick={() => void trade.withdrawUsol(sol.address).then((ok) => ok && refreshLater())}
+            >
+              {busy ? `Check ${wallet.name || 'your wallet'}` : 'Withdraw your USOL'}
+            </button>
+          </div>
+        )}
+        {!sol.address && (
           <p className="omsg" role="status" id="wdNoSol">
             Connect your Solana wallet in Deposit above: the SOL goes back to it.
           </p>
