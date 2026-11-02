@@ -83,7 +83,8 @@ function DepositPanel() {
   const crumb = usol > 0 && !usolWaiting;
   const busy = trade.busy === 'move';
   let label = 'Move to trading balance';
-  let disabled = !TRADING || busy || !waiting;
+  // one request to the wallet at a time
+  let disabled = !TRADING || !!trade.busy || !waiting;
   const deposits = useDeposits();
   let onClick: () => void = () =>
     void trade.moveToTrading(account.spot).then(() => {
@@ -159,6 +160,8 @@ function WithdrawPanel() {
   const amount = Number(amt);
   const problem = amt ? withdrawProblem(amount, available, px) : null;
   const busy = trade.busy === 'withdraw';
+  // another request (a move, an order) is waiting for the wallet: one at a time
+  const other = !!trade.busy && !busy;
   const max = Math.min(available, px > 0 ? maxWithdrawUsd(px) : available);
   const estimate = px > 0 && amt && !problem ? amount / (px * 1.01) : 0;
   const msg =
@@ -169,7 +172,7 @@ function WithdrawPanel() {
     for (const ms of [30_000, 60_000, 120_000, 240_000]) setTimeout(() => void sol.refresh(), ms);
   };
   let label = 'Withdraw to Solana';
-  let disabled = !TRADING || busy || !amt || !!problem || !sol.address;
+  let disabled = !TRADING || !!trade.busy || !amt || !!problem || !sol.address;
   let onClick: () => void = () =>
     void trade.withdraw(amount.toFixed(2), sol.address).then((ok) => {
       if (!ok) return;
@@ -217,7 +220,7 @@ function WithdrawPanel() {
               className="btn w"
               type="button"
               id="wdUsol"
-              disabled={!TRADING || busy || !sol.address}
+              disabled={!TRADING || !!trade.busy || !sol.address}
               onClick={() => void trade.withdrawUsol(sol.address).then((ok) => ok && refreshLater())}
             >
               {busy ? `Check ${wallet.name || 'your wallet'}` : 'Withdraw your USOL'}
@@ -280,7 +283,9 @@ function WithdrawPanel() {
           </dl>
         )}
         <p className={`omsg${msg?.ok ? ' ok' : ''}`} id="wdMsg" role="status">
-          {problem ?? msg?.text ?? ''}
+          {other
+            ? `Waiting for ${wallet.name || 'your wallet'} to answer another request. Approve or reject it there first.`
+            : (problem ?? msg?.text ?? '')}
         </p>
         <button className="btn w" type="button" id="wdGo" disabled={disabled} onClick={onClick}>
           {label}

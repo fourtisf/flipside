@@ -135,6 +135,11 @@ const firstWord = (s: string) => s.toLowerCase().split(' ')[0] ?? '';
 
 /** How long a wallet has to answer a connect request before Coinside stops waiting. */
 export const CONNECT_TIMEOUT_MS = 90_000;
+/**
+ * How long a wallet has to answer a signature request. Some wallets never answer when their window doesn't open
+ * (or opens behind the browser); without a limit the button would wait forever and block every other action.
+ */
+export const SIGN_TIMEOUT_MS = 90_000;
 
 const REMEMBER = (owner: string) => `coinside.sol.${owner.toLowerCase()}`;
 const ASKED = 'coinside.sol.asked';
@@ -515,7 +520,21 @@ export class SolanaStore {
         }
       | undefined;
     if (!feature) throw new Error(`${w.name} can't sign messages. Update ${w.name} or try Phantom.`);
-    const out = await feature.signMessage({ account: this.account, message });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const out = await Promise.race([
+      feature.signMessage({ account: this.account, message }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              new Error(
+                `${w.name} didn't answer. Click the ${w.name} icon in your browser's toolbar to see the request, unlock ${w.name} if it asks, and try again.`,
+              ),
+            ),
+          SIGN_TIMEOUT_MS,
+        );
+      }),
+    ]).finally(() => clearTimeout(timer));
     const sig = out[0]?.signature;
     if (!sig) throw new Error(`${w.name} returned no signature.`);
     return Uint8Array.from(sig);

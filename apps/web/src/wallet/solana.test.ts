@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SolanaStore, isSolanaWallet, legacyWallet, shortSol, solText, type StdWallet } from './solana';
+import {
+  SIGN_TIMEOUT_MS,
+  SolanaStore,
+  isSolanaWallet,
+  legacyWallet,
+  shortSol,
+  solText,
+  type StdWallet,
+} from './solana';
 import { WalletStore } from './store';
 
 const ADDR = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
@@ -173,5 +181,32 @@ describe('the Solana side of the wallet', () => {
       'Bitget Wallet switched to another account (7xKX…gAsU). Connect again to use it.',
     );
     s.disconnect();
+  });
+});
+
+describe('signature requests', () => {
+  it('stop waiting after 90 seconds when the wallet never answers, and say where to look', async () => {
+    vi.useFakeTimers();
+    try {
+      const s = new SolanaStore();
+      const never = vi.fn(() => new Promise(() => {}));
+      // a connected Phantom whose window never opens
+      Object.assign(s as unknown as { wallet: StdWallet; account: { address: string } }, {
+        wallet: {
+          ...stdWallet('Phantom'),
+          features: {
+            'standard:connect': { connect: vi.fn() },
+            'solana:signMessage': { signMessage: never },
+          },
+        },
+        account: { address: ADDR },
+      });
+      const asked = s.signMessage(new Uint8Array([1]));
+      const caught = asked.catch((e: Error) => e.message);
+      await vi.advanceTimersByTimeAsync(SIGN_TIMEOUT_MS);
+      expect(await caught).toMatch(/^Phantom didn't answer. Click the Phantom icon/);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
