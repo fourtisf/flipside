@@ -95,7 +95,8 @@ export class TradeStore {
   }
   private say(text: string, ok: boolean) {
     this.msg = { text, ok, at: Date.now() };
-    this.lastAction = this.busy ?? null;
+    this.lastAction =
+      this.busy === 'withdraw' && this.lastAction === 'withdrawSol' ? 'withdrawSol' : (this.busy ?? null);
   }
 
   /** Load the trading key of the wallet now connected (or forget it). */
@@ -355,6 +356,7 @@ export class TradeStore {
     if (!this.ready()) return say('Enable trading first, then withdraw.');
     this.set((s) => {
       s.busy = 'withdraw';
+      s.lastAction = 'withdraw';
       s.msg = null;
     });
     try {
@@ -427,13 +429,14 @@ export class TradeStore {
     const say = (text: string, ok = false) => {
       this.set((s) => {
         s.say(text, ok);
-        s.lastAction = 'withdraw';
+        s.lastAction = 'withdrawSol';
       });
       return ok;
     };
     if (!sol) return say('Connect your Solana wallet first: the SOL goes back to it.');
     this.set((s) => {
       s.busy = 'withdraw';
+      s.lastAction = 'withdrawSol';
       s.msg = null;
     });
     try {
@@ -468,7 +471,7 @@ export class TradeStore {
         `Sent ${amount} SOL to Unit for ${shortSol(sol)}. It arrives in your Solana wallet in a few minutes.`,
         true,
       );
-      s.lastAction = 'withdraw';
+      s.lastAction = s.lastAction === 'withdrawSol' ? 'withdrawSol' : 'withdraw';
       s.notice = {
         title: `${amount} SOL is on its way to your Solana wallet`,
         body: `Unit pays it out to ${shortSol(sol)}, usually within a few minutes, less its small network fee.`,

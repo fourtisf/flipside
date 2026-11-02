@@ -192,6 +192,31 @@ export async function mockHyperliquid(
         return route.fulfill({ json: empty ? [] : FILLS });
       case 'spotMetaAndAssetCtxs':
         return route.fulfill({ json: SPOT_META });
+      // the account's money movements: what this page sent so far
+      case 'userNonFundingLedgerUpdates':
+        return route.fulfill({
+          json: mock.exchange.flatMap(({ action: a, nonce }): unknown[] => {
+            const at = { time: nonce, hash: `0x${nonce.toString(16).padStart(64, '0')}` };
+            if (a.type === 'usdClassTransfer')
+              return [{ ...at, delta: { type: 'accountClassTransfer', usdc: a.amount, toPerp: a.toPerp } }];
+            if (a.type === 'spotSend')
+              return [
+                {
+                  ...at,
+                  delta: {
+                    type: 'spotTransfer',
+                    token: String(a.token).split(':')[0],
+                    amount: a.amount,
+                    usdcValue: '0',
+                    user: body.user,
+                    destination: a.destination,
+                    fee: '0',
+                  },
+                },
+              ];
+            return [];
+          }),
+        });
       default:
         return route.fulfill({ status: 422, body: `unexpected info request ${body.type}` });
     }

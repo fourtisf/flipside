@@ -585,7 +585,11 @@ test('USOL already in the account goes straight to the Solana wallet, one signat
   await expect(page.locator('#wdUsolBox')).toContainText('You have 0.2409 SOL in your account');
   await expect(page.locator('#wdSol')).toHaveText('0.2409');
   await page.locator('#wdUsol').click();
-  await expect(page.locator('#wdMsg')).toContainText('Sent 0.24 SOL to Unit');
+  // its result shows under its own button, whatever the USDC field says
+  await expect(page.locator('#wdSolMsg')).toContainText('Sent 0.24 SOL to Unit');
+  // and Activity says where it went
+  await expect(page.locator('#pf-activity')).toContainText('Sent to 0x5a1e…5a1e');
+  await expect(page.locator('#pf-activity')).toContainText('−0.24 SOL');
   const sent = hl.exchange.map((e) => e.action);
   expect(sent.find((a) => a.type === 'order')).toBeUndefined();
   expect(sent.find((a) => a.type === 'spotSend')).toMatchObject({

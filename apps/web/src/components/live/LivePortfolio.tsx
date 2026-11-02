@@ -20,6 +20,7 @@ import {
   withdrawable,
 } from '@/trade/funds';
 import { useAccount, useDeposits, useSolana, useTrade, useWallet } from '@/wallet/provider';
+import { Activity } from './Activity';
 import { DepositStatus } from './DepositStatus';
 import {
   FEE_RESERVE_LAMPORTS,
@@ -99,7 +100,9 @@ function DepositPanel() {
     onClick = () => trade.set((s) => void (s.dialog = true));
   }
   const msg =
-    trade.msg && Date.now() - trade.msg.at < 60_000 && trade.lastAction !== 'withdraw' ? trade.msg : null;
+    trade.msg && Date.now() - trade.msg.at < 60_000 && !trade.lastAction?.startsWith('withdraw')
+      ? trade.msg
+      : null;
   return (
     <Panel id="deposit" title="Deposit" note="from Solana">
       <DepositStatus />
@@ -164,8 +167,10 @@ function WithdrawPanel() {
   const other = !!trade.busy && !busy;
   const max = Math.min(available, px > 0 ? maxWithdrawUsd(px) : available);
   const estimate = px > 0 && amt && !problem ? amount / (px * 1.01) : 0;
-  const msg =
-    trade.msg && Date.now() - trade.msg.at < 120_000 && trade.lastAction === 'withdraw' ? trade.msg : null;
+  const fresh = trade.msg && Date.now() - trade.msg.at < 180_000 ? trade.msg : null;
+  // each button shows its own result: the SOL send under its button, the USDC withdrawal under its own
+  const msg = trade.lastAction === 'withdraw' ? fresh : null;
+  const solMsg = trade.lastAction === 'withdrawSol' ? fresh : null;
   // USOL already in the account goes straight to Unit, no purchase
   const usol = free(account.spot, USOL);
   const refreshLater = () => {
@@ -229,6 +234,9 @@ function WithdrawPanel() {
             >
               {busy ? `Check ${wallet.name || 'your wallet'}` : 'Withdraw my SOL'}
             </button>
+            <p className={`omsg${solMsg?.ok ? ' ok' : ''}`} id="wdSolMsg" role="status">
+              {solMsg?.text ?? ''}
+            </p>
           </div>
         )}
         {!sol.address && (
@@ -750,6 +758,7 @@ export function LivePortfolio() {
         <WithdrawPanel />
         <PositionsPanel id="pf-pos" />
         <OrdersPanel id="pf-orders" />
+        <Activity />
         <Panel id="pf-spot" title="Balances" note="spot">
           {account.spot?.length ? (
             <div role="table" aria-label="Spot balances">
