@@ -100,7 +100,13 @@ describe('moving a deposit to the trading balance', () => {
   const spot = toSpot(SPOT); // 1.5 USOL, 500.12 USDC with 20 held by orders
 
   it('finds USOL/USDC and its price', () => {
-    expect(m).toEqual({ pair: '@156', asset: 10156, szDecimals: 2, px: 187.1 });
+    expect(m).toEqual({
+      pair: '@156',
+      asset: 10156,
+      szDecimals: 2,
+      px: 187.1,
+      token: 'USOL:0x000000000000000000000000000000fe',
+    });
     expect(usolMarket([{ ...SPOT_META[0], tokens: [] }, []])).toBeNull();
   });
 

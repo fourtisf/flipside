@@ -20,9 +20,15 @@ export function Notice() {
       <p>{n.body}</p>
       {n.href && (
         <p>
-          <Link className="lnk" href={n.href} onClick={() => trade.dismissNotice()}>
-            {n.link ?? 'Open'}
-          </Link>
+          {/^https?:/.test(n.href) ? (
+            <a className="lnk" href={n.href} target="_blank" rel="noopener noreferrer">
+              {n.link ?? 'Open'}
+            </a>
+          ) : (
+            <Link className="lnk" href={n.href} onClick={() => trade.dismissNotice()}>
+              {n.link ?? 'Open'}
+            </Link>
+          )}
         </p>
       )}
       <button type="button" className="lnk dep-x" aria-label="Dismiss" onClick={() => trade.dismissNotice()}>

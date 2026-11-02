@@ -567,6 +567,11 @@ dialog .amt{margin-top:16px}
 #solEmpty .btn{height:32px;font-size:12.5px}
 #evmToggle{display:block;margin-top:12px;font-size:12.5px}
 .dep-amt{max-width:360px;margin:6px 0 4px}
+.wd{padding:16px 18px}
+.wd p{font-size:13px;color:var(--t2);margin-top:4px;max-width:62ch}
+.wd .omsg:empty{display:none}
+.wd>.btn{margin-top:12px}
+.wd .fbal{margin-top:0}
 .dep-amt .btn{height:30px;padding:0 10px;font-size:12.5px}
 .sol-pick .btn{display:inline-flex;align-items:center;gap:8px}
 .sol-pick img{border-radius:5px}

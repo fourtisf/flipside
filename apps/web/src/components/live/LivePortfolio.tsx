@@ -8,7 +8,17 @@ import { useHl } from '@/hl/provider';
 import { M, pct } from '@/lib/format';
 import { shortAddr } from '@/wallet/catalog';
 import { TRADING } from '@/trade/config';
-import { DUST_USD, USOL, free } from '@/trade/funds';
+import {
+  DUST_USD,
+  MAX_WITHDRAW_SOL,
+  MIN_WITHDRAW_SOL,
+  USOL,
+  free,
+  maxWithdrawUsd,
+  minWithdrawUsd,
+  withdrawProblem,
+  withdrawable,
+} from '@/trade/funds';
 import { useAccount, useDeposits, useSolana, useTrade, useWallet } from '@/wallet/provider';
 import { DepositStatus } from './DepositStatus';
 import {
@@ -87,7 +97,8 @@ function DepositPanel() {
     disabled = !TRADING;
     onClick = () => trade.set((s) => void (s.dialog = true));
   }
-  const msg = trade.msg && Date.now() - trade.msg.at < 60_000 ? trade.msg : null;
+  const msg =
+    trade.msg && Date.now() - trade.msg.at < 60_000 && trade.lastAction !== 'withdraw' ? trade.msg : null;
   return (
     <Panel id="deposit" title="Deposit" note="from Solana">
       <DepositStatus />
@@ -128,6 +139,128 @@ function DepositPanel() {
           </button>
         </li>
       </ol>
+    </Panel>
+  );
+}
+
+/**
+ * Withdraw, back to the person's Solana wallet: the trading balance (and spot USDC) becomes USOL, which Unit pays
+ * out as SOL. One button; the wallet signs the moves and the trading key the purchase (TradeStore.withdraw).
+ */
+function WithdrawPanel() {
+  const [amt, setAmt] = useState('');
+  const account = useAccount();
+  const trade = useTrade();
+  const wallet = useWallet();
+  const sol = useSolana();
+  const hl = useHl();
+  const px = hl.byName.SOL?.px ?? 0;
+  const available = withdrawable(account.summary?.withdrawable ?? 0, free(account.spot, 'USDC'));
+  const amount = Number(amt);
+  const problem = amt ? withdrawProblem(amount, available, px) : null;
+  const busy = trade.busy === 'withdraw';
+  const max = Math.min(available, px > 0 ? maxWithdrawUsd(px) : available);
+  const estimate = px > 0 && amt && !problem ? amount / (px * 1.01) : 0;
+  const msg =
+    trade.msg && Date.now() - trade.msg.at < 120_000 && trade.lastAction === 'withdraw' ? trade.msg : null;
+  let label = 'Withdraw to Solana';
+  let disabled = !TRADING || busy || !amt || !!problem || !sol.address;
+  let onClick: () => void = () =>
+    void trade.withdraw(amount.toFixed(2), sol.address).then((ok) => {
+      if (!ok) return;
+      setAmt('');
+      // Unit pays out in a few minutes: look again now and then
+      for (const ms of [30_000, 60_000, 120_000, 240_000]) setTimeout(() => void sol.refresh(), ms);
+    });
+  if (busy) label = `Check ${wallet.name || 'your wallet'}`;
+  else if (!trade.ready()) {
+    label = 'Enable trading first';
+    disabled = !TRADING;
+    onClick = () => trade.set((s) => void (s.dialog = true));
+  }
+  return (
+    <Panel id="withdraw" title="Withdraw" note="to Solana">
+      <div className="wd">
+        <dl className="fbal" id="wdBal">
+          <div>
+            <dt>Available</dt>
+            <dd>{usd2(available)}</dd>
+          </div>
+          <div>
+            <dt>To</dt>
+            <dd>
+              {sol.address
+                ? `${sol.name ? `${sol.name}, ` : ''}${shortSol(sol.address)}`
+                : 'Your Solana wallet'}
+            </dd>
+          </div>
+        </dl>
+        {sol.address ? (
+          <p className="sol-addr">
+            <code id="wdTo">{sol.address}</code>
+          </p>
+        ) : (
+          <p className="omsg" role="status" id="wdNoSol">
+            Connect your Solana wallet in Deposit above: the SOL goes back to it.
+          </p>
+        )}
+        <div className="amt dep-amt">
+          <input
+            id="wdAmt"
+            inputMode="decimal"
+            aria-label="USDC to withdraw"
+            placeholder="0.00"
+            value={amt}
+            onChange={(e) => setAmt(e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''))}
+          />
+          <span>USDC</span>
+          <button
+            type="button"
+            className="btn o"
+            id="wdMax"
+            disabled={!(max > 0)}
+            onClick={() => setAmt(max > 0 ? (Math.floor(max * 100) / 100).toFixed(2) : '')}
+          >
+            Max
+          </button>
+        </div>
+        <p>
+          Coinside buys SOL (as USOL, Unit&apos;s SOL on Hyperliquid) with it and sends it to Unit, which pays
+          it out to your Solana wallet, usually within a few minutes, less a small network fee. From{' '}
+          {MIN_WITHDRAW_SOL} SOL{px > 0 ? ` (about ${usd2(minWithdrawUsd(px))})` : ''} to {MAX_WITHDRAW_SOL}{' '}
+          SOL per withdrawal while withdrawals are new. Coinside charges nothing.
+        </p>
+        {estimate > 0 && (
+          <dl className="sum dep-sum" id="wdBreakdown">
+            <div>
+              <dt>You withdraw</dt>
+              <dd>{usd2(amount)}</dd>
+            </div>
+            <div>
+              <dt>Buys, about</dt>
+              <dd>{estimate.toFixed(3)} SOL</dd>
+            </div>
+            <div>
+              <dt>Arrives in</dt>
+              <dd>{sol.address ? shortSol(sol.address) : 'your Solana wallet'}</dd>
+            </div>
+            <div>
+              <dt>Unit&apos;s fee</dt>
+              <dd>small network fee</dd>
+            </div>
+            <div>
+              <dt>Coinside fee</dt>
+              <dd>Free</dd>
+            </div>
+          </dl>
+        )}
+        <p className={`omsg${msg?.ok ? ' ok' : ''}`} id="wdMsg" role="status">
+          {problem ?? msg?.text ?? ''}
+        </p>
+        <button className="btn w" type="button" id="wdGo" disabled={disabled} onClick={onClick}>
+          {label}
+        </button>
+      </div>
     </Panel>
   );
 }
@@ -549,6 +682,9 @@ export function LivePortfolio() {
           <a className="btn w" href="#deposit">
             Deposit
           </a>
+          <a className="btn o" href="#withdraw">
+            Withdraw
+          </a>
         </div>
       </div>
       {account.failed && !s && (
@@ -576,6 +712,7 @@ export function LivePortfolio() {
       </dl>
       <div className="stack">
         <DepositPanel />
+        <WithdrawPanel />
         <PositionsPanel id="pf-pos" />
         <OrdersPanel id="pf-orders" />
         <Panel id="pf-spot" title="Balances" note="spot">

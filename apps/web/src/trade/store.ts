@@ -5,6 +5,7 @@ import {
   approveAgent,
   cancel,
   order,
+  spotSend,
   updateLeverage,
   usdClassTransfer,
 } from '@nktkas/hyperliquid/api/exchange';
@@ -12,9 +13,10 @@ import * as info from '@nktkas/hyperliquid/api/info';
 import { httpConfig } from '@/hl/client';
 import type { Market } from '@/hl/markets';
 import { toSpot, type OrderRow, type PositionRow, type SpotRow } from '@/wallet/account';
+import { shortSol } from '@/wallet/solana';
 import type { WalletStore } from '@/wallet/store';
 import { TRADING } from './config';
-import { planSellUsol, usdcToMove, usolMarket } from './funds';
+import { MIN_WITHDRAW_SOL, free, planSellUsol, planWithdraw, usdcToMove, usolMarket } from './funds';
 import { describe, explain, planClose, planOpen, planTpsl, type OpenInput } from './orders';
 import { agentSigner, forgetAgent, loadAgent, newAgent, saveAgent, type Agent } from './signer';
 
@@ -52,6 +54,8 @@ export class TradeStore {
   manage: { coin: string; tab: 'close' | 'tpsl' } | null = null;
   busy: string | null = null;
   msg: { text: string; ok: boolean; at: number } | null = null;
+  /** What the last message is about, so Withdraw and Deposit each show only their own. */
+  lastAction: string | null = null;
   /** A notification for the whole app (a toast), for things worth hearing about wherever the person is. */
   notice: { title: string; body: string; href?: string; link?: string; at: number } | null = null;
 
@@ -74,6 +78,7 @@ export class TradeStore {
   }
   private say(text: string, ok: boolean) {
     this.msg = { text, ok, at: Date.now() };
+    this.lastAction = this.busy ?? null;
   }
 
   /** Load the trading key of the wallet now connected (or forget it). */
@@ -308,6 +313,94 @@ export class TradeStore {
     } catch (e) {
       this.checkKey(e);
       this.set((s) => s.say(errorText(e, this.wallet.name), false));
+    } finally {
+      this.set((s) => void (s.busy = null));
+    }
+  }
+
+  /**
+   * Withdraw `amount` dollars to the Solana wallet `sol`: move what spot lacks from the trading balance (the wallet
+   * signs), buy USOL with it (the trading key), and send the USOL to the wallet's Unit withdrawal address (the
+   * wallet signs), which Unit pays out as SOL. The address is fetched and the plan checked before anything moves;
+   * if a later step fails, the money waits in spot, where Deposit's "Move to trading balance" puts it back.
+   */
+  async withdraw(amount: string, sol: string | null): Promise<boolean> {
+    const owner = this.wallet.address;
+    if (!TRADING || !this.wallet.canSign() || !owner || this.busy) return false;
+    const say = (text: string, ok = false) => {
+      this.set((s) => {
+        s.say(text, ok);
+        s.lastAction = 'withdraw';
+      });
+      return ok;
+    };
+    if (!sol) return say('Connect your Solana wallet first: the SOL goes back to it.');
+    if (!this.ready()) return say('Enable trading first, then withdraw.');
+    this.set((s) => {
+      s.busy = 'withdraw';
+      s.msg = null;
+    });
+    try {
+      // 1. where it goes, before anything moves
+      const res = await fetch(`/unit/withdraw-address/${sol}`, { cache: 'no-store' }).catch(() => null);
+      const to = res?.ok ? String(((await res.json()) as { address?: unknown }).address ?? '') : '';
+      if (!/^0x[0-9a-f]{40}$/.test(to))
+        return say("Couldn't get your withdrawal address from Unit. Nothing moved. Try again in a minute.");
+      // 2. the price and the balances right now
+      const [spotMeta, perps, spotState] = await Promise.all([
+        info.spotMetaAndAssetCtxs(httpConfig()),
+        info.clearinghouseState(httpConfig(), { user: owner }),
+        info.spotClearinghouseState(httpConfig(), { user: owner }),
+      ]);
+      const market = usolMarket(spotMeta);
+      const book = market ? await info.l2Book(httpConfig(), { coin: market.pair }).catch(() => null) : null;
+      const planned = planWithdraw({
+        amount: Number(amount),
+        perp: Number(perps.withdrawable),
+        spotUsdc: free(toSpot(spotState), 'USDC'),
+        m: market,
+        ask: Number(book?.levels?.[1]?.[0]?.px ?? 0),
+      });
+      if (!planned.ok) return say(planned.reason);
+      const { plan } = planned;
+      const signer = await this.wallet.signer();
+      // 3. trading balance → spot
+      if (plan.toSpot)
+        await usdClassTransfer({ ...httpConfig(), wallet: signer }, { amount: plan.toSpot, toPerp: false });
+      // 4. USDC → USOL
+      const r = await order(this.agentConfig(), { orders: [plan.order], grouping: 'na' });
+      const st = r.response.data.statuses[0];
+      const waits = ' Your USDC waits in spot; Move to trading balance in Deposit puts it back.';
+      if (st && typeof st === 'object' && 'error' in st) return say(explain(String(st.error)) + waits);
+      if (!(st && typeof st === 'object' && 'filled' in st))
+        return say("The SOL purchase didn't fill: the price moved." + waits);
+      const bought = st.filled.totalSz;
+      if (Number(bought) < MIN_WITHDRAW_SOL)
+        return say(
+          `Only ${bought} SOL was bought, under Unit's ${MIN_WITHDRAW_SOL} SOL minimum, so it wasn't sent. It waits in spot as USOL; try again.`,
+        );
+      // 5. USOL → Unit, which pays out SOL to the wallet
+      await spotSend(
+        { ...httpConfig(), wallet: signer },
+        { destination: to, token: market!.token, amount: bought },
+      );
+      this.set((s) => {
+        s.say(
+          `Sent ${bought} SOL to Unit for ${shortSol(sol)}. It arrives in your Solana wallet in a few minutes.`,
+          true,
+        );
+        s.notice = {
+          title: `${bought} SOL is on its way to your Solana wallet`,
+          body: `Unit pays it out to ${shortSol(sol)}, usually within a few minutes, less its small network fee.`,
+          href: `https://solscan.io/account/${sol}`,
+          link: 'Watch it on Solscan',
+          at: Date.now(),
+        };
+      });
+      return true;
+    } catch (e) {
+      this.checkKey(e);
+      return say(errorText(e, this.wallet.name));
     } finally {
       this.set((s) => void (s.busy = null));
     }

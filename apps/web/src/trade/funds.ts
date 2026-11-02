@@ -30,6 +30,8 @@ export interface SpotMarket {
   szDecimals: number;
   /** Mid price in USDC, when there is one. */
   px: number;
+  /** The base token as spotSend names it ("USOL:0x…"). */
+  token: string;
 }
 
 /** The canonical USOL/USDC market and its price, or null when Hyperliquid lists none. */
@@ -41,7 +43,13 @@ export function usolMarket([meta, ctxs]: SpotMetaAndAssetCtxsResponse): SpotMark
   if (!u) return null;
   const ctx = ctxs.find((c) => c.coin === u.name);
   const px = Number(ctx?.midPx ?? ctx?.markPx ?? 0);
-  return { pair: u.name, asset: SPOT_ASSET_OFFSET + u.index, szDecimals: usol.szDecimals, px };
+  return {
+    pair: u.name,
+    asset: SPOT_ASSET_OFFSET + u.index,
+    szDecimals: usol.szDecimals,
+    px,
+    token: `${usol.name}:${usol.tokenId}`,
+  };
 }
 
 /** What a spot balance can move: the total less what open orders hold. */
@@ -96,4 +104,97 @@ export const DUST_USD = 1;
 export function usdcToMove(spot: SpotRow[] | null): string | null {
   const cents = Math.floor(free(spot, 'USDC') * 100 + 1e-9);
   return cents >= DUST_USD * 100 ? (cents / 100).toFixed(2) : null;
+}
+
+/* ---------- withdrawing to Solana ---------- */
+
+const solEnv = (v: string | undefined, fallback: number) => {
+  const n = Number((v ?? '').trim() || fallback);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+/**
+ * The smallest withdrawal Coinside sends to Unit, in SOL. Unit doesn't pay out tiny amounts, and its published
+ * limits weren't reachable from the build environment, so this matches its deposit minimum (0.12 SOL), which is
+ * at least its withdrawal minimum (NEXT_PUBLIC_MIN_WITHDRAW_SOL to change it).
+ */
+export const MIN_WITHDRAW_SOL = solEnv(process.env.NEXT_PUBLIC_MIN_WITHDRAW_SOL, 0.12);
+/** While withdrawals are new, the most one sends (NEXT_PUBLIC_MAX_WITHDRAW_SOL), like deposits. */
+export const MAX_WITHDRAW_SOL = solEnv(process.env.NEXT_PUBLIC_MAX_WITHDRAW_SOL, 1);
+
+const cents = (v: number) => Math.floor(v * 100 + 1e-9) / 100;
+const centsUp = (v: number) => Math.ceil(v * 100 - 1e-9) / 100;
+const usd = (v: number) => `$${v.toFixed(2)}`;
+
+/** The USDC a withdrawal can use: the trading balance's withdrawable amount plus free spot USDC. */
+export const withdrawable = (perp: number, spotUsdc: number) =>
+  cents(Math.max(0, perp) + Math.max(0, spotUsdc));
+
+/** The smallest withdrawal in dollars at a SOL price: Unit's minimum and Hyperliquid's $10 order, bought 1% through. */
+export const minWithdrawUsd = (px: number) =>
+  centsUp(Math.max(MIN_WITHDRAW_SOL * px, MIN_ORDER_USD) * (1 + SLIPPAGE) + 0.01);
+/** The largest, by the cap while withdrawals are new. */
+export const maxWithdrawUsd = (px: number) => cents(MAX_WITHDRAW_SOL * px);
+
+/**
+ * Why `amount` dollars can't be withdrawn now, or null when it can. The same rules for the form (at the SOL price
+ * shown) and for the store (at the USOL ask when it sends).
+ */
+export function withdrawProblem(amount: number, available: number, px: number): string | null {
+  if (!(amount > 0)) return 'Enter an amount in USDC.';
+  if (amount > available + 1e-9) return `You have ${usd(available)} to withdraw.`;
+  if (!(px > 0)) return 'No SOL price from Hyperliquid yet. Try again in a moment.';
+  const min = minWithdrawUsd(px);
+  if (amount < min)
+    return `Withdraw at least ${usd(min)}: Unit pays out ${MIN_WITHDRAW_SOL} SOL or more, and Hyperliquid's smallest order is $${MIN_ORDER_USD}.`;
+  if (amount > maxWithdrawUsd(px) + 1e-9)
+    return `While withdrawals are new, one can be at most ${MAX_WITHDRAW_SOL} SOL (about ${usd(maxWithdrawUsd(px))}).`;
+  return null;
+}
+
+export interface WithdrawPlan {
+  /** The buy of USOL with the USDC, immediate or cancel, 1% through the ask. */
+  order: Order;
+  /** USOL it buys. */
+  size: string;
+  /** USDC to move from the trading balance to spot first, or null when spot has enough. */
+  toSpot: string | null;
+}
+
+/**
+ * The steps that turn `amount` dollars of the account into USOL ready to send to Unit: move what spot lacks from
+ * the trading balance, then buy USOL at most 1% over the best ask. The size rounds down to the lot, so the buy never
+ * needs more USDC than was moved.
+ */
+export function planWithdraw(i: {
+  amount: number;
+  perp: number;
+  spotUsdc: number;
+  m: SpotMarket | null;
+  ask: number;
+}): { ok: true; plan: WithdrawPlan } | { ok: false; reason: string } {
+  const ref = i.ask > 0 ? i.ask : (i.m?.px ?? 0);
+  const problem = withdrawProblem(i.amount, withdrawable(i.perp, i.spotUsdc), ref);
+  if (problem) return { ok: false, reason: problem };
+  const m = i.m!;
+  let px: string;
+  let size: string;
+  try {
+    px = formatPrice(ref * (1 + SLIPPAGE), m.szDecimals, 'spot');
+    size = formatSize(i.amount / Number(px), m.szDecimals);
+  } catch {
+    return { ok: false, reason: 'That amount is too small to buy SOL with. Withdraw a little more.' };
+  }
+  if (Number(size) < MIN_WITHDRAW_SOL)
+    return { ok: false, reason: `Withdraw at least ${usd(minWithdrawUsd(ref))}.` };
+  const need = centsUp(Number(size) * Number(px));
+  const lack = centsUp(need - Math.max(0, i.spotUsdc));
+  const move = lack > 0 ? Math.min(lack, cents(i.perp)) : 0;
+  return {
+    ok: true,
+    plan: {
+      order: { a: m.asset, b: true, p: px, s: size, r: false, t: { limit: { tif: 'Ioc' } } },
+      size,
+      toSpot: move > 0 ? move.toFixed(2) : null,
+    },
+  };
 }

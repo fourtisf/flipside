@@ -23,6 +23,8 @@ import {
 /** What the pretend Unit answers as the deposit address, and the pretend Solana node as a recent blockhash. */
 export const UNIT_DEPOSIT_ADDRESS = '4sGjMW1sUnHzSxGspuhpqLDx6wiyjNtZAMdL4VZHirAn';
 export const TEST_BLOCKHASH = 'GHtXQBsoZHVnNFa9YevAzFr17DJjgHXk3ycTKD5xD3Zi';
+/** What the pretend Unit answers as the Hyperliquid address that withdraws to a Solana wallet. */
+export const UNIT_WITHDRAW_ADDRESS = '0x5a1e5a1e5a1e5a1e5a1e5a1e5a1e5a1e5a1e5a1e';
 
 /** fastAssetCtxs arrives as base64 of raw-DEFLATE JSON, as Hyperliquid sends it. */
 const packed = (data: unknown) => deflateRawSync(Buffer.from(JSON.stringify(data))).toString('base64');
@@ -61,6 +63,8 @@ export interface HlMock {
   fund: (user: string) => void;
   /** What our server's Unit operations route answers. */
   unitOps: Array<{ state: string; sourceTxHash: string }>;
+  /** Replace the account's spot balances (what Hyperliquid answers from now on). */
+  setSpot: (spot: typeof SPOT) => void;
 }
 
 /** `empty`: the connected wallet has never deposited, as every new address on Hyperliquid. */
@@ -77,6 +81,7 @@ export async function mockHyperliquid(
     failNext: () => {},
     fund: () => {},
     unitOps: [],
+    setSpot: () => {},
   };
   let account = empty ? { ch: EMPTY_CLEARINGHOUSE, spot: EMPTY_SPOT } : { ch: CLEARINGHOUSE, spot: SPOT };
   let fail: string | null = null;
@@ -88,6 +93,7 @@ export async function mockHyperliquid(
       'fastAssetCtxs',
       packed(Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { midPx: v }]))),
     );
+  mock.setSpot = (spot) => void (account = { ...account, spot });
   mock.fund = (user) => {
     account = { ch: CLEARINGHOUSE, spot: SPOT };
     mock.push('clearinghouseState', { dex: '', user, clearinghouseState: CLEARINGHOUSE });
@@ -112,6 +118,10 @@ export async function mockHyperliquid(
   // our server's Unit route: the account's Solana deposit address
   await page.route('**/unit/deposit-address/*', (route) =>
     route.fulfill({ json: { address: UNIT_DEPOSIT_ADDRESS } }),
+  );
+  // and the Hyperliquid address that pays out to a Solana wallet
+  await page.route('**/unit/withdraw-address/*', (route) =>
+    route.fulfill({ json: { address: UNIT_WITHDRAW_ADDRESS } }),
   );
 
   await page.route('**/logos/*', (route) =>

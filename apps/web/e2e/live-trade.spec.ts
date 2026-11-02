@@ -7,7 +7,14 @@ import { expect, test, type Page } from '@playwright/test';
 import { ADDRESS } from './hl-fixtures';
 
 const SOL_ADDRESS = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
-import { TEST_BLOCKHASH, UNIT_DEPOSIT_ADDRESS, mockHyperliquid, type HlMock } from './hl-mock';
+import {
+  TEST_BLOCKHASH,
+  UNIT_DEPOSIT_ADDRESS,
+  UNIT_WITHDRAW_ADDRESS,
+  mockHyperliquid,
+  type HlMock,
+} from './hl-mock';
+import { SPOT } from './hl-fixtures';
 import { base58Encode, transferTx } from '../src/wallet/solana-tx';
 import { fakeWallet, testSolanaWallet, type FakeWallet } from './wallet-mock';
 
@@ -502,4 +509,63 @@ test('Max fills the usable margin, and a price in the order book becomes a limit
   await ask.locator('.ob-px').focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#o-px')).toHaveValue(askPx!);
+});
+
+test('withdraw to the Solana wallet: trading balance to spot, USDC to USOL, USOL to Unit', async ({
+  page,
+}) => {
+  const sol = testSolanaWallet();
+  const hl = await mockHyperliquid(page);
+  await fakeWallet(page, { address: ADDRESS, solana: sol.address, solanaSignature: sol.signature });
+  await page.goto('/portfolio');
+  await page.locator('#connect').click();
+  await page.locator('#swl button[data-sol="Phantom"]').click();
+  await expect(page.locator('#walletBtn')).toBeVisible();
+
+  const panel = page.locator('#withdraw');
+  // where it goes, and what can go: $744.26 withdrawable plus $480.12 free spot USDC
+  await expect(page.locator('#wdTo')).toHaveText(sol.address);
+  await expect(page.locator('#wdBal')).toContainText('$1,224.38');
+  // the trading key buys the SOL, so trading must be on
+  await expect(page.locator('#wdGo')).toHaveText('Enable trading first');
+  await page.locator('#wdGo').click();
+  await page.locator('#ack').check();
+  await page.locator('#enableGo').click();
+  await expect(page.locator('#enable')).toBeHidden();
+
+  // under Unit's 0.12 SOL (about $22.71 at $187.23), and over 1 SOL: each says why
+  await page.locator('#wdAmt').fill('10');
+  await expect(page.locator('#wdMsg')).toContainText('Withdraw at least $22.71');
+  await expect(page.locator('#wdGo')).toBeDisabled();
+  await page.locator('#wdAmt').fill('300');
+  await expect(page.locator('#wdMsg')).toContainText('at most 1 SOL');
+  // Max stays within the cap
+  await page.locator('#wdMax').click();
+  await expect(page.locator('#wdAmt')).toHaveValue('187.23');
+
+  // spot holds only $5: the rest comes from the trading balance first
+  hl.setSpot({ balances: [{ ...SPOT.balances[1]!, total: '5.0', hold: '0.0' }] });
+  await page.locator('#wdAmt').fill('50');
+  await expect(panel.locator('#wdBreakdown')).toContainText('Coinside feeFree');
+  await page.locator('#wdGo').click();
+  await expect(page.locator('#wdMsg')).toContainText('Sent 0.26 SOL to Unit');
+  await expect(page.locator('#notice')).toContainText('0.26 SOL is on its way to your Solana wallet');
+
+  const sent = hl.exchange.map((e) => e.action);
+  const move = sent.find((a) => a.type === 'usdClassTransfer')!;
+  // 0.26 USOL at 1% over the 187.3 ask needs $49.19 (rounded up); spot had $5
+  expect(move).toMatchObject({ amount: '44.19', toPerp: false });
+  const buy = sent.find((a) => a.type === 'order')!;
+  expect((buy.orders as unknown[])[0]).toMatchObject({ a: 10156, b: true, p: '189.17', s: '0.26', r: false });
+  expect(sent.find((a) => a.type === 'spotSend')).toMatchObject({
+    destination: UNIT_WITHDRAW_ADDRESS,
+    token: 'USOL:0x000000000000000000000000000000fe',
+    amount: '0.26',
+  });
+  // in that order
+  expect(sent.map((a) => a.type).filter((t) => t !== 'approveAgent')).toEqual([
+    'usdClassTransfer',
+    'order',
+    'spotSend',
+  ]);
 });

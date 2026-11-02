@@ -20,6 +20,28 @@ itself (pick a coin, pick a side) and is the hero line "Every coin has two sides
 - Worth securing before launch: `coinside.trade` and `coinside.xyz` (so nobody phishes with them), the X handle,
   and allowlisting the domain with wallet security services so Phantom shows no warning on connect.
 
+## Withdraw to Solana (ALFA, 2 Nov 2026)
+
+ALFA: "buat fitur withdraw-nya". Accounts opened by signing in with Solana can only be reached through Coinside,
+so withdrawing has to be here too. Portfolio has a Withdraw panel next to Deposit: an amount in USDC, Max, and
+one button that does, in order:
+
+1. Fetch the Unit withdrawal address for the connected Solana wallet from our server
+   (`GET /unit/withdraw-address/<Solana address>`, which asks Unit's `/gen/hyperliquid/solana/sol/<address>`,
+   checks it is a 0x address and refuses one that changes), and check the plan, before anything moves.
+2. Move what spot lacks from the trading balance (`usdClassTransfer`, the wallet signs).
+3. Buy USOL with it on USOL/USDC: immediate or cancel, at most 1% over the best ask, the size rounded down to the
+   lot, so the buy never needs more than was moved (the trading key signs).
+4. Send exactly the USOL bought to that address (`spotSend`, the wallet signs); Unit pays it out as SOL.
+
+If step 3 or 4 doesn't happen, the money waits in spot and Deposit's "Move to trading balance" puts it back; the
+message says so. **Limits:** at least 0.12 SOL (and Hyperliquid's $10 order), at most 1 SOL per withdrawal while
+withdrawals are new (`NEXT_PUBLIC_MIN_WITHDRAW_SOL`, `NEXT_PUBLIC_MAX_WITHDRAW_SOL`). Unit's own withdrawal limits
+and fees weren't reachable from the build environment (docs.hyperunit.xyz is blocked here), so the minimum
+matches its 0.12 SOL deposit minimum, on the assumption that its withdrawal minimum is no higher. That is not
+verified: check Unit's published limits and set `NEXT_PUBLIC_MIN_WITHDRAW_SOL` to theirs. Like deposits, Unit's guardian signatures on the address are not checked yet, which is why the
+1 SOL cap applies.
+
 ## The token's address, "Coming soon", and community links (ALFA, 1 Nov 2026)
 
 ALFA: "buat CA coming soon dan tambahkan X-nya, CA coming soon bisa dicopy". This is ALFA's call on CLAUDE.md

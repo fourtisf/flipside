@@ -1,6 +1,7 @@
 /**
- * Unit, the bridge that brings SOL from Solana into a Hyperliquid account (it arrives as USOL). For each
- * Hyperliquid address Unit gives a Solana deposit address; SOL sent there is credited to that account.
+ * Unit, the bridge that brings SOL from Solana into a Hyperliquid account (it arrives as USOL) and back. For each
+ * Hyperliquid address Unit gives a Solana deposit address; SOL sent there is credited to that account. For each
+ * Solana address it gives a Hyperliquid withdrawal address; USOL sent there is paid out as SOL to that wallet.
  *
  * Read on our server (GET /unit/deposit-address/<0x address>), so the browser never depends on Unit's CORS rules
  * and the answer is checked in one place: a well-formed Solana address, and the same address every time for the
@@ -32,21 +33,43 @@ export class UnitAddresses {
   async depositAddress(hl: string): Promise<string> {
     const account = hl.toLowerCase();
     if (!HL_ADDRESS.test(account)) throw new Error('not a Hyperliquid address');
-    const hit = this.cache.get(account);
+    return this.gen(`sol/${account}`, `/gen/solana/hyperliquid/sol/${account}`, (a) =>
+      isSolAddress(a) ? a : null,
+    );
+  }
+
+  /**
+   * The Hyperliquid address that withdraws to the Solana wallet `sol`: USOL sent there on Hyperliquid, Unit pays
+   * out as SOL to `sol`. Same checks as deposits: well formed (0x and 40 hex), and the same every time.
+   */
+  async withdrawAddress(sol: string): Promise<string> {
+    if (!isSolAddress(sol)) throw new Error('not a Solana address');
+    return this.gen(`hl/${sol}`, `/gen/hyperliquid/solana/sol/${sol}`, (a) =>
+      HL_ADDRESS.test(a.toLowerCase()) ? a.toLowerCase() : null,
+    );
+  }
+
+  private async gen(key: string, path: string, valid: (address: string) => string | null): Promise<string> {
+    const hit = this.cache.get(key);
     if (hit && this.now() - hit.at < TTL_MS) return hit.address;
-    const res = await this.fetcher(`${this.api}/gen/solana/hyperliquid/sol/${account}`, {
+    const res = await this.fetcher(`${this.api}${path}`, {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`Unit answered ${res.status}`);
     const body = (await res.json()) as { address?: unknown; status?: unknown };
-    const address = typeof body.address === 'string' ? body.address.trim() : '';
-    if (!isSolAddress(address)) throw new Error('Unit gave no Solana address');
-    const before = this.pinned.get(account);
+    const address = valid(typeof body.address === 'string' ? body.address.trim() : '');
+    if (!address)
+      throw new Error(
+        path.includes('/hyperliquid/solana/')
+          ? 'Unit gave no Hyperliquid address'
+          : 'Unit gave no Solana address',
+      );
+    const before = this.pinned.get(key);
     if (before && before !== address) throw new Error('Unit gave a different address than before');
-    this.pinned.set(account, address);
+    this.pinned.set(key, address);
     if (this.cache.size > 10_000) this.cache.clear();
-    this.cache.set(account, { address, at: this.now() });
+    this.cache.set(key, { address, at: this.now() });
     return address;
   }
 }
