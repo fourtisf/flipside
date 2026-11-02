@@ -7,10 +7,25 @@ import { shortSol } from '@/wallet/solana';
 
 /** Unit's words for where a withdrawal is, in plain ones. */
 export function withdrawalState(state: string): { text: string; ok?: boolean; bad?: boolean } {
-  if (state === 'done') return { text: 'Paid out to your Solana wallet', ok: true };
-  if (state === 'failure') return { text: 'Failed at Unit', bad: true };
-  if (!state) return { text: 'Seen by Unit' };
-  return { text: `On its way (${state})` };
+  switch (state) {
+    case 'done':
+      return { text: 'Paid out to your Solana wallet', ok: true };
+    case 'failure':
+      return { text: 'Failed at Unit', bad: true };
+    case '':
+    case 'sourceTxDiscovered':
+      return { text: 'Unit has your SOL; on its way' };
+    case 'waitForSrcTxFinalization':
+      return { text: 'On its way: Hyperliquid is confirming the transfer (a few minutes)' };
+    case 'buildingDstTx':
+    case 'signTx':
+    case 'broadcastTx':
+      return { text: 'On its way: Unit is sending your SOL on Solana' };
+    case 'waitForDstTxFinalization':
+      return { text: 'Almost there: Solana is confirming it' };
+    default:
+      return { text: `On its way (${state})` };
+  }
 }
 
 /**
