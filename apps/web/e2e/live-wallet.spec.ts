@@ -94,7 +94,9 @@ test('connect a wallet: the header and Portfolio read the account from Hyperliqu
   await expect(page.locator('#pf-orders')).toContainText('Buy');
   await expect(page.locator('#pf-orders')).toContainText('Limit');
   await expect(page.locator('#pf-spot')).toContainText('USDC');
-  await expect(page.locator('#pf-spot')).toContainText('USOL');
+  // USOL shows as SOL: Unit's SOL on Hyperliquid, 1:1
+  await expect(page.locator('#pf-spot [role="row"]').filter({ hasText: 'SOL' }).first()).toBeVisible();
+  await expect(page.locator('#pf-spot')).not.toContainText('USOL');
   await expect(page.locator('#pf-spot')).not.toContainText('PURR');
   await expect(page.locator('#pf-fills')).toContainText('Open Long');
   await expect(page.locator('#pf-fills')).toContainText('+$12.50');

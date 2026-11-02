@@ -448,7 +448,7 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   await expect(go).toBeEnabled();
   // before sending, where every bit goes: Unit's fee and what arrives
   await expect(page.locator('#solBreakdown')).toContainText('You send0.15 SOL');
-  await expect(page.locator('#solBreakdown')).toContainText('Arrives as, about0.135 USOL');
+  await expect(page.locator('#solBreakdown')).toContainText('Arrives as, about0.135 SOL');
   await expect(page.locator('#solBreakdown')).toContainText('Coinside feeFree');
   await wallet.rejectSign();
   await go.click();
@@ -476,7 +476,7 @@ test("deposit SOL from the Solana wallet to the account's Unit address, within t
   await page.goto('/trade/SOL');
   await expect(page.locator('#depToast')).toContainText('Deposit of 0.15 SOL on its way');
   hl.fund(sol.account);
-  await expect(page.locator('#depToast')).toContainText('0.15 SOL arrived in your account as USOL');
+  await expect(page.locator('#depToast')).toContainText('0.15 SOL arrived in your account');
   await page.locator('#depToast a').click();
   await expect(page).toHaveURL(/\/portfolio#deposit$/);
   await expect(page.locator('#depStatus')).toContainText('Deposit complete: 0.15 SOL arrived');
@@ -582,7 +582,8 @@ test('USOL already in the account goes straight to the Solana wallet, one signat
   await page.locator('#swl button[data-sol="Phantom"]').click();
   await expect(page.locator('#walletBtn')).toBeVisible();
 
-  await expect(page.locator('#wdUsolBox')).toContainText('You hold 0.2409 SOL as USOL');
+  await expect(page.locator('#wdUsolBox')).toContainText('You have 0.2409 SOL in your account');
+  await expect(page.locator('#wdSol')).toHaveText('0.2409');
   await page.locator('#wdUsol').click();
   await expect(page.locator('#wdMsg')).toContainText('Sent 0.24 SOL to Unit');
   const sent = hl.exchange.map((e) => e.action);

@@ -574,6 +574,7 @@ dialog .amt{margin-top:16px}
 .wd .fbal{margin-top:0}
 .wd-usol{border:1px solid var(--line2);border-radius:10px;background:var(--s1);padding:12px 14px;margin:10px 0 14px;max-width:560px}
 .wd-usol p{margin-top:0}
+.wd-h{display:block;font-weight:550;font-size:13.5px;margin:6px 0 2px}
 .wd-usol .btn{margin-top:10px}
 .dep-amt .btn{height:30px;padding:0 10px;font-size:12.5px}
 .sol-pick .btn{display:inline-flex;align-items:center;gap:8px}

@@ -13,12 +13,12 @@ function NextSteps({ arrived }: { arrived: boolean }) {
   return (
     <ol className="dep-steps">
       <li className={arrived ? 'done' : undefined}>
-        Unit, the bridge, credits your SOL to your trading account as USOL, usually within a few minutes. It
-        keeps about 0.015 SOL as its fee; Coinside charges nothing.
+        Unit, the bridge, credits your SOL to your Coinside account, usually within a few minutes. It keeps
+        about 0.015 SOL as its fee; Coinside charges nothing.
       </li>
       <li>
-        Then, in step 2 of Deposit: Enable trading (once), and Move to trading balance. That sells the USOL
-        for USDC and moves it where orders can use it; your wallet signs once.
+        Then, in step 2 of Deposit: Enable trading (once), and Move to trading balance. That sells the SOL for
+        USDC and moves it where orders can use it; your wallet signs once.
       </li>
       <li>Orders on Hyperliquid must be worth at least $10, so keep at least that much to trade.</li>
     </ol>
@@ -53,10 +53,10 @@ export function DepositStatus({ toast = false }: { toast?: boolean }) {
     >
       {p.arrived ? (
         <>
-          <b>Deposit complete: {p.sol} SOL arrived in your account as USOL.</b>
+          <b>Deposit complete: {p.sol} SOL arrived in your account.</b>
           {p.received !== undefined && (
             <p>
-              {p.received.toLocaleString('en-US', { maximumFractionDigits: 4 })} USOL arrived; Unit kept{' '}
+              {p.received.toLocaleString('en-US', { maximumFractionDigits: 4 })} SOL arrived; Unit kept{' '}
               {Math.max(0, Number(p.sol) - p.received).toLocaleString('en-US', { maximumFractionDigits: 4 })}{' '}
               SOL as its fee. Coinside charges nothing.
             </p>

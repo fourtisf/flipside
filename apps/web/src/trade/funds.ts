@@ -72,7 +72,7 @@ export function planSellUsol(
   const amount = free(spot, USOL);
   if (!(amount > 0)) return null;
   if (!m || !(m.px > 0))
-    return { ok: false, reason: 'No USOL price from Hyperliquid yet. Try again in a moment.' };
+    return { ok: false, reason: 'No SOL price from Hyperliquid yet. Try again in a moment.' };
   let size: string;
   let px: string;
   try {
@@ -88,7 +88,7 @@ export function planSellUsol(
   if (value < MIN_ORDER_USD)
     return {
       ok: false,
-      reason: `Your USOL is worth $${value.toFixed(2)}, under Hyperliquid's $${MIN_ORDER_USD} smallest order, so it can't be sold yet. Deposit a little more SOL, then try again.`,
+      reason: `Your SOL is worth $${value.toFixed(2)}, under Hyperliquid's $${MIN_ORDER_USD} smallest order, so it can't be sold yet. Deposit a little more SOL, then try again.`,
     };
   return {
     ok: true,
@@ -209,7 +209,7 @@ export function planSendUsol(
 ): { ok: true; amount: string } | { ok: false; reason: string } | null {
   const held = free(spot, USOL);
   if (!(held > 0)) return null;
-  if (!m) return { ok: false, reason: 'No USOL market from Hyperliquid yet. Try again in a moment.' };
+  if (!m) return { ok: false, reason: 'No SOL market from Hyperliquid yet. Try again in a moment.' };
   let amount: string;
   try {
     amount = formatSize(Math.min(held, MAX_WITHDRAW_SOL), m.szDecimals);
@@ -219,7 +219,7 @@ export function planSendUsol(
   if (Number(amount) < MIN_WITHDRAW_SOL)
     return {
       ok: false,
-      reason: `You hold ${amount} SOL as USOL, under Unit's ${MIN_WITHDRAW_SOL} SOL minimum, so it can't be sent yet.`,
+      reason: `You have ${amount} SOL, under Unit's ${MIN_WITHDRAW_SOL} SOL minimum, so it can't be sent yet.`,
     };
   return { ok: true, amount };
 }

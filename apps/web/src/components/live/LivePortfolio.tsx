@@ -112,12 +112,12 @@ function DepositPanel() {
         <li>
           <b>Move it to your trading balance</b>
           <p>
-            SOL arrives as USOL. One click sells it for USDC and moves it to your trading balance; your wallet
-            signs once.
+            Your SOL arrives in your account. To trade with it, one click sells it for USDC and moves it to
+            your trading balance; your wallet signs once. To send it back instead, use Withdraw below.
           </p>
           <dl className="fbal">
             <div>
-              <dt>USOL</dt>
+              <dt>SOL</dt>
               <dd>{usol.toLocaleString('en-US', { maximumFractionDigits: 4 })}</dd>
             </div>
             <div>
@@ -127,7 +127,7 @@ function DepositPanel() {
           </dl>
           {crumb && !msg && (
             <p className="omsg ok" id="crumb" role="status">
-              {usol.toLocaleString('en-US', { maximumFractionDigits: 4 })} USOL is left over from the last
+              {usol.toLocaleString('en-US', { maximumFractionDigits: 4 })} SOL is left over from the last
               sale: too small to sell (Hyperliquid&apos;s smallest order is $10). It stays in your account and
               is added to your next deposit.
             </p>
@@ -191,7 +191,11 @@ function WithdrawPanel() {
       <div className="wd">
         <dl className="fbal" id="wdBal">
           <div>
-            <dt>Available</dt>
+            <dt>SOL</dt>
+            <dd id="wdSol">{usol.toLocaleString('en-US', { maximumFractionDigits: 4 })}</dd>
+          </div>
+          <div>
+            <dt>USDC</dt>
             <dd>{usd2(available)}</dd>
           </div>
           <div>
@@ -211,9 +215,9 @@ function WithdrawPanel() {
         {usol >= MIN_WITHDRAW_SOL && (
           <div className="wd-usol" id="wdUsolBox">
             <p>
-              You hold <b className="n">{usol.toLocaleString('en-US', { maximumFractionDigits: 4 })} SOL</b>{' '}
-              as USOL in your account{px > 0 ? ` (about ${usd2(usol * px)})` : ''}. It can go straight to your
-              Solana wallet: one signature, nothing to buy
+              You have <b className="n">{usol.toLocaleString('en-US', { maximumFractionDigits: 4 })} SOL</b>{' '}
+              in your account{px > 0 ? ` (about ${usd2(usol * px)})` : ''}. Withdraw it straight to your
+              Solana wallet: one signature, nothing to sell or buy
               {usol > MAX_WITHDRAW_SOL ? `, up to ${MAX_WITHDRAW_SOL} SOL at a time` : ''}.
             </p>
             <button
@@ -223,7 +227,7 @@ function WithdrawPanel() {
               disabled={!TRADING || !!trade.busy || !sol.address}
               onClick={() => void trade.withdrawUsol(sol.address).then((ok) => ok && refreshLater())}
             >
-              {busy ? `Check ${wallet.name || 'your wallet'}` : 'Withdraw your USOL'}
+              {busy ? `Check ${wallet.name || 'your wallet'}` : 'Withdraw my SOL'}
             </button>
           </div>
         )}
@@ -232,6 +236,7 @@ function WithdrawPanel() {
             Connect your Solana wallet in Deposit above: the SOL goes back to it.
           </p>
         )}
+        <b className="wd-h">Withdraw from your trading balance (USDC)</b>
         <div className="amt dep-amt">
           <input
             id="wdAmt"
@@ -253,10 +258,10 @@ function WithdrawPanel() {
           </button>
         </div>
         <p>
-          Coinside buys SOL (as USOL, Unit&apos;s SOL on Hyperliquid) with it and sends it to Unit, which pays
-          it out to your Solana wallet, usually within a few minutes, less a small network fee. From{' '}
-          {MIN_WITHDRAW_SOL} SOL{px > 0 ? ` (about ${usd2(minWithdrawUsd(px))})` : ''} to {MAX_WITHDRAW_SOL}{' '}
-          SOL per withdrawal while withdrawals are new. Coinside charges nothing.
+          Coinside buys SOL with it and sends it to Unit, the bridge, which pays it out to your Solana wallet,
+          usually within a few minutes, less a small network fee. From {MIN_WITHDRAW_SOL} SOL
+          {px > 0 ? ` (about ${usd2(minWithdrawUsd(px))})` : ''} to {MAX_WITHDRAW_SOL} SOL per withdrawal
+          while withdrawals are new. Coinside charges nothing.
         </p>
         {estimate > 0 && (
           <dl className="sum dep-sum" id="wdBreakdown">
@@ -466,7 +471,7 @@ function SolanaSide() {
           <div>
             <dt>Arrives as, about</dt>
             <dd>
-              {solText(plan.lamports - UNIT_FEE_ESTIMATE_LAMPORTS)} USOL
+              {solText(plan.lamports - UNIT_FEE_ESTIMATE_LAMPORTS)} SOL
               {px > 0 &&
                 ` ≈ ${usd2((Number(plan.lamports - UNIT_FEE_ESTIMATE_LAMPORTS) / Number(LAMPORTS_PER_SOL)) * px)}`}
             </dd>
@@ -758,7 +763,8 @@ export function LivePortfolio() {
               {account.spot.map((b) => (
                 <div className="tr t-hs" role="row" key={b.coin}>
                   <span role="cell" className="tk">
-                    <b>{b.coin}</b>
+                    {/* USOL is Unit's SOL on Hyperliquid, 1:1: people know it as SOL */}
+                    <b>{b.coin === USOL ? 'SOL' : b.coin}</b>
                   </span>
                   <span role="cell" className="n">
                     {szText(b.total, 6)}
@@ -772,7 +778,7 @@ export function LivePortfolio() {
           ) : (
             <Empty b={account.spot ? 'No spot balances' : 'Loading balances'}>
               {account.spot
-                ? 'SOL deposited from Solana arrives here as USOL, and USDC from Across as USDC.'
+                ? 'SOL deposited from Solana arrives here (as USOL, Unit’s SOL on Hyperliquid), and USDC as USDC.'
                 : 'Reading your account from Hyperliquid.'}
             </Empty>
           )}

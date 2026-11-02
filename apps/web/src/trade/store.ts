@@ -393,7 +393,7 @@ export class TradeStore {
       const bought = st.filled.totalSz;
       if (Number(bought) < MIN_WITHDRAW_SOL)
         return say(
-          `Only ${bought} SOL was bought, under Unit's ${MIN_WITHDRAW_SOL} SOL minimum, so it wasn't sent. It waits in spot as USOL; try again.`,
+          `Only ${bought} SOL was bought, under Unit's ${MIN_WITHDRAW_SOL} SOL minimum, so it wasn't sent. It waits in your account; press "Withdraw my SOL" to send it.`,
         );
       // 5. USOL → Unit, which pays out SOL to the wallet
       try {
@@ -404,7 +404,7 @@ export class TradeStore {
       } catch (e) {
         this.checkKey(e);
         return say(
-          `Bought ${bought} SOL, but sending it to Unit didn't go through: ${errorText(e, this.wallet.name)} It is safe in your account as USOL; press "Withdraw your USOL" to send it again.`,
+          `Bought ${bought} SOL, but sending it to Unit didn't go through: ${errorText(e, this.wallet.name)} It is safe in your account; press "Withdraw my SOL" to send it again.`,
         );
       }
       this.sent(bought, sol);
@@ -446,7 +446,7 @@ export class TradeStore {
       ]);
       const market = usolMarket(spotMeta);
       const plan = planSendUsol(toSpot(spotState), market);
-      if (!plan) return say('There is no USOL in your account to send.');
+      if (!plan) return say('There is no SOL in your account to send.');
       if (!plan.ok) return say(plan.reason);
       await spotSend(
         { ...httpConfig(), wallet: await this.wallet.signer() },
