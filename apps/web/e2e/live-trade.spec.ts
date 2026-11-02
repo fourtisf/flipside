@@ -535,32 +535,33 @@ test('withdraw to the Solana wallet: trading balance to spot, USDC to USOL, USOL
 
   // under Unit's 0.12 SOL (about $22.71 at $187.23), and over 1 SOL: each says why
   await page.locator('#wdAmt').fill('10');
-  await expect(page.locator('#wdMsg')).toContainText('Withdraw at least $22.71');
+  await expect(page.locator('#wdMsg')).toContainText('Withdraw at least $23.76');
   await expect(page.locator('#wdGo')).toBeDisabled();
   await page.locator('#wdAmt').fill('300');
   await expect(page.locator('#wdMsg')).toContainText('at most 1 SOL');
   // Max stays within the cap
   await page.locator('#wdMax').click();
-  await expect(page.locator('#wdAmt')).toHaveValue('187.23');
+  await expect(page.locator('#wdAmt')).toHaveValue('188.28');
 
   // spot holds only $5: the rest comes from the trading balance first
   hl.setSpot({ balances: [{ ...SPOT.balances[1]!, total: '5.0', hold: '0.0' }] });
   await page.locator('#wdAmt').fill('50');
   await expect(panel.locator('#wdBreakdown')).toContainText('Coinside feeFree');
   await page.locator('#wdGo').click();
-  await expect(page.locator('#wdMsg')).toContainText('Sent 0.26 SOL to Unit');
-  await expect(page.locator('#notice')).toContainText('0.26 SOL is on its way to your Solana wallet');
+  await expect(page.locator('#wdMsg')).toContainText('Sent 0.25 SOL to Unit');
+  await expect(page.locator('#notice')).toContainText('0.25 SOL is on its way to your Solana wallet');
 
   const sent = hl.exchange.map((e) => e.action);
   const move = sent.find((a) => a.type === 'usdClassTransfer')!;
-  // 0.26 USOL at 1% over the 187.3 ask needs $49.19 (rounded up); spot had $5
-  expect(move).toMatchObject({ amount: '44.19', toPerp: false });
+  // $50 less $1.05 kept for Hyperliquid's transfer fee buys 0.25 at 1% over the 187.3 ask ($47.30); spot needs
+  // that plus the $1.05, and had $5
+  expect(move).toMatchObject({ amount: '43.35', toPerp: false });
   const buy = sent.find((a) => a.type === 'order')!;
-  expect((buy.orders as unknown[])[0]).toMatchObject({ a: 10156, b: true, p: '189.17', s: '0.26', r: false });
+  expect((buy.orders as unknown[])[0]).toMatchObject({ a: 10156, b: true, p: '189.17', s: '0.25', r: false });
   expect(sent.find((a) => a.type === 'spotSend')).toMatchObject({
     destination: UNIT_WITHDRAW_ADDRESS,
     token: 'USOL:0x000000000000000000000000000000fe',
-    amount: '0.26',
+    amount: '0.25',
   });
   // in that order
   expect(sent.map((a) => a.type).filter((t) => t !== 'approveAgent')).toEqual([
@@ -609,6 +610,8 @@ test('USOL already in the account goes straight to the Solana wallet, one signat
   );
   const sent = hl.exchange.map((e) => e.action);
   expect(sent.find((a) => a.type === 'order')).toBeUndefined();
+  // spot had no USDC: $1.05 comes over from the trading balance first, for Hyperliquid's transfer fee
+  expect(sent.find((a) => a.type === 'usdClassTransfer')).toMatchObject({ amount: '1.05', toPerp: false });
   expect(sent.find((a) => a.type === 'spotSend')).toMatchObject({
     destination: UNIT_WITHDRAW_ADDRESS,
     token: 'USOL:0x000000000000000000000000000000fe',

@@ -3,6 +3,8 @@ import { SPOT_META } from '../../e2e/hl-fixtures';
 import {
   MAX_WITHDRAW_SOL,
   MIN_WITHDRAW_SOL,
+  SEND_GAS_USD,
+  gasLack,
   minWithdrawUsd,
   planSendUsol,
   planWithdraw,
@@ -29,7 +31,7 @@ describe('withdrawing to Solana: the rules', () => {
     expect(withdrawProblem(20, 100, 0)).toMatch(/No SOL price/);
     // ALFA's account: $9.84 trading + $0.05 spot is under the minimum at $95.30
     expect(withdrawProblem(9.89, withdrawable(9.84, 0.05), 95.3)).toBe(
-      "Withdraw at least $11.57: Unit pays out 0.12 SOL or more, and Hyperliquid's smallest order is $10.",
+      "Withdraw at least $12.62: Unit pays out 0.12 SOL or more, Hyperliquid's smallest order is $10, and about $1 stays for Hyperliquid's transfer fee.",
     );
     expect(withdrawProblem(150, 500, 95.3)).toBe(
       'While withdrawals are new, one can be at most 1 SOL (about $95.30).',
@@ -44,9 +46,10 @@ describe('withdrawing to Solana: the plan', () => {
     expect(r).toEqual({
       ok: true,
       plan: {
-        order: { a: 10156, b: true, p: '189.07', s: '0.26', r: false, t: { limit: { tif: 'Ioc' } } },
-        size: '0.26',
-        toSpot: '49.16',
+        // $50 less about $1 kept for the transfer fee buys 0.25; spot needs that and the $1.05
+        order: { a: 10156, b: true, p: '189.07', s: '0.25', r: false, t: { limit: { tif: 'Ioc' } } },
+        size: '0.25',
+        toSpot: '48.32',
       },
     });
   });
@@ -55,13 +58,13 @@ describe('withdrawing to Solana: the plan', () => {
     const all = planWithdraw({ amount: 50, perp: 744.26, spotUsdc: 480.12, m, ask: 187.2 });
     expect(all.ok && all.plan.toSpot).toBeNull();
     const some = planWithdraw({ amount: 50, perp: 744.26, spotUsdc: 20, m, ask: 187.2 });
-    expect(some.ok && some.plan.toSpot).toBe('29.16');
+    expect(some.ok && some.plan.toSpot).toBe('28.32');
   });
 
   it('refuses what the rules refuse, before anything moves', () => {
     expect(planWithdraw({ amount: 15, perp: 10, spotUsdc: 5, m, ask: 187.2 })).toMatchObject({
       ok: false,
-      reason: expect.stringContaining('Withdraw at least $22.70'),
+      reason: expect.stringContaining('Withdraw at least $23.75'),
     });
     expect(planWithdraw({ amount: 50, perp: 744.26, spotUsdc: 0, m: null, ask: 0 })).toMatchObject({
       ok: false,
@@ -85,5 +88,14 @@ describe('withdrawing USOL already in the account', () => {
       reason: expect.stringContaining('0.12 SOL'),
     });
     expect(planSendUsol([], m)).toBeNull();
+  });
+});
+
+describe("Hyperliquid's transfer fee", () => {
+  it('keeps about $1 USDC in spot for every send (ALFA: "Insufficient quote token ... for token transfer gas")', () => {
+    expect(SEND_GAS_USD).toBe(1.05);
+    expect(gasLack(0.24)).toBe(0.81);
+    expect(gasLack(0)).toBe(1.05);
+    expect(gasLack(2)).toBe(0);
   });
 });

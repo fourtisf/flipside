@@ -12,6 +12,7 @@ import {
   DUST_USD,
   MAX_WITHDRAW_SOL,
   MIN_WITHDRAW_SOL,
+  SEND_GAS_USD,
   USOL,
   free,
   maxWithdrawUsd,
@@ -167,8 +168,9 @@ function WithdrawPanel() {
   const busy = trade.busy === 'withdraw';
   // another request (a move, an order) is waiting for the wallet: one at a time
   const other = !!trade.busy && !busy;
-  const max = Math.min(available, px > 0 ? maxWithdrawUsd(px) : available);
-  const estimate = px > 0 && amt && !problem ? amount / (px * 1.01) : 0;
+  const max = Math.min(available, px > 0 ? maxWithdrawUsd(px) + SEND_GAS_USD : available);
+  // about $1 stays for Hyperliquid's transfer fee; the rest buys SOL
+  const estimate = px > 0 && amt && !problem ? (amount - SEND_GAS_USD) / (px * 1.01) : 0;
   const fresh = trade.msg && Date.now() - trade.msg.at < 180_000 ? trade.msg : null;
   // each button shows its own result: the SOL send under its button, the USDC withdrawal under its own
   const msg = trade.lastAction === 'withdraw' ? fresh : null;
@@ -270,8 +272,9 @@ function WithdrawPanel() {
         <p>
           Coinside buys SOL with it and sends it to Unit, the bridge, which pays it out to your Solana wallet,
           usually within a few minutes, less a small network fee. From {MIN_WITHDRAW_SOL} SOL
-          {px > 0 ? ` (about ${usd2(minWithdrawUsd(px))})` : ''} to {MAX_WITHDRAW_SOL} SOL per withdrawal
-          while withdrawals are new. Coinside charges nothing.
+          {px > 0 ? ` (about ${usd2(minWithdrawUsd(px) + SEND_GAS_USD)})` : ''} to {MAX_WITHDRAW_SOL} SOL per
+          withdrawal while withdrawals are new. About $1 stays in your account for Hyperliquid&apos;s transfer
+          fee. Coinside charges nothing.
         </p>
         {estimate > 0 && (
           <dl className="sum dep-sum" id="wdBreakdown">

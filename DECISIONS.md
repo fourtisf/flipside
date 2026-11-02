@@ -38,7 +38,12 @@ If step 3 or 4 doesn't happen, the money waits in spot and Deposit's "Move to tr
 message says so. **USOL already in the account** (a deposit not moved yet, or a withdrawal whose send didn't go
 through, as happened on ALFA's first try) shows in the panel with its own "Withdraw your USOL" button: one
 `spotSend` of all of it (up to the cap, rounded down to the lot), nothing bought. If the send step fails, the
-message now gives Hyperliquid's reason and points to that button. **It is called SOL** (ALFA: "USOL diubah jadi
+message now gives Hyperliquid's reason and points to that button. **Hyperliquid's transfer fee:** a send needs about 1 USDC in spot for its "gas" ("Insufficient quote token
+(e.g., 1 USDC or USDT) balance for token transfer gas", the error ALFA's withdrawals hit with $0.24 there). Every
+send now keeps $1.05 USDC in spot first: a withdrawal from the trading balance moves it along with what buys the
+SOL (so the minimum is about $1 higher), and "Withdraw my SOL" moves it from the trading balance, or, with no USDC
+anywhere, sells the SOL and buys it back less that $1.05 (Hyperliquid's $10 minimum order means a small part
+can't be sold on its own). **It is called SOL** (ALFA: "USOL diubah jadi
 SOL"): USOL is Unit's 1:1 SOL on Hyperliquid, so wherever a person reads it (Deposit, Withdraw, Balances, the
 deposit notices) it says SOL; the button is "Withdraw my SOL" and sits first in Withdraw. **Limits:** at least 0.12 SOL (and Hyperliquid's $10 order), at most 1 SOL per withdrawal while
 withdrawals are new (`NEXT_PUBLIC_MIN_WITHDRAW_SOL`, `NEXT_PUBLIC_MAX_WITHDRAW_SOL`). Unit's own withdrawal limits

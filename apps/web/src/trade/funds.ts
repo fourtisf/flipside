@@ -121,6 +121,13 @@ export const MIN_WITHDRAW_SOL = solEnv(process.env.NEXT_PUBLIC_MIN_WITHDRAW_SOL,
 /** While withdrawals are new, the most one sends (NEXT_PUBLIC_MAX_WITHDRAW_SOL), like deposits. */
 export const MAX_WITHDRAW_SOL = solEnv(process.env.NEXT_PUBLIC_MAX_WITHDRAW_SOL, 1);
 
+/**
+ * USDC that must sit in spot when a token is sent: Hyperliquid takes a transfer fee ("gas") in USDC and refuses
+ * a send without about 1 USDC there ("Insufficient quote token (e.g., 1 USDC or USDT) balance for token transfer
+ * gas", ALFA's withdrawal, 2 Nov 2026). A little over 1, so rounding never leaves it short.
+ */
+export const SEND_GAS_USD = 1.05;
+
 const cents = (v: number) => Math.floor(v * 100 + 1e-9) / 100;
 const centsUp = (v: number) => Math.ceil(v * 100 - 1e-9) / 100;
 const usd = (v: number) => `$${v.toFixed(2)}`;
@@ -143,10 +150,10 @@ export function withdrawProblem(amount: number, available: number, px: number): 
   if (!(amount > 0)) return 'Enter an amount in USDC.';
   if (amount > available + 1e-9) return `You have ${usd(available)} to withdraw.`;
   if (!(px > 0)) return 'No SOL price from Hyperliquid yet. Try again in a moment.';
-  const min = minWithdrawUsd(px);
+  const min = centsUp(minWithdrawUsd(px) + SEND_GAS_USD);
   if (amount < min)
-    return `Withdraw at least ${usd(min)}: Unit pays out ${MIN_WITHDRAW_SOL} SOL or more, and Hyperliquid's smallest order is $${MIN_ORDER_USD}.`;
-  if (amount > maxWithdrawUsd(px) + 1e-9)
+    return `Withdraw at least ${usd(min)}: Unit pays out ${MIN_WITHDRAW_SOL} SOL or more, Hyperliquid's smallest order is $${MIN_ORDER_USD}, and about $1 stays for Hyperliquid's transfer fee.`;
+  if (amount > maxWithdrawUsd(px) + SEND_GAS_USD + 1e-9)
     return `While withdrawals are new, one can be at most ${MAX_WITHDRAW_SOL} SOL (about ${usd(maxWithdrawUsd(px))}).`;
   return null;
 }
@@ -180,13 +187,14 @@ export function planWithdraw(i: {
   let size: string;
   try {
     px = formatPrice(ref * (1 + SLIPPAGE), m.szDecimals, 'spot');
-    size = formatSize(i.amount / Number(px), m.szDecimals);
+    // about $1 of the amount stays in spot for the transfer fee; the rest buys SOL
+    size = formatSize((i.amount - SEND_GAS_USD) / Number(px), m.szDecimals);
   } catch {
     return { ok: false, reason: 'That amount is too small to buy SOL with. Withdraw a little more.' };
   }
   if (Number(size) < MIN_WITHDRAW_SOL)
-    return { ok: false, reason: `Withdraw at least ${usd(minWithdrawUsd(ref))}.` };
-  const need = centsUp(Number(size) * Number(px));
+    return { ok: false, reason: `Withdraw at least ${usd(centsUp(minWithdrawUsd(ref) + SEND_GAS_USD))}.` };
+  const need = centsUp(Number(size) * Number(px) + SEND_GAS_USD);
   const lack = centsUp(need - Math.max(0, i.spotUsdc));
   const move = lack > 0 ? Math.min(lack, cents(i.perp)) : 0;
   return {
@@ -223,3 +231,6 @@ export function planSendUsol(
     };
   return { ok: true, amount };
 }
+
+/** USDC to bring into spot so a send can pay its transfer fee, or 0 when spot has enough. */
+export const gasLack = (spotUsdc: number) => Math.max(0, centsUp(SEND_GAS_USD - Math.max(0, spotUsdc)));

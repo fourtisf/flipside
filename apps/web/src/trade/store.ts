@@ -19,6 +19,7 @@ import { TRADING } from './config';
 import {
   MIN_WITHDRAW_SOL,
   free,
+  gasLack,
   planSellUsol,
   planSendUsol,
   planWithdraw,
@@ -443,19 +444,65 @@ export class TradeStore {
       const to = await unitWithdrawAddress(sol);
       if (!to)
         return say("Couldn't get your withdrawal address from Unit. Nothing moved. Try again in a minute.");
-      const [spotMeta, spotState] = await Promise.all([
+      const [spotMeta, spotState, perps] = await Promise.all([
         info.spotMetaAndAssetCtxs(httpConfig()),
         info.spotClearinghouseState(httpConfig(), { user: owner }),
+        info.clearinghouseState(httpConfig(), { user: owner }),
       ]);
       const market = usolMarket(spotMeta);
-      const plan = planSendUsol(toSpot(spotState), market);
+      let spot = toSpot(spotState);
+      const plan = planSendUsol(spot, market);
       if (!plan) return say('There is no SOL in your account to send.');
       if (!plan.ok) return say(plan.reason);
-      await spotSend(
-        { ...httpConfig(), wallet: await this.wallet.signer() },
-        { destination: to, token: market!.token, amount: plan.amount },
-      );
-      this.sent(plan.amount, sol);
+      let amount = plan.amount;
+      const signer = await this.wallet.signer();
+      // Hyperliquid's transfer fee is paid in USDC from spot: bring about $1 there first
+      const lack = gasLack(free(spot, 'USDC'));
+      if (lack > 0 && Number(perps.withdrawable) >= lack) {
+        await usdClassTransfer(
+          { ...httpConfig(), wallet: signer },
+          { amount: lack.toFixed(2), toPerp: false },
+        );
+      } else if (lack > 0) {
+        // no USDC anywhere: sell the SOL and buy it back less about $1 (Hyperliquid's smallest order is $10, so
+        // a small part can't be sold on its own); the trading key signs both
+        if (!this.ready())
+          return say('Enable trading first: Coinside needs to set aside about $1 USDC for the transfer fee.');
+        const book = await info.l2Book(httpConfig(), { coin: market!.pair }).catch(() => null);
+        const sell = planSellUsol(spot, market, Number(book?.levels?.[0]?.[0]?.px ?? 0));
+        if (!sell || !sell.ok)
+          return say(
+            "Sending needs about $1 USDC in your account for Hyperliquid's transfer fee, and there is none. Deposit a little more SOL, then try again.",
+          );
+        const sold = await order(this.agentConfig(), { orders: [sell.order], grouping: 'na' });
+        const s1 = sold.response.data.statuses[0];
+        if (!(s1 && typeof s1 === 'object' && 'filled' in s1))
+          return say(
+            "Couldn't set aside the transfer fee: the sale didn't fill. Nothing was sent. Try again.",
+          );
+        spot = toSpot(await info.spotClearinghouseState(httpConfig(), { user: owner }));
+        const usdc = free(spot, 'USDC');
+        const rebuy = planWithdraw({
+          amount: Math.floor(usdc * 100) / 100,
+          perp: 0,
+          spotUsdc: usdc,
+          m: market,
+          ask: Number(book?.levels?.[1]?.[0]?.px ?? 0),
+        });
+        if (!rebuy.ok)
+          return say(
+            `${rebuy.reason} Your SOL was sold to USDC; withdraw it from your trading balance below.`,
+          );
+        const bought = await order(this.agentConfig(), { orders: [rebuy.plan.order], grouping: 'na' });
+        const s2 = bought.response.data.statuses[0];
+        if (!(s2 && typeof s2 === 'object' && 'filled' in s2))
+          return say(
+            "Buying the SOL back didn't fill. Your money is in your account as USDC; withdraw it below.",
+          );
+        amount = s2.filled.totalSz;
+      }
+      await spotSend({ ...httpConfig(), wallet: signer }, { destination: to, token: market!.token, amount });
+      this.sent(amount, sol);
       return true;
     } catch (e) {
       this.checkKey(e);
